@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Family Cash-Flow — Coverage &amp; Distributable</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#fbfaf6;
+    --card:#ffffff;
+    --ink:#202a24;
+    --ink-soft:#5b6760;
+    --line:#e4dfd2;
+    --jade:#2e6f4e;
+    --jade-soft:#e7f0ea;
+    --rust:#b1502b;
+    --rust-soft:#f5e7df;
+    --gold:#b08a3e;
+    --gold-soft:#f3ead4;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:64px;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:28px 18px 0;}
+  .num{font-family:'IBM Plex Mono','Fraunces',monospace;font-variant-numeric:tabular-nums;}
+  header.top{margin-bottom:22px;}
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--ink-soft);margin-bottom:6px;
+  }
+  h1{
+    font-family:'Fraunces',serif;font-weight:600;font-size:28px;
+    margin:0 0 4px;letter-spacing:-0.01em;
+  }
+  .asof{font-size:13px;color:var(--ink-soft);}
+  .stale-banner{
+    display:none;background:var(--gold-soft);border:1px solid var(--gold);
+    color:#6b5424;font-size:13px;padding:9px 12px;border-radius:10px;margin-bottom:16px;
+  }
+  .stale-banner.show{display:block;}
+  section{margin-bottom:30px;}
+  .section-title{
+    font-family:'Fraunces',serif;font-weight:600;font-size:16px;
+    margin:0 0 12px;color:var(--ink);
+  }
+  .grid4{
+    display:grid;grid-template-columns:1fr 1fr;gap:12px;
+  }
+  @media(min-width:600px){.grid4{grid-template-columns:repeat(4,1fr);}}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px;
+  }
+  .indicator .label{
+    font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--ink-soft);margin-bottom:8px;
+  }
+  .indicator .value{
+    font-family:'Fraunces',serif;font-weight:600;font-size:26px;line-height:1.1;
+  }
+  .indicator .value.num{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:22px;}
+  .indicator .sub{font-size:12px;color:var(--ink-soft);margin-top:6px;}
+  .indicator.positive .value{color:var(--jade);}
+  .indicator.warning .value{color:var(--rust);}
+  .indicator.gold .value{color:var(--gold);}
+
+  .chart-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 16px 8px;}
+  canvas#projChart{width:100%!important;height:220px!important;}
+  .lowpoint{
+    display:flex;align-items:baseline;gap:8px;margin-top:12px;
+    background:var(--rust-soft);border-left:3px solid var(--rust);
+    border-radius:8px;padding:9px 12px;font-size:13px;
+  }
+  .lowpoint .tag{
+    font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--rust);
+  }
+  .lowpoint.ok{background:var(--jade-soft);border-left-color:var(--jade);}
+  .lowpoint.ok .tag{color:var(--jade);}
+
+  .tip{
+    background:var(--card);border:1px solid var(--line);border-left:3px solid var(--gold);
+    border-radius:10px;padding:11px 14px;font-size:13.5px;margin-bottom:8px;
+  }
+  .tip.risk{border-left-color:var(--rust);}
+  .tip.ok{border-left-color:var(--jade);}
+
+  .goal{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:12px 14px;margin-bottom:8px;
+  }
+  .goal .rank{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);
+    background:var(--bg);border:1px solid var(--line);border-radius:6px;
+    padding:2px 6px;margin-right:8px;
+  }
+  .goal .name{font-weight:600;font-size:14.5px;}
+  .goal .meta{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .goal .amt{font-family:'IBM Plex Mono',monospace;font-size:13.5px;text-align:right;white-space:nowrap;}
+  .badge{
+    font-size:10px;letter-spacing:.05em;text-transform:uppercase;
+    padding:2px 7px;border-radius:20px;font-family:'IBM Plex Mono',monospace;
+  }
+  .badge.urgent{background:var(--rust-soft);color:var(--rust);}
+  .badge.planned{background:var(--jade-soft);color:var(--jade);}
+
+  .divider{
+    display:flex;align-items:center;gap:10px;margin:36px 0 16px;
+    color:var(--ink-soft);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  }
+  .divider::before,.divider::after{content:'';flex:1;border-top:1px dashed var(--line);}
+
+  form.balance-form{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  label{display:block;font-size:12px;color:var(--ink-soft);margin:12px 0 5px;}
+  label:first-child{margin-top:0;}
+  input{
+    width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:8px;
+    font-family:'IBM Plex Mono',monospace;font-size:14px;background:var(--bg);color:var(--ink);
+  }
+  input:focus{outline:2px solid var(--jade);outline-offset:1px;border-color:var(--jade);}
+  .hint{font-size:11.5px;color:var(--ink-soft);margin-top:4px;}
+  button{
+    margin-top:18px;width:100%;padding:12px;border:none;border-radius:10px;
+    background:var(--jade);color:#fff;font-weight:600;font-size:14.5px;cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  button:disabled{opacity:.6;cursor:default;}
+  .form-msg{margin-top:10px;font-size:13px;padding:9px 11px;border-radius:8px;display:none;}
+  .form-msg.show{display:block;}
+  .form-msg.ok{background:var(--jade-soft);color:var(--jade);}
+  .form-msg.err{background:var(--rust-soft);color:var(--rust);}
+
+  .loading,.error-state{text-align:center;padding:60px 20px;color:var(--ink-soft);}
+  @media (prefers-reduced-motion:no-preference){
+    .card,.goal,.tip{animation:fadein .35s ease both;}
+    @keyframes fadein{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Family Cash-Flow</div>
+    <h1>Coverage &amp; Distributable</h1>
+    <div class="asof" id="asOfLine">Loading…</div>
+  </header>
+
+  <div class="stale-banner" id="staleBanner">May be outdated — showing last saved numbers because today's data couldn't be fetched.</div>
+
+  <div id="app" style="display:none;">
+    <section>
+      <div class="grid4">
+        <div class="card indicator positive" id="cardThisWeek">
+          <div class="label">This week</div>
+          <div class="value num">—</div>
+        </div>
+        <div class="card indicator positive" id="cardNextWeek">
+          <div class="label">Next week</div>
+          <div class="value num">—</div>
+        </div>
+        <div class="card indicator" id="cardCoverage">
+          <div class="label">Coverage</div>
+          <div class="value">—</div>
+        </div>
+        <div class="card indicator gold" id="cardEF">
+          <div class="label">Available for EF</div>
+          <div class="value num">—</div>
+          <div class="sub" id="efSub"></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">8-week projection</div>
+      <div class="chart-card">
+        <canvas id="projChart" height="220"></canvas>
+        <div class="lowpoint" id="lowpointCallout"></div>
+      </div>
+    </section>
+
+    <section id="tipsSection" style="display:none;">
+      <div class="section-title">Notes</div>
+      <div id="tipsList"></div>
+    </section>
+
+    <section>
+      <div class="section-title">Goals</div>
+      <div id="goalsList"></div>
+    </section>
+
+    <div class="divider">Do this last — weekly update</div>
+
+    <section>
+      <form class="balance-form" id="balanceForm">
+        <label for="f-date">Date</label>
+        <input type="date" id="f-date" required>
+
+        <div class="row2">
+          <div>
+            <label for="f-alex">Alex KTB balance</label>
+            <input type="number" step="0.01" id="f-alex" required>
+          </div>
+          <div>
+            <label for="f-olga">Olga KTB balance</label>
+            <input type="number" step="0.01" id="f-olga" required>
+          </div>
+        </div>
+
+        <label for="f-oo-name">One-off payment (optional)</label>
+        <input type="text" id="f-oo-name" placeholder="e.g. Dentist deposit">
+
+        <div class="row2">
+          <div>
+            <label for="f-oo-amount">Amount</label>
+            <input type="number" step="0.01" id="f-oo-amount">
+          </div>
+          <div>
+            <label for="f-oo-account">Account</label>
+            <input type="text" id="f-oo-account" placeholder="Alex or Olga">
+          </div>
+        </div>
+        <div class="hint">Payment split across both accounts? Submit this form twice — once per account.</div>
+
+        <label for="f-pin">PIN</label>
+        <input type="password" id="f-pin" inputmode="numeric" required>
+
+        <button type="submit" id="submitBtn">Save balance check</button>
+        <div class="form-msg" id="formMsg"></div>
+      </form>
+    </section>
+  </div>
+
+  <div class="loading" id="loadingState">Loading current numbers…</div>
+  <div class="error-state" id="errorState" style="display:none;">
+    Couldn't load data, and no previous numbers are saved on this device.<br>Check your connection and reload.
+  </div>
+</div>
+
+<script>
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby87MAQUg8B-DbesHJjY2-F1bnZqeOEVKNVo1sjrOU1qogF5J_Slz0Elq1zLqLwSRVEyg/exec';
+const CACHE_KEY = 'familyCashFlow_lastGood';
+
+function fmt(n){
+  const v = Math.round(Number(n) || 0);
+  return v.toLocaleString('en-US');
+}
+function fmtDate(iso){
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+}
+
+let chartInstance = null;
+
+function render(data, meta){
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('errorState').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+
+  const staleBanner = document.getElementById('staleBanner');
+  if(meta && meta.stale){
+    staleBanner.classList.add('show');
+    document.getElementById('asOfLine').textContent =
+      'As of ' + data.asOf + ' (cached ' + new Date(meta.fetchedAt).toLocaleString() + ')';
+  } else {
+    staleBanner.classList.remove('show');
+    document.getElementById('asOfLine').textContent = 'As of ' + data.asOf;
+  }
+
+  // Top four indicators
+  document.querySelector('#cardThisWeek .value').textContent =
+    fmt(data.distributableThisWeek.distributable) + ' ' + data.config.currency;
+  document.querySelector('#cardNextWeek .value').textContent =
+    fmt(data.distributableNextWeek.distributable) + ' ' + data.config.currency;
+
+  const covCard = document.getElementById('cardCoverage');
+  const covValue = covCard.querySelector('.value');
+  if(data.coverage.covered){
+    covCard.classList.add('positive'); covCard.classList.remove('warning');
+    covValue.textContent = 'Covered';
+  } else {
+    covCard.classList.add('warning'); covCard.classList.remove('positive');
+    covValue.textContent = 'Short ' + fmt(data.coverage.shortfall);
+    let sub = covCard.querySelector('.sub');
+    if(!sub){ sub = document.createElement('div'); sub.className='sub'; covCard.appendChild(sub); }
+    sub.textContent = data.coverage.obligationsCausingShortfall.join(', ');
+  }
+
+  document.querySelector('#cardEF .value').textContent =
+    fmt(data.distributableAvailableForEF) + ' ' + data.config.currency;
+  const efGap = Number(data.config.emergencyFundTarget) - Number(data.config.emergencyFundCurrent);
+  document.getElementById('efSub').textContent =
+    fmt(data.config.emergencyFundCurrent) + ' / ' + fmt(data.config.emergencyFundTarget) +
+    ' saved (' + (efGap > 0 ? fmt(efGap) + ' to go' : 'target reached') + ')';
+
+  // Projection chart
+  const labels = data.projection.series.map(p => fmtDate(p.date));
+  const values = data.projection.series.map(p => p.balance);
+  const ctx = document.getElementById('projChart').getContext('2d');
+  if(chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        borderColor: '#2e6f4e',
+        backgroundColor: 'rgba(46,111,78,0.08)',
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: true,
+        tension: 0.25
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display:false } },
+      scales: {
+        x: { ticks:{ maxTicksLimit:8, font:{family:"'IBM Plex Mono'",size:10} }, grid:{ display:false } },
+        y: { ticks:{ font:{family:"'IBM Plex Mono'",size:10}, callback:v=>fmt(v) }, grid:{ color:'#e4dfd2' } }
+      }
+    }
+  });
+
+  const lp = data.projection.lowestPoint;
+  const lpEl = document.getElementById('lowpointCallout');
+  if(lp.balance < 0){
+    lpEl.className = 'lowpoint';
+    lpEl.innerHTML = '<span class="tag">Lowest point</span> ' + fmt(lp.balance) + ' ' + data.config.currency + ' around ' + fmtDate(lp.date);
+  } else {
+    lpEl.className = 'lowpoint ok';
+    lpEl.innerHTML = '<span class="tag">Lowest point</span> ' + fmt(lp.balance) + ' ' + data.config.currency + ' around ' + fmtDate(lp.date) + ' — stays positive';
+  }
+
+  // Tips
+  const tipsSection = document.getElementById('tipsSection');
+  const tipsList = document.getElementById('tipsList');
+  tipsList.innerHTML = '';
+  if(data.tips && data.tips.length > 0){
+    tipsSection.style.display = 'block';
+    data.tips.forEach(t => {
+      const div = document.createElement('div');
+      const isRisk = /shortfall|below zero/i.test(t);
+      div.className = 'tip ' + (isRisk ? 'risk' : 'ok');
+      div.textContent = t;
+      tipsList.appendChild(div);
+    });
+  } else {
+    tipsSection.style.display = 'none';
+  }
+
+  // Goals
+  const goalsList = document.getElementById('goalsList');
+  goalsList.innerHTML = '';
+  const goals = (data.goals || [])
+    .filter(g => g['Status'] !== 'done')
+    .sort((a,b) => Number(a['Priority rank']) - Number(b['Priority rank']));
+  goals.forEach(g => {
+    const target = g['Target amount']
+      ? fmt(g['Target amount'])
+      : fmt(g['Target amount min']) + '–' + fmt(g['Target amount max']);
+    const row = document.createElement('div');
+    row.className = 'goal';
+    row.innerHTML =
+      '<div>' +
+        '<span class="rank">#' + g['Priority rank'] + '</span>' +
+        '<span class="badge ' + g['Type'] + '">' + g['Type'] + '</span> ' +
+        '<div class="name">' + g['Name'] + '</div>' +
+        '<div class="meta">' + (g['Status'] || '') + (g['Target date'] ? ' · target ' + g['Target date'] : '') + '</div>' +
+      '</div>' +
+      '<div class="amt">' + fmt(g['Saved so far'] || 0) + ' / ' + target + '<br><span style="color:var(--ink-soft);font-size:11px;">' + data.config.currency + '</span></div>';
+    goalsList.appendChild(row);
+  });
+  if(goals.length === 0){
+    goalsList.innerHTML = '<div class="card" style="text-align:center;color:var(--ink-soft);">No active goals.</div>';
+  }
+}
+
+async function loadData(){
+  try{
+    const res = await fetch(APPS_SCRIPT_URL, { method:'GET' });
+    if(!res.ok) throw new Error('Network response not OK');
+    const data = await res.json();
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ data, fetchedAt: new Date().toISOString() }));
+    render(data, { stale:false });
+  } catch(err){
+    const cached = localStorage.getItem(CACHE_KEY);
+    if(cached){
+      const parsed = JSON.parse(cached);
+      render(parsed.data, { stale:true, fetchedAt: parsed.fetchedAt });
+    } else {
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('errorState').style.display = 'block';
+    }
+  }
+}
+
+document.getElementById('f-date').valueAsDate = new Date();
+
+document.getElementById('balanceForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  const msg = document.getElementById('formMsg');
+  msg.className = 'form-msg';
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  const payload = {
+    date: document.getElementById('f-date').value,
+    alexBalance: document.getElementById('f-alex').value,
+    olgaBalance: document.getElementById('f-olga').value,
+    oneOffName: document.getElementById('f-oo-name').value,
+    oneOffAmount: document.getElementById('f-oo-amount').value,
+    oneOffAccount: document.getElementById('f-oo-account').value,
+    pin: document.getElementById('f-pin').value
+  };
+
+  try{
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    if(result.ok){
+      msg.textContent = 'Saved.';
+      msg.classList.add('ok','show');
+      document.getElementById('f-oo-name').value = '';
+      document.getElementById('f-oo-amount').value = '';
+      document.getElementById('f-oo-account').value = '';
+      document.getElementById('f-pin').value = '';
+      loadData();
+    } else {
+      msg.textContent = result.error || 'Could not save — check the PIN and try again.';
+      msg.classList.add('err','show');
+    }
+  } catch(err){
+    msg.textContent = 'Network error — try again.';
+    msg.classList.add('err','show');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save balance check';
+  }
+});
+
+loadData();
+</script>
+</body>
+</html>

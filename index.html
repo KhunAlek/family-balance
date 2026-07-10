@@ -141,6 +141,14 @@
     border-color:var(--jade);box-shadow:0 0 0 1px var(--jade) inset;
   }
   .weekly-var-cards .card.current .label{color:var(--jade);}
+  .weekly-var-cards .card.closed{background:var(--bg);}
+  .weekly-var-cards .wv-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:5px;}
+  .weekly-var-cards .wv-row .wv-tag{font-size:10.5px;color:var(--ink-soft);}
+  .weekly-var-cards .wv-row .wv-value{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:13px;}
+  .weekly-var-cards .wv-carry{font-size:11px;color:var(--ink-soft);margin-top:5px;}
+  .weekly-var-cards .wv-carry.over{color:var(--rust);}
+  .weekly-var-cards .wv-carry.under{color:var(--jade);}
+  .weekly-var-cards .wv-provisional{font-size:9.5px;color:var(--gold);margin-top:6px;font-style:italic;}
 
   .link-btn{
     background:none;border:none;color:var(--jade);font-size:13px;font-weight:600;
@@ -353,14 +361,30 @@ function renderWeeklyVarCards(data){
   const section = document.getElementById('weeklyVarSection');
   const el = document.getElementById('weeklyVarCards');
   const cards = data.weeklyVariablesCards || [];
+  const currency = data.config.currency;
   el.innerHTML = '';
   if(cards.length === 0){ section.style.display = 'none'; return; }
   section.style.display = 'block';
   cards.forEach(c => {
     const card = document.createElement('div');
-    card.className = 'card' + (c.isCurrent ? ' current' : '');
-    const label = (c.isCurrent ? 'This week · ' : '') + fmtDate(c.cardStart) + '–' + fmtDate(c.cardEnd);
-    card.innerHTML = '<div class="label">' + label + '</div><div class="value">' + fmt(c.weeklySlice) + ' ' + data.config.currency + '</div>';
+    card.className = 'card' + (c.isCurrent ? ' current' : '') + (c.isClosed ? ' closed' : '');
+    const label = (c.isCurrent ? 'This week · ' : (c.isClosed ? 'Closed · ' : '')) + fmtDate(c.cardStart) + '–' + fmtDate(c.cardEnd);
+
+    if(c.isClosed){
+      const hasFactual = c.factual !== 'no data';
+      let html = '<div class="label">' + label + '</div>' +
+        '<div class="wv-row"><span class="wv-tag">Projected</span><span class="wv-value">' + fmt(c.weeklySlice) + ' ' + currency + '</span></div>' +
+        '<div class="wv-row"><span class="wv-tag">Factual</span><span class="wv-value">' + (hasFactual ? fmt(c.factual) + ' ' + currency : 'No data') + '</span></div>';
+      if(hasFactual){
+        const co = c.carryOver;
+        const coClass = co > 0 ? 'over' : (co < 0 ? 'under' : '');
+        html += '<div class="wv-carry ' + coClass + '">Carry-over: ' + (co >= 0 ? '+' : '') + fmt(co) + ' ' + currency + '</div>';
+      }
+      html += '<div class="wv-provisional">Provisional — not yet frozen</div>';
+      card.innerHTML = html;
+    } else {
+      card.innerHTML = '<div class="label">' + label + '</div><div class="value">' + fmt(c.weeklySlice) + ' ' + currency + '</div>';
+    }
     el.appendChild(card);
   });
 }

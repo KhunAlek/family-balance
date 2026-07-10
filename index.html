@@ -112,12 +112,35 @@
   .goal .name{font-weight:600;font-size:14.5px;}
   .goal .meta{font-size:12px;color:var(--ink-soft);margin-top:2px;}
   .goal .amt{font-family:'IBM Plex Mono',monospace;font-size:13.5px;text-align:right;white-space:nowrap;}
-  .badge{
-    font-size:10px;letter-spacing:.05em;text-transform:uppercase;
-    padding:2px 7px;border-radius:20px;font-family:'IBM Plex Mono',monospace;
+  .goal-indicators{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+    gap:12px;margin-top:12px;
   }
-  .badge.urgent{background:var(--rust-soft);color:var(--rust);}
-  .badge.planned{background:var(--jade-soft);color:var(--jade);}
+  .goal-indicators .card{padding:13px 14px;}
+  .goal-indicators .label{
+    font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--ink-soft);margin-bottom:6px;
+  }
+  .goal-indicators .value{
+    font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:18px;color:var(--gold);
+  }
+
+  .link-btn{
+    background:none;border:none;color:var(--jade);font-size:13px;font-weight:600;
+    cursor:pointer;padding:6px 0;font-family:'Inter',sans-serif;
+  }
+
+  .split-preview{
+    background:var(--gold-soft);border:1px solid var(--gold);border-radius:10px;
+    padding:12px 14px;margin:12px 0;font-size:13px;
+  }
+  .split-preview-title{font-weight:600;margin-bottom:8px;color:#6b5424;}
+  .split-row{display:flex;justify-content:space-between;padding:3px 0;}
+  .split-confirm{
+    display:flex;align-items:flex-start;gap:8px;margin-top:10px;padding-top:10px;
+    border-top:1px dashed var(--gold);font-size:12.5px;color:#6b5424;cursor:pointer;
+  }
+  .split-confirm input{width:auto;margin-top:2px;}
 
   .divider{
     display:flex;align-items:center;gap:10px;margin:36px 0 16px;
@@ -184,6 +207,7 @@
           <div class="sub" id="efSub"></div>
         </div>
       </div>
+      <div class="goal-indicators" id="goalIndicators"></div>
     </section>
 
     <section>
@@ -202,6 +226,32 @@
     <section>
       <div class="section-title">Goals</div>
       <div id="goalsList"></div>
+      <button type="button" class="link-btn" id="addGoalToggle">+ Add goal</button>
+      <form class="balance-form" id="addGoalForm" style="display:none;margin-top:10px;">
+        <label for="g-name">Goal name</label>
+        <input type="text" id="g-name" required>
+
+        <div class="row2">
+          <div>
+            <label for="g-amount">Target amount</label>
+            <input type="number" step="0.01" id="g-amount" required>
+          </div>
+          <div>
+            <label for="g-rank">Priority rank</label>
+            <input type="number" step="1" id="g-rank" required>
+          </div>
+        </div>
+        <div class="hint">Rank sets the claim order among goals — lower goes first. Edit it later any time by asking to change a goal's rank.</div>
+
+        <label for="g-date">Target date (optional)</label>
+        <input type="date" id="g-date">
+
+        <label for="g-pin">PIN</label>
+        <input type="password" id="g-pin" inputmode="numeric" required>
+
+        <button type="submit" id="addGoalBtn">Add goal</button>
+        <div class="form-msg" id="addGoalMsg"></div>
+      </form>
     </section>
 
     <div class="divider">Do this last — weekly update</div>
@@ -237,6 +287,16 @@
         </div>
         <div class="hint">Payment split across both accounts? Submit this form twice — once per account.</div>
 
+        <div class="split-preview" id="splitPreview" style="display:none;">
+          <div class="split-preview-title">This payment is bigger than what's safely available this week</div>
+          <div class="split-row"><span>From Alex/Olga KTB (safe portion)</span><span class="num" id="splitSafe">—</span></div>
+          <div class="split-row"><span>From the Emergency Fund</span><span class="num" id="splitEF">—</span></div>
+          <label class="split-confirm">
+            <input type="checkbox" id="splitConfirmCheck">
+            <span>I confirm the Emergency Fund transfer has been or will be made</span>
+          </label>
+        </div>
+
         <label for="f-pin">PIN</label>
         <input type="password" id="f-pin" inputmode="numeric" required>
 
@@ -253,7 +313,7 @@
 </div>
 
 <script>
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby87MAQUg8B-DbesHJjY2-F1bnZqeOEVKNVo1sjrOU1qogF5J_Slz0Elq1zLqLwSRVEyg/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZrhAbyejB9cOv-56cSNilWlrw626DOWLd5A7CezQiM2bAKN61oDk_9RNm_7zb5d4kTA/exec';
 const CACHE_KEY = 'familyCashFlow_lastGood';
 
 function fmt(n){
@@ -302,11 +362,26 @@ function render(data, meta){
   }
 
   document.querySelector('#cardEF .value').textContent =
-    fmt(data.distributableAvailableForEF) + ' ' + data.config.currency;
+    fmt(data.efClaimThisWeek.claimed) + ' ' + data.config.currency;
   const efGap = Number(data.config.emergencyFundTarget) - Number(data.config.emergencyFundCurrent);
-  document.getElementById('efSub').textContent =
-    fmt(data.config.emergencyFundCurrent) + ' / ' + fmt(data.config.emergencyFundTarget) +
+  let efSubText = fmt(data.config.emergencyFundCurrent) + ' / ' + fmt(data.config.emergencyFundTarget) +
     ' saved (' + (efGap > 0 ? fmt(efGap) + ' to go' : 'target reached') + ')';
+  if(data.efClaimThisWeek.claimed < data.efClaimThisWeek.wanted){
+    efSubText += ' · limited this week';
+  }
+  document.getElementById('efSub').textContent = efSubText;
+
+  // Per-goal "Available for Goal X" indicators (Step 7 addendum sec 7)
+  const goalIndicatorsEl = document.getElementById('goalIndicators');
+  goalIndicatorsEl.innerHTML = '';
+  (data.goalsClaimsThisWeek || []).forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'card indicator';
+    card.innerHTML =
+      '<div class="label">Available for ' + c.name + '</div>' +
+      '<div class="value">' + fmt(c.weeklyClaim) + ' ' + data.config.currency + '</div>';
+    goalIndicatorsEl.appendChild(card);
+  });
 
   // Projection chart
   const labels = data.projection.series.map(p => fmtDate(p.date));
@@ -356,7 +431,7 @@ function render(data, meta){
     tipsSection.style.display = 'block';
     data.tips.forEach(t => {
       const div = document.createElement('div');
-      const isRisk = /shortfall|below zero/i.test(t);
+      const isRisk = /shortfall|below zero|no surplus available|contribution limited/i.test(t);
       div.className = 'tip ' + (isRisk ? 'risk' : 'ok');
       div.textContent = t;
       tipsList.appendChild(div);
@@ -369,26 +444,28 @@ function render(data, meta){
   const goalsList = document.getElementById('goalsList');
   goalsList.innerHTML = '';
   const goals = (data.goals || [])
-    .filter(g => g['Status'] !== 'done')
-    .sort((a,b) => Number(a['Priority rank']) - Number(b['Priority rank']));
+    .filter(g => g.status !== 'done')
+    .sort((a,b) => Number(a.priorityRank) - Number(b.priorityRank));
   goals.forEach(g => {
-    const target = g['Target amount']
-      ? fmt(g['Target amount'])
-      : fmt(g['Target amount min']) + '–' + fmt(g['Target amount max']);
     const row = document.createElement('div');
     row.className = 'goal';
     row.innerHTML =
       '<div>' +
-        '<span class="rank">#' + g['Priority rank'] + '</span>' +
-        '<span class="badge ' + g['Type'] + '">' + g['Type'] + '</span> ' +
-        '<div class="name">' + g['Name'] + '</div>' +
-        '<div class="meta">' + (g['Status'] || '') + (g['Target date'] ? ' · target ' + g['Target date'] : '') + '</div>' +
+        '<span class="rank">#' + g.priorityRank + '</span>' +
+        '<div class="name">' + g.name + '</div>' +
+        '<div class="meta">' + (g.status || '') + (g.targetDate ? ' · target ' + g.targetDate : '') + '</div>' +
       '</div>' +
-      '<div class="amt">' + fmt(g['Saved so far'] || 0) + ' / ' + target + '<br><span style="color:var(--ink-soft);font-size:11px;">' + data.config.currency + '</span></div>';
+      '<div class="amt">' + fmt(g.savedSoFar || 0) + ' / ' + fmt(g.targetAmount) + '<br><span style="color:var(--ink-soft);font-size:11px;">' + data.config.currency + '</span></div>';
     goalsList.appendChild(row);
   });
   if(goals.length === 0){
     goalsList.innerHTML = '<div class="card" style="text-align:center;color:var(--ink-soft);">No active goals.</div>';
+  }
+
+  // Pre-fill the suggested next rank for the "add goal" form
+  const gRank = document.getElementById('g-rank');
+  if(gRank && !gRank.dataset.userEdited){
+    gRank.value = data.suggestedNextGoalRank;
   }
 }
 
@@ -413,23 +490,82 @@ async function loadData(){
 
 document.getElementById('f-date').valueAsDate = new Date();
 
+document.getElementById('g-rank').addEventListener('input', () => {
+  document.getElementById('g-rank').dataset.userEdited = '1';
+});
+
+// ---- Split-payment preview (Step 7 addendum sec 5 / resolution sec 3) ----
+let lastSplitPreview = null;
+let splitPreviewTimer = null;
+
+async function refreshSplitPreview(){
+  const amount = Number(document.getElementById('f-oo-amount').value);
+  const panel = document.getElementById('splitPreview');
+  const checkbox = document.getElementById('splitConfirmCheck');
+
+  if(!amount || amount <= 0){
+    lastSplitPreview = null;
+    panel.style.display = 'none';
+    checkbox.checked = false;
+    return;
+  }
+  try{
+    const res = await fetch(APPS_SCRIPT_URL + '?previewSplitAmount=' + encodeURIComponent(amount));
+    const data = await res.json();
+    const preview = data.splitPreview;
+    if(preview && preview.efPortion > 0){
+      lastSplitPreview = preview;
+      document.getElementById('splitSafe').textContent = fmt(preview.safePortion);
+      document.getElementById('splitEF').textContent = fmt(preview.efPortion);
+      panel.style.display = 'block';
+    } else {
+      lastSplitPreview = null;
+      panel.style.display = 'none';
+      checkbox.checked = false;
+    }
+  } catch(err){
+    // If the preview call fails, fall back to a plain submission rather than
+    // blocking the form — the backend recomputes the split itself server-side
+    // if the amount turns out to be large (see the splitPayment action).
+    lastSplitPreview = null;
+    panel.style.display = 'none';
+  }
+}
+
+document.getElementById('f-oo-amount').addEventListener('input', () => {
+  clearTimeout(splitPreviewTimer);
+  splitPreviewTimer = setTimeout(refreshSplitPreview, 500);
+});
+
 document.getElementById('balanceForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = document.getElementById('submitBtn');
   const msg = document.getElementById('formMsg');
   msg.className = 'form-msg';
+
+  const oneOffAmount = document.getElementById('f-oo-amount').value;
+  const usingSplit = !!(lastSplitPreview && lastSplitPreview.efPortion > 0);
+
+  if(usingSplit && !document.getElementById('splitConfirmCheck').checked){
+    msg.textContent = 'Please confirm the Emergency Fund transfer before saving.';
+    msg.classList.add('err','show');
+    return;
+  }
+
   btn.disabled = true;
   btn.textContent = 'Saving…';
 
-  const payload = {
+  const basePayload = {
     date: document.getElementById('f-date').value,
     alexBalance: document.getElementById('f-alex').value,
     olgaBalance: document.getElementById('f-olga').value,
     oneOffName: document.getElementById('f-oo-name').value,
-    oneOffAmount: document.getElementById('f-oo-amount').value,
     oneOffAccount: document.getElementById('f-oo-account').value,
     pin: document.getElementById('f-pin').value
   };
+  const payload = usingSplit
+    ? Object.assign({ action: 'splitPayment', totalAmount: oneOffAmount }, basePayload)
+    : Object.assign({ action: 'balanceCheck', oneOffAmount: oneOffAmount }, basePayload);
 
   try{
     const res = await fetch(APPS_SCRIPT_URL, {
@@ -439,12 +575,17 @@ document.getElementById('balanceForm').addEventListener('submit', async (e) => {
     });
     const result = await res.json();
     if(result.ok){
-      msg.textContent = 'Saved.';
+      msg.textContent = usingSplit
+        ? 'Saved — ' + fmt(lastSplitPreview.efPortion) + ' recorded as an EF withdrawal.'
+        : 'Saved.';
       msg.classList.add('ok','show');
       document.getElementById('f-oo-name').value = '';
       document.getElementById('f-oo-amount').value = '';
       document.getElementById('f-oo-account').value = '';
       document.getElementById('f-pin').value = '';
+      document.getElementById('splitPreview').style.display = 'none';
+      document.getElementById('splitConfirmCheck').checked = false;
+      lastSplitPreview = null;
       loadData();
     } else {
       msg.textContent = result.error || 'Could not save — check the PIN and try again.';
@@ -456,6 +597,59 @@ document.getElementById('balanceForm').addEventListener('submit', async (e) => {
   } finally {
     btn.disabled = false;
     btn.textContent = 'Save balance check';
+  }
+});
+
+// ---- Add goal (Step 7 resolution sec 4: rank prompted at creation) ----
+document.getElementById('addGoalToggle').addEventListener('click', () => {
+  const form = document.getElementById('addGoalForm');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+});
+
+document.getElementById('addGoalForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('addGoalBtn');
+  const msg = document.getElementById('addGoalMsg');
+  msg.className = 'form-msg';
+  btn.disabled = true;
+  btn.textContent = 'Adding…';
+
+  const payload = {
+    action: 'addGoal',
+    name: document.getElementById('g-name').value,
+    targetAmount: document.getElementById('g-amount').value,
+    priorityRank: document.getElementById('g-rank').value,
+    targetDate: document.getElementById('g-date').value,
+    pin: document.getElementById('g-pin').value
+  };
+
+  try{
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    if(result.ok){
+      msg.textContent = 'Goal added.';
+      msg.classList.add('ok','show');
+      document.getElementById('g-name').value = '';
+      document.getElementById('g-amount').value = '';
+      document.getElementById('g-date').value = '';
+      document.getElementById('g-pin').value = '';
+      document.getElementById('g-rank').dataset.userEdited = '';
+      document.getElementById('addGoalForm').style.display = 'none';
+      loadData();
+    } else {
+      msg.textContent = result.error || 'Could not add goal — check the PIN and try again.';
+      msg.classList.add('err','show');
+    }
+  } catch(err){
+    msg.textContent = 'Network error — try again.';
+    msg.classList.add('err','show');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Add goal';
   }
 });
 

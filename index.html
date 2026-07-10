@@ -125,6 +125,23 @@
     font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:18px;color:var(--gold);
   }
 
+  .weekly-var-section{margin-bottom:24px;}
+  .weekly-var-cards{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;
+  }
+  .weekly-var-cards .card{padding:12px 13px;}
+  .weekly-var-cards .label{
+    font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--ink-soft);margin-bottom:6px;
+  }
+  .weekly-var-cards .value{
+    font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:16px;
+  }
+  .weekly-var-cards .card.current{
+    border-color:var(--jade);box-shadow:0 0 0 1px var(--jade) inset;
+  }
+  .weekly-var-cards .card.current .label{color:var(--jade);}
+
   .link-btn{
     background:none;border:none;color:var(--jade);font-size:13px;font-weight:600;
     cursor:pointer;padding:6px 0;font-family:'Inter',sans-serif;
@@ -178,6 +195,11 @@
 </head>
 <body>
 <div class="wrap">
+  <section class="weekly-var-section" id="weeklyVarSection" style="display:none;">
+    <div class="section-title">Weekly Variables pace</div>
+    <div class="weekly-var-cards" id="weeklyVarCards"></div>
+  </section>
+
   <header class="top">
     <div class="eyebrow">Family Cash-Flow</div>
     <h1>Coverage &amp; Distributable</h1>
@@ -327,10 +349,27 @@ function fmtDate(iso){
 
 let chartInstance = null;
 
+function renderWeeklyVarCards(data){
+  const section = document.getElementById('weeklyVarSection');
+  const el = document.getElementById('weeklyVarCards');
+  const cards = data.weeklyVariablesCards || [];
+  el.innerHTML = '';
+  if(cards.length === 0){ section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  cards.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'card' + (c.isCurrent ? ' current' : '');
+    const label = (c.isCurrent ? 'This week · ' : '') + fmtDate(c.cardStart) + '–' + fmtDate(c.cardEnd);
+    card.innerHTML = '<div class="label">' + label + '</div><div class="value">' + fmt(c.weeklySlice) + ' ' + data.config.currency + '</div>';
+    el.appendChild(card);
+  });
+}
+
 function render(data, meta){
   document.getElementById('loadingState').style.display = 'none';
   document.getElementById('errorState').style.display = 'none';
   document.getElementById('app').style.display = 'block';
+  renderWeeklyVarCards(data);
 
   const staleBanner = document.getElementById('staleBanner');
   if(meta && meta.stale){

@@ -196,6 +196,24 @@
   .form-msg.ok{background:var(--jade-soft);color:var(--jade);}
   .form-msg.err{background:var(--rust-soft);color:var(--rust);}
 
+
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(32,42,36,.45);
+    display:none;align-items:center;justify-content:center;padding:18px;z-index:1000;
+  }
+  .modal-backdrop.show{display:flex;}
+  .modal{
+    width:min(380px,100%);background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);padding:20px;box-shadow:0 18px 50px rgba(0,0,0,.18);
+  }
+  .modal h2{font-family:'Fraunces',serif;font-size:20px;margin:0 0 5px;}
+  .modal p{font-size:13px;color:var(--ink-soft);margin:0 0 14px;}
+  .modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;}
+  .modal-actions button{margin:0;}
+  .modal-actions .secondary{background:var(--bg);color:var(--ink);border:1px solid var(--line);}
+  .form-card-title{font-family:'Fraunces',serif;font-weight:600;font-size:16px;margin:0 0 4px;}
+  .form-card-sub{font-size:12px;color:var(--ink-soft);margin-bottom:14px;}
+
   .loading,.error-state{text-align:center;padding:60px 20px;color:var(--ink-soft);}
   @media (prefers-reduced-motion:no-preference){
     .card,.goal,.tip{animation:fadein .35s ease both;}
@@ -278,18 +296,18 @@
         <label for="g-date">Target date (optional)</label>
         <input type="date" id="g-date">
 
-        <label for="g-pin">PIN</label>
-        <input type="password" id="g-pin" inputmode="numeric" required>
-
         <button type="submit" id="addGoalBtn">Add goal</button>
         <div class="form-msg" id="addGoalMsg"></div>
       </form>
     </section>
 
-    <div class="divider">Do this last — weekly update</div>
+    <div class="divider">Do this last — daily update</div>
 
     <section>
       <form class="balance-form" id="balanceForm">
+        <div class="form-card-title">Balance Check</div>
+        <div class="form-card-sub">Update the current balances of both accounts.</div>
+
         <label for="f-date">Date</label>
         <input type="date" id="f-date" required>
 
@@ -304,24 +322,36 @@
           </div>
         </div>
 
-        <label for="f-oo-name">One-off payment (optional)</label>
-        <input type="text" id="f-oo-name" placeholder="e.g. Dentist deposit">
+        <button type="submit" id="submitBtn">Save balances</button>
+        <div class="form-msg" id="formMsg"></div>
+      </form>
+    </section>
+
+    <section>
+      <form class="balance-form" id="paymentForm">
+        <div class="form-card-title">One-off Payment</div>
+        <div class="form-card-sub">The payment automatically reduces the latest saved account balance or balances.</div>
+
+        <label for="p-date">Date</label>
+        <input type="date" id="p-date" required>
+
+        <label for="p-name">Payment name</label>
+        <input type="text" id="p-name" placeholder="e.g. Dentist deposit" required>
 
         <div class="row2">
           <div>
-            <label for="f-oo-alex">Paid from Alex KTB</label>
-            <input type="number" min="0" step="0.01" id="f-oo-alex" placeholder="0">
+            <label for="p-alex">Paid from Alex KTB</label>
+            <input type="number" min="0" step="0.01" id="p-alex" placeholder="0">
           </div>
           <div>
-            <label for="f-oo-olga">Paid from Olga KTB</label>
-            <input type="number" min="0" step="0.01" id="f-oo-olga" placeholder="0">
+            <label for="p-olga">Paid from Olga KTB</label>
+            <input type="number" min="0" step="0.01" id="p-olga" placeholder="0">
           </div>
         </div>
-        <div class="hint">Enter the amount that actually left each account. Leave both blank for a regular daily balance check.</div>
 
         <div class="split-preview" id="splitPreview" style="display:none;">
-          <div class="split-preview-title">This payment is bigger than what's safely available this week</div>
-          <div class="split-row"><span>From Alex/Olga KTB (safe portion)</span><span class="num" id="splitSafe">—</span></div>
+          <div class="split-preview-title">This payment exceeds the current safe capacity</div>
+          <div class="split-row"><span>Safe portion</span><span class="num" id="splitSafe">—</span></div>
           <div class="split-row"><span>From the Emergency Fund</span><span class="num" id="splitEF">—</span></div>
           <label class="split-confirm">
             <input type="checkbox" id="splitConfirmCheck">
@@ -329,11 +359,8 @@
           </label>
         </div>
 
-        <label for="f-pin">PIN</label>
-        <input type="password" id="f-pin" inputmode="numeric" required>
-
-        <button type="submit" id="submitBtn">Save balance check</button>
-        <div class="form-msg" id="formMsg"></div>
+        <button type="submit" id="paymentBtn">Save payment</button>
+        <div class="form-msg" id="paymentMsg"></div>
       </form>
     </section>
   </div>
@@ -341,6 +368,20 @@
   <div class="loading" id="loadingState">Loading current numbers…</div>
   <div class="error-state" id="errorState" style="display:none;">
     Couldn't load data, and no previous numbers are saved on this device.<br>Check your connection and reload.
+  </div>
+</div>
+
+
+<div class="modal-backdrop" id="pinModal" role="dialog" aria-modal="true" aria-labelledby="pinModalTitle">
+  <div class="modal">
+    <h2 id="pinModalTitle">Enter PIN to confirm</h2>
+    <p>Enter your 6-digit PIN.</p>
+    <input type="password" id="modalPin" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" aria-label="6-digit PIN">
+    <div class="form-msg" id="pinModalMsg"></div>
+    <div class="modal-actions">
+      <button type="button" class="secondary" id="pinCancel">Cancel</button>
+      <button type="button" id="pinConfirm">Confirm</button>
+    </div>
   </div>
 </div>
 
@@ -574,19 +615,117 @@ async function loadData(){
 }
 
 document.getElementById('f-date').valueAsDate = new Date();
+document.getElementById('p-date').valueAsDate = new Date();
 
 document.getElementById('g-rank').addEventListener('input', () => {
   document.getElementById('g-rank').dataset.userEdited = '1';
 });
 
-// ---- Per-account one-off preview and submission (Phase 5) ----
+// ---- Reusable six-digit PIN modal ----
+let pendingPinResolve = null;
+
+function requestPin(){
+  const modal = document.getElementById('pinModal');
+  const input = document.getElementById('modalPin');
+  const msg = document.getElementById('pinModalMsg');
+  input.value = '';
+  msg.className = 'form-msg';
+  modal.classList.add('show');
+  setTimeout(() => input.focus(), 0);
+  return new Promise(resolve => { pendingPinResolve = resolve; });
+}
+
+function closePinModal(value){
+  document.getElementById('pinModal').classList.remove('show');
+  document.getElementById('modalPin').value = '';
+  const resolve = pendingPinResolve;
+  pendingPinResolve = null;
+  if(resolve) resolve(value);
+}
+
+document.getElementById('pinCancel').addEventListener('click', () => closePinModal(null));
+document.getElementById('pinConfirm').addEventListener('click', () => {
+  const input = document.getElementById('modalPin');
+  const msg = document.getElementById('pinModalMsg');
+  const pin = input.value.trim();
+  if(!/^\d{6}$/.test(pin)){
+    msg.textContent = 'PIN must contain exactly 6 digits.';
+    msg.className = 'form-msg err show';
+    input.focus();
+    return;
+  }
+  closePinModal(pin);
+});
+document.getElementById('modalPin').addEventListener('input', e => {
+  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+});
+document.getElementById('modalPin').addEventListener('keydown', e => {
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    document.getElementById('pinConfirm').click();
+  } else if(e.key === 'Escape'){
+    closePinModal(null);
+  }
+});
+document.getElementById('pinModal').addEventListener('click', e => {
+  if(e.target.id === 'pinModal') closePinModal(null);
+});
+
+async function postAction(payload){
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+// ---- Balance Check ----
+document.getElementById('balanceForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  const msg = document.getElementById('formMsg');
+  msg.className = 'form-msg';
+
+  const pin = await requestPin();
+  if(!pin) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  try{
+    const result = await postAction({
+      action: 'balanceCheck',
+      date: document.getElementById('f-date').value,
+      alexBalance: document.getElementById('f-alex').value,
+      olgaBalance: document.getElementById('f-olga').value,
+      oneOffName: '',
+      oneOffAmount: '',
+      oneOffAccount: '',
+      pin
+    });
+    if(result.ok){
+      window.location.reload();
+      return;
+    }
+    msg.textContent = result.error || 'Could not save.';
+    msg.className = 'form-msg err show';
+  } catch(err){
+    msg.textContent = 'Network error — try again.';
+    msg.className = 'form-msg err show';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save balances';
+  }
+});
+
+// ---- One-off Payment ----
 let lastSplitPreview = null;
 let splitPreviewTimer = null;
 
 function getOneOffAmounts(){
   return {
-    alex: Number(document.getElementById('f-oo-alex').value) || 0,
-    olga: Number(document.getElementById('f-oo-olga').value) || 0
+    alex: Number(document.getElementById('p-alex').value) || 0,
+    olga: Number(document.getElementById('p-olga').value) || 0
   };
 }
 
@@ -625,9 +764,6 @@ async function refreshSplitPreview(){
     }
     return true;
   } catch(err){
-    // The backend recomputes the split at submission time. A preview failure
-    // therefore does not change the accounting result, but the form must not
-    // silently submit a potentially EF-funded payment without confirmation.
     lastSplitPreview = null;
     panel.style.display = 'none';
     checkbox.checked = false;
@@ -635,109 +771,70 @@ async function refreshSplitPreview(){
   }
 }
 
-['f-oo-alex', 'f-oo-olga'].forEach(id => {
+['p-alex', 'p-olga'].forEach(id => {
   document.getElementById(id).addEventListener('input', () => {
     clearTimeout(splitPreviewTimer);
     splitPreviewTimer = setTimeout(refreshSplitPreview, 500);
   });
 });
 
-document.getElementById('balanceForm').addEventListener('submit', async (e) => {
+document.getElementById('paymentForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const btn = document.getElementById('submitBtn');
-  const msg = document.getElementById('formMsg');
+  const btn = document.getElementById('paymentBtn');
+  const msg = document.getElementById('paymentMsg');
   msg.className = 'form-msg';
 
   const amounts = getOneOffAmounts();
-  const total = amounts.alex + amounts.olga;
-  const hasOneOff = total > 0;
-
-  if(amounts.alex < 0 || amounts.olga < 0){
-    msg.textContent = 'One-off amounts must be zero or positive.';
-    msg.classList.add('err','show');
+  if(amounts.alex < 0 || amounts.olga < 0 || amounts.alex + amounts.olga <= 0){
+    msg.textContent = 'Enter a positive amount for at least one account.';
+    msg.className = 'form-msg err show';
     return;
   }
 
-  if(hasOneOff && !document.getElementById('f-oo-name').value.trim()){
-    msg.textContent = 'Please enter a name for the one-off payment.';
-    msg.classList.add('err','show');
+  const previewReady = await refreshSplitPreview();
+  if(!previewReady){
+    msg.textContent = 'Could not verify the safe payment split. Check your connection and try again.';
+    msg.className = 'form-msg err show';
     return;
   }
 
-  if(hasOneOff){
-    const previewReady = await refreshSplitPreview();
-    if(!previewReady){
-      msg.textContent = 'Could not verify the safe payment split. Check your connection and try again.';
-      msg.classList.add('err','show');
-      return;
-    }
-  }
-
-  const usingEF = !!(lastSplitPreview && lastSplitPreview.efPortion > 0);
-  if(usingEF && !document.getElementById('splitConfirmCheck').checked){
+  if(lastSplitPreview && lastSplitPreview.efPortion > 0 &&
+     !document.getElementById('splitConfirmCheck').checked){
     msg.textContent = 'Please confirm the Emergency Fund transfer before saving.';
-    msg.classList.add('err','show');
+    msg.className = 'form-msg err show';
     return;
   }
+
+  const pin = await requestPin();
+  if(!pin) return;
 
   btn.disabled = true;
   btn.textContent = 'Saving…';
-
-  const basePayload = {
-    date: document.getElementById('f-date').value,
-    alexBalance: document.getElementById('f-alex').value,
-    olgaBalance: document.getElementById('f-olga').value,
-    oneOffName: document.getElementById('f-oo-name').value.trim(),
-    pin: document.getElementById('f-pin').value
-  };
-
-  const payload = hasOneOff
-    ? Object.assign({
-        action: 'oneOffPayment',
-        oneOffAlexAmount: amounts.alex,
-        oneOffOlgaAmount: amounts.olga
-      }, basePayload)
-    : Object.assign({
-        action: 'balanceCheck',
-        oneOffAmount: '',
-        oneOffAccount: ''
-      }, basePayload);
-
   try{
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
+    const result = await postAction({
+      action: 'oneOffPayment',
+      date: document.getElementById('p-date').value,
+      oneOffName: document.getElementById('p-name').value.trim(),
+      oneOffAlexAmount: amounts.alex,
+      oneOffOlgaAmount: amounts.olga,
+      pin
     });
-    const result = await res.json();
     if(result.ok){
-      const efPortion = result.split ? Number(result.split.efPortion) || 0 : 0;
-      msg.textContent = efPortion > 0
-        ? 'Saved — ' + fmt(efPortion) + ' recorded as an EF withdrawal.'
-        : 'Saved.';
-      msg.classList.add('ok','show');
-      document.getElementById('f-oo-name').value = '';
-      document.getElementById('f-oo-alex').value = '';
-      document.getElementById('f-oo-olga').value = '';
-      document.getElementById('f-pin').value = '';
-      document.getElementById('splitPreview').style.display = 'none';
-      document.getElementById('splitConfirmCheck').checked = false;
-      lastSplitPreview = null;
-      loadData();
-    } else {
-      msg.textContent = result.error || 'Could not save — check the PIN and try again.';
-      msg.classList.add('err','show');
+      window.location.reload();
+      return;
     }
+    msg.textContent = result.error || 'Could not save payment.';
+    msg.className = 'form-msg err show';
   } catch(err){
     msg.textContent = 'Network error — try again.';
-    msg.classList.add('err','show');
+    msg.className = 'form-msg err show';
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Save balance check';
+    btn.textContent = 'Save payment';
   }
 });
 
-// ---- Add goal (Step 7 resolution sec 4: rank prompted at creation) ----
+// ---- Add goal ----
 document.getElementById('addGoalToggle').addEventListener('click', () => {
   const form = document.getElementById('addGoalForm');
   form.style.display = form.style.display === 'none' ? 'block' : 'none';
@@ -748,42 +845,30 @@ document.getElementById('addGoalForm').addEventListener('submit', async (e) => {
   const btn = document.getElementById('addGoalBtn');
   const msg = document.getElementById('addGoalMsg');
   msg.className = 'form-msg';
+
+  const pin = await requestPin();
+  if(!pin) return;
+
   btn.disabled = true;
   btn.textContent = 'Adding…';
-
-  const payload = {
-    action: 'addGoal',
-    name: document.getElementById('g-name').value,
-    targetAmount: document.getElementById('g-amount').value,
-    priorityRank: document.getElementById('g-rank').value,
-    targetDate: document.getElementById('g-date').value,
-    pin: document.getElementById('g-pin').value
-  };
-
   try{
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
+    const result = await postAction({
+      action: 'addGoal',
+      name: document.getElementById('g-name').value,
+      targetAmount: document.getElementById('g-amount').value,
+      priorityRank: document.getElementById('g-rank').value,
+      targetDate: document.getElementById('g-date').value,
+      pin
     });
-    const result = await res.json();
     if(result.ok){
-      msg.textContent = 'Goal added.';
-      msg.classList.add('ok','show');
-      document.getElementById('g-name').value = '';
-      document.getElementById('g-amount').value = '';
-      document.getElementById('g-date').value = '';
-      document.getElementById('g-pin').value = '';
-      document.getElementById('g-rank').dataset.userEdited = '';
-      document.getElementById('addGoalForm').style.display = 'none';
-      loadData();
-    } else {
-      msg.textContent = result.error || 'Could not add goal — check the PIN and try again.';
-      msg.classList.add('err','show');
+      window.location.reload();
+      return;
     }
+    msg.textContent = result.error || 'Could not add goal.';
+    msg.className = 'form-msg err show';
   } catch(err){
     msg.textContent = 'Network error — try again.';
-    msg.classList.add('err','show');
+    msg.className = 'form-msg err show';
   } finally {
     btn.disabled = false;
     btn.textContent = 'Add goal';

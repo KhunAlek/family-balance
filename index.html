@@ -309,15 +309,15 @@
 
         <div class="row2">
           <div>
-            <label for="f-oo-amount">Amount</label>
-            <input type="number" step="0.01" id="f-oo-amount">
+            <label for="f-oo-alex">Paid from Alex KTB</label>
+            <input type="number" min="0" step="0.01" id="f-oo-alex" placeholder="0">
           </div>
           <div>
-            <label for="f-oo-account">Account</label>
-            <input type="text" id="f-oo-account" placeholder="Alex or Olga">
+            <label for="f-oo-olga">Paid from Olga KTB</label>
+            <input type="number" min="0" step="0.01" id="f-oo-olga" placeholder="0">
           </div>
         </div>
-        <div class="hint">Payment split across both accounts? Submit this form twice — once per account.</div>
+        <div class="hint">Enter the amount that actually left each account. Leave both blank for a regular daily balance check.</div>
 
         <div class="split-preview" id="splitPreview" style="display:none;">
           <div class="split-preview-title">This payment is bigger than what's safely available this week</div>
@@ -575,25 +575,40 @@ document.getElementById('g-rank').addEventListener('input', () => {
   document.getElementById('g-rank').dataset.userEdited = '1';
 });
 
-// ---- Split-payment preview (Step 7 addendum sec 5 / resolution sec 3) ----
+// ---- Per-account one-off preview and submission (Phase 5) ----
 let lastSplitPreview = null;
 let splitPreviewTimer = null;
 
+function getOneOffAmounts(){
+  return {
+    alex: Number(document.getElementById('f-oo-alex').value) || 0,
+    olga: Number(document.getElementById('f-oo-olga').value) || 0
+  };
+}
+
 async function refreshSplitPreview(){
-  const amount = Number(document.getElementById('f-oo-amount').value);
+  const amounts = getOneOffAmounts();
+  const total = amounts.alex + amounts.olga;
   const panel = document.getElementById('splitPreview');
   const checkbox = document.getElementById('splitConfirmCheck');
 
-  if(!amount || amount <= 0){
+  if(total <= 0 || amounts.alex < 0 || amounts.olga < 0){
     lastSplitPreview = null;
     panel.style.display = 'none';
     checkbox.checked = false;
-    return;
+    return true;
   }
+
   try{
-    const res = await fetch(APPS_SCRIPT_URL + '?previewSplitAmount=' + encodeURIComponent(amount));
+    const params = new URLSearchParams({
+      previewOneOffAlexAmount: String(amounts.alex),
+      previewOneOffOlgaAmount: String(amounts.olga)
+    });
+    const res = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
+    if(!res.ok) throw new Error('Preview request failed');
     const data = await res.json();
     const preview = data.splitPreview;
+
     if(preview && preview.efPortion > 0){
       lastSplitPreview = preview;
       document.getElementById('splitSafe').textContent = fmt(preview.safePortion);
@@ -604,18 +619,23 @@ async function refreshSplitPreview(){
       panel.style.display = 'none';
       checkbox.checked = false;
     }
+    return true;
   } catch(err){
-    // If the preview call fails, fall back to a plain submission rather than
-    // blocking the form — the backend recomputes the split itself server-side
-    // if the amount turns out to be large (see the splitPayment action).
+    // The backend recomputes the split at submission time. A preview failure
+    // therefore does not change the accounting result, but the form must not
+    // silently submit a potentially EF-funded payment without confirmation.
     lastSplitPreview = null;
     panel.style.display = 'none';
+    checkbox.checked = false;
+    return false;
   }
 }
 
-document.getElementById('f-oo-amount').addEventListener('input', () => {
-  clearTimeout(splitPreviewTimer);
-  splitPreviewTimer = setTimeout(refreshSplitPreview, 500);
+['f-oo-alex', 'f-oo-olga'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    clearTimeout(splitPreviewTimer);
+    splitPreviewTimer = setTimeout(refreshSplitPreview, 500);
+  });
 });
 
 document.getElementById('balanceForm').addEventListener('submit', async (e) => {
@@ -624,10 +644,33 @@ document.getElementById('balanceForm').addEventListener('submit', async (e) => {
   const msg = document.getElementById('formMsg');
   msg.className = 'form-msg';
 
-  const oneOffAmount = document.getElementById('f-oo-amount').value;
-  const usingSplit = !!(lastSplitPreview && lastSplitPreview.efPortion > 0);
+  const amounts = getOneOffAmounts();
+  const total = amounts.alex + amounts.olga;
+  const hasOneOff = total > 0;
 
-  if(usingSplit && !document.getElementById('splitConfirmCheck').checked){
+  if(amounts.alex < 0 || amounts.olga < 0){
+    msg.textContent = 'One-off amounts must be zero or positive.';
+    msg.classList.add('err','show');
+    return;
+  }
+
+  if(hasOneOff && !document.getElementById('f-oo-name').value.trim()){
+    msg.textContent = 'Please enter a name for the one-off payment.';
+    msg.classList.add('err','show');
+    return;
+  }
+
+  if(hasOneOff){
+    const previewReady = await refreshSplitPreview();
+    if(!previewReady){
+      msg.textContent = 'Could not verify the safe payment split. Check your connection and try again.';
+      msg.classList.add('err','show');
+      return;
+    }
+  }
+
+  const usingEF = !!(lastSplitPreview && lastSplitPreview.efPortion > 0);
+  if(usingEF && !document.getElementById('splitConfirmCheck').checked){
     msg.textContent = 'Please confirm the Emergency Fund transfer before saving.';
     msg.classList.add('err','show');
     return;
@@ -640,13 +683,21 @@ document.getElementById('balanceForm').addEventListener('submit', async (e) => {
     date: document.getElementById('f-date').value,
     alexBalance: document.getElementById('f-alex').value,
     olgaBalance: document.getElementById('f-olga').value,
-    oneOffName: document.getElementById('f-oo-name').value,
-    oneOffAccount: document.getElementById('f-oo-account').value,
+    oneOffName: document.getElementById('f-oo-name').value.trim(),
     pin: document.getElementById('f-pin').value
   };
-  const payload = usingSplit
-    ? Object.assign({ action: 'splitPayment', totalAmount: oneOffAmount }, basePayload)
-    : Object.assign({ action: 'balanceCheck', oneOffAmount: oneOffAmount }, basePayload);
+
+  const payload = hasOneOff
+    ? Object.assign({
+        action: 'oneOffPayment',
+        oneOffAlexAmount: amounts.alex,
+        oneOffOlgaAmount: amounts.olga
+      }, basePayload)
+    : Object.assign({
+        action: 'balanceCheck',
+        oneOffAmount: '',
+        oneOffAccount: ''
+      }, basePayload);
 
   try{
     const res = await fetch(APPS_SCRIPT_URL, {
@@ -656,13 +707,14 @@ document.getElementById('balanceForm').addEventListener('submit', async (e) => {
     });
     const result = await res.json();
     if(result.ok){
-      msg.textContent = usingSplit
-        ? 'Saved — ' + fmt(lastSplitPreview.efPortion) + ' recorded as an EF withdrawal.'
+      const efPortion = result.split ? Number(result.split.efPortion) || 0 : 0;
+      msg.textContent = efPortion > 0
+        ? 'Saved — ' + fmt(efPortion) + ' recorded as an EF withdrawal.'
         : 'Saved.';
       msg.classList.add('ok','show');
       document.getElementById('f-oo-name').value = '';
-      document.getElementById('f-oo-amount').value = '';
-      document.getElementById('f-oo-account').value = '';
+      document.getElementById('f-oo-alex').value = '';
+      document.getElementById('f-oo-olga').value = '';
       document.getElementById('f-pin').value = '';
       document.getElementById('splitPreview').style.display = 'none';
       document.getElementById('splitConfirmCheck').checked = false;

@@ -403,6 +403,7 @@ function renderWeeklyVarCards(data){
     } else {
       card.innerHTML = '<div class="label">' + label + '</div><div class="value">' + fmt(c.weeklySlice) + ' ' + currency + '</div>';
     }
+    el.appendChild(card);
   });
 }
 

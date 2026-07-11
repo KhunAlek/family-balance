@@ -514,6 +514,9 @@ function render(data, meta){
   const stale = document.getElementById('staleBanner');
   if(meta && meta.stale){
     stale.classList.add('show');
+    stale.textContent = meta.refreshing
+      ? 'Showing the last saved data while fresh numbers are loading…'
+      : 'May be outdated — showing the last saved data because the latest data could not be fetched.';
     document.getElementById('asOfLine').textContent = 'As of ' + data.asOf + ' (cached ' + new Date(meta.fetchedAt).toLocaleString() + ')';
   } else {
     stale.classList.remove('show');
@@ -524,17 +527,32 @@ function render(data, meta){
 }
 
 async function loadData(){
+  let cachedRendered = false;
+  const cached = localStorage.getItem(CACHE_KEY);
+
+  // Stale-while-revalidate: returning visitors see the last successful
+  // dashboard immediately instead of waiting for Apps Script to finish.
+  if(cached){
+    try{
+      const parsed = JSON.parse(cached);
+      render(parsed.data,{stale:true,refreshing:true,fetchedAt:parsed.fetchedAt});
+      cachedRendered = true;
+    } catch(err){
+      localStorage.removeItem(CACHE_KEY);
+    }
+  }
+
   try{
-    const res = await fetch(APPS_SCRIPT_URL, {method:'GET'});
+    const res = await fetch(APPS_SCRIPT_URL, {method:'GET',cache:'no-store'});
     if(!res.ok) throw new Error('Network response not OK');
     const data = await res.json();
-    localStorage.setItem(CACHE_KEY, JSON.stringify({data,fetchedAt:new Date().toISOString()}));
+    const fetchedAt = new Date().toISOString();
+    localStorage.setItem(CACHE_KEY, JSON.stringify({data,fetchedAt}));
     render(data,{stale:false});
   } catch(err){
-    const cached = localStorage.getItem(CACHE_KEY);
-    if(cached){
-      const parsed = JSON.parse(cached);
-      render(parsed.data,{stale:true,fetchedAt:parsed.fetchedAt});
+    if(cachedRendered){
+      const parsed = JSON.parse(localStorage.getItem(CACHE_KEY));
+      render(parsed.data,{stale:true,refreshing:false,fetchedAt:parsed.fetchedAt});
     } else {
       document.getElementById('loadingState').style.display = 'none';
       document.getElementById('errorState').style.display = 'block';

@@ -191,7 +191,6 @@
     font-family:'Inter',sans-serif;
   }
   button:disabled{opacity:.6;cursor:default;}
-  button.checking{background:var(--gold);}
   .form-msg{margin-top:10px;font-size:13px;padding:9px 11px;border-radius:8px;display:none;}
   .form-msg.show{display:block;}
   .form-msg.ok{background:var(--jade-soft);color:var(--jade);}
@@ -719,11 +718,8 @@ document.getElementById('balanceForm').addEventListener('submit', async (e) => {
   }
 });
 
-// ---- One-off Payment ----
-let lastSplitPreview = null;
-let splitPreviewTimer = null;
-let splitPreviewPromise = null;
-let splitPreviewReady = false;
+// ---- One-off Payment: two-stage POST, no preview GET ----
+let pendingEFPayment = null;
 
 function getOneOffAmounts(){
   return {
@@ -732,76 +728,15 @@ function getOneOffAmounts(){
   };
 }
 
-async function refreshSplitPreview(){
-  const amounts = getOneOffAmounts();
-  const total = amounts.alex + amounts.olga;
-  const panel = document.getElementById('splitPreview');
-  const checkbox = document.getElementById('splitConfirmCheck');
-  const btn = document.getElementById('paymentBtn');
-
-  splitPreviewReady = false;
-
-  if(total <= 0 || amounts.alex < 0 || amounts.olga < 0){
-    lastSplitPreview = null;
-    panel.style.display = 'none';
-    checkbox.checked = false;
-    splitPreviewReady = true;
-    btn.disabled = false;
-    btn.classList.remove('checking');
-    btn.textContent = 'Save payment';
-    return true;
-  }
-
-  btn.disabled = true;
-  btn.classList.add('checking');
-  btn.textContent = 'Checking…';
-
-  splitPreviewPromise = (async () => {
-    try{
-      const params = new URLSearchParams({
-        previewOneOffAlexAmount: String(amounts.alex),
-        previewOneOffOlgaAmount: String(amounts.olga)
-      });
-      const res = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
-      if(!res.ok) throw new Error('Preview request failed');
-      const data = await res.json();
-      const preview = data.splitPreview;
-
-      if(preview && preview.efPortion > 0){
-        lastSplitPreview = preview;
-        document.getElementById('splitSafe').textContent = fmt(preview.safePortion);
-        document.getElementById('splitEF').textContent = fmt(preview.efPortion);
-        panel.style.display = 'block';
-      } else {
-        lastSplitPreview = null;
-        panel.style.display = 'none';
-        checkbox.checked = false;
-      }
-
-      splitPreviewReady = true;
-      return true;
-    } catch(err){
-      lastSplitPreview = null;
-      panel.style.display = 'none';
-      checkbox.checked = false;
-      splitPreviewReady = false;
-      return false;
-    } finally {
-      btn.disabled = false;
-      btn.classList.remove('checking');
-      btn.textContent = 'Save payment';
-    }
-  })();
-
-  return splitPreviewPromise;
+function resetEFConfirmation(){
+  pendingEFPayment = null;
+  document.getElementById('splitPreview').style.display = 'none';
+  document.getElementById('splitConfirmCheck').checked = false;
+  document.getElementById('paymentBtn').textContent = 'Save payment';
 }
 
-['p-alex', 'p-olga'].forEach(id => {
-  document.getElementById(id).addEventListener('input', () => {
-    clearTimeout(splitPreviewTimer);
-    splitPreviewReady = false;
-    splitPreviewTimer = setTimeout(refreshSplitPreview, 350);
-  });
+['p-date', 'p-name', 'p-alex', 'p-olga'].forEach(id => {
+  document.getElementById(id).addEventListener('input', resetEFConfirmation);
 });
 
 document.getElementById('paymentForm').addEventListener('submit', async (e) => {
@@ -817,46 +752,61 @@ document.getElementById('paymentForm').addEventListener('submit', async (e) => {
     return;
   }
 
-  if(splitPreviewPromise && !splitPreviewReady){
-    msg.textContent = 'Please wait — payment safety is still being checked.';
-    msg.className = 'form-msg err show';
-    return;
-  }
+  const basePayload = {
+    action: 'oneOffPayment',
+    date: document.getElementById('p-date').value,
+    oneOffName: document.getElementById('p-name').value.trim(),
+    oneOffAlexAmount: amounts.alex,
+    oneOffOlgaAmount: amounts.olga
+  };
 
-  if(!splitPreviewReady){
-    const previewReady = await refreshSplitPreview();
-    if(!previewReady){
-      msg.textContent = 'Could not verify the safe payment split. Check your connection and try again.';
+  let payload;
+
+  if(pendingEFPayment){
+    if(!document.getElementById('splitConfirmCheck').checked){
+      msg.textContent = 'Please confirm the Emergency Fund transfer before saving.';
       msg.className = 'form-msg err show';
       return;
     }
-  }
 
-  if(lastSplitPreview && lastSplitPreview.efPortion > 0 &&
-     !document.getElementById('splitConfirmCheck').checked){
-    msg.textContent = 'Please confirm the Emergency Fund transfer before saving.';
-    msg.className = 'form-msg err show';
-    return;
+    payload = Object.assign({}, basePayload, {
+      confirmEF: true,
+      confirmationToken: pendingEFPayment.confirmationToken
+    });
+  } else {
+    // PIN appears immediately. There is no preliminary network request.
+    const pin = await requestPin();
+    if(!pin) return;
+    payload = Object.assign({}, basePayload, { pin });
   }
-
-  const pin = await requestPin();
-  if(!pin) return;
 
   btn.disabled = true;
-  btn.textContent = 'Saving…';
+  btn.textContent = pendingEFPayment ? 'Confirming…' : 'Saving…';
+
   try{
-    const result = await postAction({
-      action: 'oneOffPayment',
-      date: document.getElementById('p-date').value,
-      oneOffName: document.getElementById('p-name').value.trim(),
-      oneOffAlexAmount: amounts.alex,
-      oneOffOlgaAmount: amounts.olga,
-      pin
-    });
+    const result = await postAction(payload);
+
+    if(result.needsEFConfirmation){
+      pendingEFPayment = {
+        confirmationToken: result.confirmationToken,
+        split: result.split
+      };
+      document.getElementById('splitSafe').textContent = fmt(result.split.safePortion);
+      document.getElementById('splitEF').textContent = fmt(result.split.efPortion);
+      document.getElementById('splitPreview').style.display = 'block';
+      document.getElementById('splitConfirmCheck').checked = false;
+      msg.textContent = 'Confirm the Emergency Fund transfer, then save the payment.';
+      msg.className = 'form-msg err show';
+      btn.textContent = 'Confirm and save payment';
+      return;
+    }
+
     if(result.ok){
       window.location.reload();
       return;
     }
+
+    resetEFConfirmation();
     msg.textContent = result.error || 'Could not save payment.';
     msg.className = 'form-msg err show';
   } catch(err){
@@ -864,7 +814,7 @@ document.getElementById('paymentForm').addEventListener('submit', async (e) => {
     msg.className = 'form-msg err show';
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Save payment';
+    if(!pendingEFPayment) btn.textContent = 'Save payment';
   }
 });
 

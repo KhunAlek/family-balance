@@ -191,6 +191,7 @@
     font-family:'Inter',sans-serif;
   }
   button:disabled{opacity:.6;cursor:default;}
+  button.checking{background:var(--gold);}
   .form-msg{margin-top:10px;font-size:13px;padding:9px 11px;border-radius:8px;display:none;}
   .form-msg.show{display:block;}
   .form-msg.ok{background:var(--jade-soft);color:var(--jade);}
@@ -721,6 +722,8 @@ document.getElementById('balanceForm').addEventListener('submit', async (e) => {
 // ---- One-off Payment ----
 let lastSplitPreview = null;
 let splitPreviewTimer = null;
+let splitPreviewPromise = null;
+let splitPreviewReady = false;
 
 function getOneOffAmounts(){
   return {
@@ -734,47 +737,70 @@ async function refreshSplitPreview(){
   const total = amounts.alex + amounts.olga;
   const panel = document.getElementById('splitPreview');
   const checkbox = document.getElementById('splitConfirmCheck');
+  const btn = document.getElementById('paymentBtn');
+
+  splitPreviewReady = false;
 
   if(total <= 0 || amounts.alex < 0 || amounts.olga < 0){
     lastSplitPreview = null;
     panel.style.display = 'none';
     checkbox.checked = false;
+    splitPreviewReady = true;
+    btn.disabled = false;
+    btn.classList.remove('checking');
+    btn.textContent = 'Save payment';
     return true;
   }
 
-  try{
-    const params = new URLSearchParams({
-      previewOneOffAlexAmount: String(amounts.alex),
-      previewOneOffOlgaAmount: String(amounts.olga)
-    });
-    const res = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
-    if(!res.ok) throw new Error('Preview request failed');
-    const data = await res.json();
-    const preview = data.splitPreview;
+  btn.disabled = true;
+  btn.classList.add('checking');
+  btn.textContent = 'Checking…';
 
-    if(preview && preview.efPortion > 0){
-      lastSplitPreview = preview;
-      document.getElementById('splitSafe').textContent = fmt(preview.safePortion);
-      document.getElementById('splitEF').textContent = fmt(preview.efPortion);
-      panel.style.display = 'block';
-    } else {
+  splitPreviewPromise = (async () => {
+    try{
+      const params = new URLSearchParams({
+        previewOneOffAlexAmount: String(amounts.alex),
+        previewOneOffOlgaAmount: String(amounts.olga)
+      });
+      const res = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
+      if(!res.ok) throw new Error('Preview request failed');
+      const data = await res.json();
+      const preview = data.splitPreview;
+
+      if(preview && preview.efPortion > 0){
+        lastSplitPreview = preview;
+        document.getElementById('splitSafe').textContent = fmt(preview.safePortion);
+        document.getElementById('splitEF').textContent = fmt(preview.efPortion);
+        panel.style.display = 'block';
+      } else {
+        lastSplitPreview = null;
+        panel.style.display = 'none';
+        checkbox.checked = false;
+      }
+
+      splitPreviewReady = true;
+      return true;
+    } catch(err){
       lastSplitPreview = null;
       panel.style.display = 'none';
       checkbox.checked = false;
+      splitPreviewReady = false;
+      return false;
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('checking');
+      btn.textContent = 'Save payment';
     }
-    return true;
-  } catch(err){
-    lastSplitPreview = null;
-    panel.style.display = 'none';
-    checkbox.checked = false;
-    return false;
-  }
+  })();
+
+  return splitPreviewPromise;
 }
 
 ['p-alex', 'p-olga'].forEach(id => {
   document.getElementById(id).addEventListener('input', () => {
     clearTimeout(splitPreviewTimer);
-    splitPreviewTimer = setTimeout(refreshSplitPreview, 500);
+    splitPreviewReady = false;
+    splitPreviewTimer = setTimeout(refreshSplitPreview, 350);
   });
 });
 
@@ -791,11 +817,19 @@ document.getElementById('paymentForm').addEventListener('submit', async (e) => {
     return;
   }
 
-  const previewReady = await refreshSplitPreview();
-  if(!previewReady){
-    msg.textContent = 'Could not verify the safe payment split. Check your connection and try again.';
+  if(splitPreviewPromise && !splitPreviewReady){
+    msg.textContent = 'Please wait — payment safety is still being checked.';
     msg.className = 'form-msg err show';
     return;
+  }
+
+  if(!splitPreviewReady){
+    const previewReady = await refreshSplitPreview();
+    if(!previewReady){
+      msg.textContent = 'Could not verify the safe payment split. Check your connection and try again.';
+      msg.className = 'form-msg err show';
+      return;
+    }
   }
 
   if(lastSplitPreview && lastSplitPreview.efPortion > 0 &&

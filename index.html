@@ -148,6 +148,8 @@
   .weekly-var-cards .wv-carry{font-size:11px;color:var(--ink-soft);margin-top:5px;}
   .weekly-var-cards .wv-carry.over{color:var(--rust);}
   .weekly-var-cards .wv-carry.under{color:var(--jade);}
+  .weekly-var-cards .wv-row .wv-value.over{color:var(--rust);}
+  .weekly-var-cards .wv-asof{font-size:9.5px;color:var(--ink-soft);margin-top:3px;font-style:italic;}
   .weekly-var-cards .wv-provisional{font-size:9.5px;color:var(--gold);margin-top:6px;font-style:italic;}
 
   .link-btn{
@@ -382,10 +384,25 @@ function renderWeeklyVarCards(data){
       }
       html += '<div class="wv-provisional">Provisional — not yet frozen</div>';
       card.innerHTML = html;
+    } else if(c.isCurrent){
+      let html = '<div class="label">' + label + '</div>' +
+        '<div class="value">' + fmt(c.weeklySlice) + ' ' + currency + '</div>';
+      if(c.remaining !== undefined){
+        const hasRemaining = c.remaining !== 'no data';
+        if(hasRemaining){
+          const remClass = c.remaining < 0 ? 'over' : '';
+          html += '<div class="wv-row"><span class="wv-tag">Remaining</span><span class="wv-value ' + remClass + '">' + fmt(c.remaining) + ' ' + currency + '</span></div>';
+          if(c.remainingAsOf && c.remainingAsOf !== data.asOf){
+            html += '<div class="wv-asof">as of ' + fmtDate(c.remainingAsOf) + '</div>';
+          }
+        } else {
+          html += '<div class="wv-row"><span class="wv-tag">Remaining</span><span class="wv-value">No data</span></div>';
+        }
+      }
+      card.innerHTML = html;
     } else {
       card.innerHTML = '<div class="label">' + label + '</div><div class="value">' + fmt(c.weeklySlice) + ' ' + currency + '</div>';
     }
-    el.appendChild(card);
   });
 }
 

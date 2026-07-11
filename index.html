@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Family Cash-Flow — Coverage &amp; Distributable</title>
+<title>Family Cash Flow</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,338 +27,199 @@
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
-    background:var(--bg);
-    color:var(--ink);
+    background:var(--bg);color:var(--ink);
     font-family:'Inter',system-ui,-apple-system,sans-serif;
-    line-height:1.45;
-    -webkit-font-smoothing:antialiased;
-    padding-bottom:64px;
+    line-height:1.45;-webkit-font-smoothing:antialiased;padding-bottom:64px;
   }
-  .wrap{max-width:760px;margin:0 auto;padding:28px 18px 0;}
-  .num{font-family:'IBM Plex Mono','Fraunces',monospace;font-variant-numeric:tabular-nums;}
-  header.top{margin-bottom:22px;}
-  .eyebrow{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11px;letter-spacing:.12em;text-transform:uppercase;
-    color:var(--ink-soft);margin-bottom:6px;
-  }
-  h1{
-    font-family:'Fraunces',serif;font-weight:600;font-size:28px;
-    margin:0 0 4px;letter-spacing:-0.01em;
-  }
+  .wrap{max-width:820px;margin:0 auto;padding:28px 18px 0;}
+  .num{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
+  header.top{margin-bottom:26px;}
+  h1{font-family:'Fraunces',serif;font-weight:600;font-size:30px;margin:0 0 4px;letter-spacing:-.01em;}
   .asof{font-size:13px;color:var(--ink-soft);}
-  .stale-banner{
-    display:none;background:var(--gold-soft);border:1px solid var(--gold);
-    color:#6b5424;font-size:13px;padding:9px 12px;border-radius:10px;margin-bottom:16px;
-  }
+  .stale-banner{display:none;background:var(--gold-soft);border:1px solid var(--gold);color:#6b5424;font-size:13px;padding:9px 12px;border-radius:10px;margin-bottom:18px;}
   .stale-banner.show{display:block;}
   section{margin-bottom:30px;}
-  .section-title{
-    font-family:'Fraunces',serif;font-weight:600;font-size:16px;
-    margin:0 0 12px;color:var(--ink);
-  }
-  .grid4{
-    display:grid;grid-template-columns:1fr 1fr;gap:12px;
-  }
-  @media(min-width:600px){.grid4{grid-template-columns:repeat(4,1fr);}}
-  .card{
-    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
-    padding:16px;
-  }
-  .indicator .label{
-    font-size:11px;letter-spacing:.06em;text-transform:uppercase;
-    color:var(--ink-soft);margin-bottom:8px;
-  }
-  .indicator .value{
-    font-family:'Fraunces',serif;font-weight:600;font-size:26px;line-height:1.1;
-  }
-  .indicator .value.num{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:22px;}
-  .indicator .sub{font-size:12px;color:var(--ink-soft);margin-top:6px;}
-  .indicator.positive .value{color:var(--jade);}
-  .indicator.warning .value{color:var(--rust);}
-  .indicator.gold .value{color:var(--gold);}
+  .section-title{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:0 0 12px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;}
 
-  .chart-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 16px 8px;}
-  canvas#projChart{width:100%!important;height:220px!important;}
-  .lowpoint{
-    display:flex;align-items:baseline;gap:8px;margin-top:12px;
-    background:var(--rust-soft);border-left:3px solid var(--rust);
-    border-radius:8px;padding:9px 12px;font-size:13px;
-  }
-  .lowpoint .tag{
-    font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;
-    text-transform:uppercase;color:var(--rust);
-  }
-  .lowpoint.ok{background:var(--jade-soft);border-left-color:var(--jade);}
-  .lowpoint.ok .tag{color:var(--jade);}
-
-  .tip{
-    background:var(--card);border:1px solid var(--line);border-left:3px solid var(--gold);
-    border-radius:10px;padding:11px 14px;font-size:13.5px;margin-bottom:8px;
-  }
-  .tip.risk{border-left-color:var(--rust);}
-  .tip.ok{border-left-color:var(--jade);}
-
-  .goal{
-    display:flex;justify-content:space-between;align-items:center;gap:10px;
-    background:var(--card);border:1px solid var(--line);border-radius:10px;
-    padding:12px 14px;margin-bottom:8px;
-  }
-  .goal .rank{
-    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);
-    background:var(--bg);border:1px solid var(--line);border-radius:6px;
-    padding:2px 6px;margin-right:8px;
-  }
-  .goal .name{font-weight:600;font-size:14.5px;}
-  .goal .meta{font-size:12px;color:var(--ink-soft);margin-top:2px;}
-  .goal .amt{font-family:'IBM Plex Mono',monospace;font-size:13.5px;text-align:right;white-space:nowrap;}
-  .goal-indicators{
-    display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
-    gap:12px;margin-top:12px;
-  }
-  .goal-indicators .card{padding:13px 14px;}
-  .goal-indicators .label{
-    font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;
-    color:var(--ink-soft);margin-bottom:6px;
-  }
-  .goal-indicators .value{
-    font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:18px;color:var(--gold);
-  }
-
-  .weekly-var-section{margin-bottom:24px;}
-  .weekly-var-cards{
-    display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;
-  }
-  .weekly-var-cards .card{padding:12px 13px;}
-  .weekly-var-cards .label{
-    font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;
-    color:var(--ink-soft);margin-bottom:6px;
-  }
-  .weekly-var-cards .value{
-    font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:16px;
-  }
-  .weekly-var-cards .card.current{
-    border-color:var(--jade);box-shadow:0 0 0 1px var(--jade) inset;
-  }
+  .weekly-var-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;}
+  .weekly-var-cards .card{padding:13px;}
+  .weekly-var-cards .label{font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:7px;}
+  .weekly-var-cards .card.current{border-color:var(--jade);box-shadow:0 0 0 1px var(--jade) inset;}
   .weekly-var-cards .card.current .label{color:var(--jade);}
   .weekly-var-cards .card.closed{background:var(--bg);}
-  .weekly-var-cards .wv-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:5px;}
-  .weekly-var-cards .wv-row .wv-tag{font-size:10.5px;color:var(--ink-soft);}
-  .weekly-var-cards .wv-row .wv-value{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:13px;}
-  .weekly-var-cards .wv-carry{font-size:11px;color:var(--ink-soft);margin-top:5px;}
-  .weekly-var-cards .wv-carry.over{color:var(--rust);}
-  .weekly-var-cards .wv-carry.under{color:var(--jade);}
-  .weekly-var-cards .wv-row .wv-value.over{color:var(--rust);}
-  .weekly-var-cards .wv-asof{font-size:9.5px;color:var(--ink-soft);margin-top:3px;font-style:italic;}
-  .weekly-var-cards .wv-provisional{font-size:9.5px;color:var(--gold);margin-top:6px;font-style:italic;}
+  .wv-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:5px;}
+  .wv-tag{font-size:10.5px;color:var(--ink-soft);}
+  .wv-value{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:13px;text-align:right;}
+  .wv-value.over,.wv-carry.over{color:var(--rust);}
+  .wv-carry.under{color:var(--jade);}
+  .wv-carry{font-size:11px;color:var(--ink-soft);margin-top:5px;}
+  .wv-asof,.wv-provisional{font-size:9.5px;color:var(--ink-soft);margin-top:4px;font-style:italic;}
+  .wv-provisional{color:var(--gold);}
 
-  .link-btn{
-    background:none;border:none;color:var(--jade);font-size:13px;font-weight:600;
-    cursor:pointer;padding:6px 0;font-family:'Inter',sans-serif;
-  }
+  .summary-grid{display:grid;grid-template-columns:1fr;gap:12px;}
+  @media(min-width:560px){.summary-grid{grid-template-columns:1fr 1fr;}}
+  .summary-card .label,.ef-stat .label{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px;}
+  .summary-card .value{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:25px;line-height:1.1;}
+  .summary-card.ef .value{color:var(--gold);}
+  .summary-card.goals .value{color:var(--jade);}
+  .preview-toggle{display:flex;align-items:flex-start;gap:9px;margin-top:12px;padding-top:11px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--ink-soft);cursor:pointer;}
+  .preview-toggle input{width:auto;margin:2px 0 0;}
+  .preview-toggle.disabled{opacity:.55;cursor:default;}
+  .preview-status{font-size:11.5px;color:var(--ink-soft);margin-top:8px;}
+  .preview-status.active{color:var(--jade);font-weight:600;}
 
-  .split-preview{
-    background:var(--gold-soft);border:1px solid var(--gold);border-radius:10px;
-    padding:12px 14px;margin:12px 0;font-size:13px;
-  }
-  .split-preview-title{font-weight:600;margin-bottom:8px;color:#6b5424;}
-  .split-row{display:flex;justify-content:space-between;padding:3px 0;}
-  .split-confirm{
-    display:flex;align-items:flex-start;gap:8px;margin-top:10px;padding-top:10px;
-    border-top:1px dashed var(--gold);font-size:12.5px;color:#6b5424;cursor:pointer;
-  }
-  .split-confirm input{width:auto;margin-top:2px;}
+  .ef-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
+  .ef-stat{padding:14px;min-width:0;}
+  .ef-stat .value{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:18px;overflow-wrap:anywhere;}
+  @media(max-width:520px){.ef-stats{grid-template-columns:1fr;}.ef-stat{display:flex;justify-content:space-between;align-items:baseline;gap:12px;}.ef-stat .label{margin:0;}}
+  .chart-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;}
+  .chart-wrap{position:relative;height:240px;}
+  .chart-empty{display:none;text-align:center;color:var(--ink-soft);font-size:13px;padding:42px 12px;}
 
-  .divider{
-    display:flex;align-items:center;gap:10px;margin:36px 0 16px;
-    color:var(--ink-soft);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
-  }
-  .divider::before,.divider::after{content:'';flex:1;border-top:1px dashed var(--line);}
+  .goal{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:13px 14px;margin-bottom:8px;}
+  .goal-main{min-width:0;}
+  .goal-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .goal .rank{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:2px 6px;}
+  .goal .name{font-weight:600;font-size:14.5px;}
+  .goal .meta{font-size:12px;color:var(--ink-soft);margin-top:3px;}
+  .goal .preview-allocation{font-size:12px;color:var(--jade);font-weight:600;margin-top:4px;}
+  .goal .amt{font-family:'IBM Plex Mono',monospace;font-size:13px;text-align:right;white-space:nowrap;}
+  .link-btn{background:none;border:none;color:var(--jade);font-size:13px;font-weight:600;cursor:pointer;padding:6px 0;font-family:'Inter',sans-serif;width:auto;margin:2px 0 0;}
 
-  form.balance-form{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;}
+  form.action-form{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;}
+  .form-card-title{font-family:'Fraunces',serif;font-weight:600;font-size:17px;margin:0 0 4px;}
+  .form-card-sub{font-size:12px;color:var(--ink-soft);margin-bottom:14px;}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  @media(max-width:520px){.row2{grid-template-columns:1fr;}}
   label{display:block;font-size:12px;color:var(--ink-soft);margin:12px 0 5px;}
   label:first-child{margin-top:0;}
-  input{
-    width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:8px;
-    font-family:'IBM Plex Mono',monospace;font-size:14px;background:var(--bg);color:var(--ink);
-  }
+  input{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:14px;background:var(--bg);color:var(--ink);}
   input:focus{outline:2px solid var(--jade);outline-offset:1px;border-color:var(--jade);}
   .hint{font-size:11.5px;color:var(--ink-soft);margin-top:4px;}
-  button{
-    margin-top:18px;width:100%;padding:12px;border:none;border-radius:10px;
-    background:var(--jade);color:#fff;font-weight:600;font-size:14.5px;cursor:pointer;
-    font-family:'Inter',sans-serif;
-  }
+  button{margin-top:18px;width:100%;padding:12px;border:none;border-radius:10px;background:var(--jade);color:#fff;font-weight:600;font-size:14.5px;cursor:pointer;font-family:'Inter',sans-serif;}
   button:disabled{opacity:.6;cursor:default;}
   .form-msg{margin-top:10px;font-size:13px;padding:9px 11px;border-radius:8px;display:none;}
   .form-msg.show{display:block;}
   .form-msg.ok{background:var(--jade-soft);color:var(--jade);}
   .form-msg.err{background:var(--rust-soft);color:var(--rust);}
 
+  .split-preview{background:var(--gold-soft);border:1px solid var(--gold);border-radius:10px;padding:12px 14px;margin:12px 0;font-size:13px;}
+  .split-preview-title{font-weight:600;margin-bottom:8px;color:#6b5424;}
+  .split-row{display:flex;justify-content:space-between;padding:3px 0;}
+  .split-confirm{display:flex;align-items:flex-start;gap:8px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--gold);font-size:12.5px;color:#6b5424;cursor:pointer;}
+  .split-confirm input{width:auto;margin-top:2px;}
 
-  .modal-backdrop{
-    position:fixed;inset:0;background:rgba(32,42,36,.45);
-    display:none;align-items:center;justify-content:center;padding:18px;z-index:1000;
-  }
+  .modal-backdrop{position:fixed;inset:0;background:rgba(32,42,36,.45);display:none;align-items:center;justify-content:center;padding:18px;z-index:1000;}
   .modal-backdrop.show{display:flex;}
-  .modal{
-    width:min(380px,100%);background:var(--card);border:1px solid var(--line);
-    border-radius:var(--radius);padding:20px;box-shadow:0 18px 50px rgba(0,0,0,.18);
-  }
+  .modal{width:min(380px,100%);background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:0 18px 50px rgba(0,0,0,.18);}
   .modal h2{font-family:'Fraunces',serif;font-size:20px;margin:0 0 5px;}
   .modal p{font-size:13px;color:var(--ink-soft);margin:0 0 14px;}
   .modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;}
   .modal-actions button{margin:0;}
   .modal-actions .secondary{background:var(--bg);color:var(--ink);border:1px solid var(--line);}
-  .form-card-title{font-family:'Fraunces',serif;font-weight:600;font-size:16px;margin:0 0 4px;}
-  .form-card-sub{font-size:12px;color:var(--ink-soft);margin-bottom:14px;}
-
   .loading,.error-state{text-align:center;padding:60px 20px;color:var(--ink-soft);}
-  @media (prefers-reduced-motion:no-preference){
-    .card,.goal,.tip{animation:fadein .35s ease both;}
-    @keyframes fadein{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
-  }
+  @media(prefers-reduced-motion:no-preference){.card,.goal{animation:fadein .3s ease both;}@keyframes fadein{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <section class="weekly-var-section" id="weeklyVarSection" style="display:none;">
-    <div class="section-title">Variables Plan</div>
-    <div class="weekly-var-cards" id="weeklyVarCards"></div>
-  </section>
-
   <header class="top">
-    <div class="eyebrow">Family Cash-Flow</div>
-    <h1>Coverage &amp; Distributable</h1>
+    <h1>Family Cash Flow</h1>
     <div class="asof" id="asOfLine">Loading…</div>
   </header>
 
-  <div class="stale-banner" id="staleBanner">May be outdated — showing last saved numbers because today's data couldn't be fetched.</div>
+  <div class="stale-banner" id="staleBanner">May be outdated — showing the last saved data because the latest data could not be fetched.</div>
 
   <div id="app" style="display:none;">
+    <section id="weeklyVarSection">
+      <div class="section-title">Weekly Variables</div>
+      <div class="weekly-var-cards" id="weeklyVarCards"></div>
+    </section>
+
     <section>
-      <div class="grid4">
-        <div class="card indicator positive" id="cardThisWeek">
-          <div class="label">This week</div>
-          <div class="value num">—</div>
-        </div>
-        <div class="card indicator positive" id="cardNextWeek">
-          <div class="label">Next week</div>
-          <div class="value num">—</div>
-        </div>
-        <div class="card indicator" id="cardCoverage">
-          <div class="label">Coverage</div>
-          <div class="value">—</div>
-        </div>
-        <div class="card indicator gold" id="cardEF">
+      <div class="summary-grid">
+        <div class="card summary-card ef">
           <div class="label">Available for EF</div>
-          <div class="value num">—</div>
-          <div class="sub" id="efSub"></div>
+          <div class="value" id="availableEF">—</div>
+        </div>
+        <div class="card summary-card goals">
+          <div class="label">Available for Goals</div>
+          <div class="value" id="availableGoals">—</div>
+          <label class="preview-toggle" id="goalPreviewLabel">
+            <input type="checkbox" id="goalPreviewToggle">
+            <span>Preview this allocation in Weekly Cards</span>
+          </label>
+          <div class="preview-status" id="goalPreviewStatus"></div>
         </div>
       </div>
-      <div class="goal-indicators" id="goalIndicators"></div>
     </section>
 
     <section>
-      <div class="section-title">8-week projection</div>
-      <div class="chart-card">
-        <canvas id="projChart" height="220"></canvas>
-        <div class="lowpoint" id="lowpointCallout"></div>
+      <div class="section-title">Emergency Fund</div>
+      <div class="ef-stats">
+        <div class="card ef-stat"><div class="label">Current</div><div class="value" id="efCurrent">—</div></div>
+        <div class="card ef-stat"><div class="label">Target</div><div class="value" id="efTarget">—</div></div>
+        <div class="card ef-stat"><div class="label">Remaining</div><div class="value" id="efRemaining">—</div></div>
       </div>
-    </section>
-
-    <section id="tipsSection" style="display:none;">
-      <div class="section-title">Notes</div>
-      <div id="tipsList"></div>
+      <div class="chart-card">
+        <div class="chart-wrap" id="efChartWrap"><canvas id="efHistoryChart"></canvas></div>
+        <div class="chart-empty" id="efChartEmpty">No Emergency Fund Ledger history yet.</div>
+      </div>
     </section>
 
     <section>
       <div class="section-title">Goals</div>
       <div id="goalsList"></div>
       <button type="button" class="link-btn" id="addGoalToggle">+ Add goal</button>
-      <form class="balance-form" id="addGoalForm" style="display:none;margin-top:10px;">
+      <form class="action-form" id="addGoalForm" style="display:none;margin-top:10px;">
         <label for="g-name">Goal name</label>
         <input type="text" id="g-name" required>
-
         <div class="row2">
-          <div>
-            <label for="g-amount">Target amount</label>
-            <input type="number" step="0.01" id="g-amount" required>
-          </div>
-          <div>
-            <label for="g-rank">Priority rank</label>
-            <input type="number" step="1" id="g-rank" required>
-          </div>
+          <div><label for="g-amount">Target amount</label><input type="number" step="0.01" id="g-amount" required></div>
+          <div><label for="g-rank">Priority rank</label><input type="number" step="1" id="g-rank" required></div>
         </div>
-        <div class="hint">Rank sets the claim order among goals — lower goes first. Edit it later any time by asking to change a goal's rank.</div>
-
+        <div class="hint">Lower rank receives Goal Preview money first.</div>
         <label for="g-date">Target date (optional)</label>
         <input type="date" id="g-date">
-
         <button type="submit" id="addGoalBtn">Add goal</button>
         <div class="form-msg" id="addGoalMsg"></div>
       </form>
     </section>
 
-    <div class="divider">Do this last — daily update</div>
-
     <section>
-      <form class="balance-form" id="balanceForm">
-        <div class="form-card-title">Balance Check</div>
+      <form class="action-form" id="balanceForm">
+        <div class="form-card-title">Balance Update</div>
         <div class="form-card-sub">Update the current balances of both accounts.</div>
-
         <label for="f-date">Date</label>
         <input type="date" id="f-date" required>
-
         <div class="row2">
-          <div>
-            <label for="f-alex">Alex KTB balance</label>
-            <input type="number" step="0.01" id="f-alex" required>
-          </div>
-          <div>
-            <label for="f-olga">Olga KTB balance</label>
-            <input type="number" step="0.01" id="f-olga" required>
-          </div>
+          <div><label for="f-alex">Alex KTB balance</label><input type="number" step="0.01" id="f-alex" required></div>
+          <div><label for="f-olga">Olga KTB balance</label><input type="number" step="0.01" id="f-olga" required></div>
         </div>
-
         <button type="submit" id="submitBtn">Save balances</button>
         <div class="form-msg" id="formMsg"></div>
       </form>
     </section>
 
     <section>
-      <form class="balance-form" id="paymentForm">
+      <form class="action-form" id="paymentForm">
         <div class="form-card-title">One-off Payment</div>
         <div class="form-card-sub">The payment automatically reduces the latest saved account balance or balances.</div>
-
         <label for="p-date">Date</label>
         <input type="date" id="p-date" required>
-
         <label for="p-name">Payment name</label>
         <input type="text" id="p-name" placeholder="e.g. Dentist deposit" required>
-
         <div class="row2">
-          <div>
-            <label for="p-alex">Paid from Alex KTB</label>
-            <input type="number" min="0" step="0.01" id="p-alex" placeholder="0">
-          </div>
-          <div>
-            <label for="p-olga">Paid from Olga KTB</label>
-            <input type="number" min="0" step="0.01" id="p-olga" placeholder="0">
-          </div>
+          <div><label for="p-alex">Paid from Alex KTB</label><input type="number" min="0" step="0.01" id="p-alex" placeholder="0"></div>
+          <div><label for="p-olga">Paid from Olga KTB</label><input type="number" min="0" step="0.01" id="p-olga" placeholder="0"></div>
         </div>
-
         <div class="split-preview" id="splitPreview" style="display:none;">
           <div class="split-preview-title">This payment exceeds the current safe capacity</div>
           <div class="split-row"><span>Safe portion</span><span class="num" id="splitSafe">—</span></div>
           <div class="split-row"><span>From the Emergency Fund</span><span class="num" id="splitEF">—</span></div>
-          <label class="split-confirm">
-            <input type="checkbox" id="splitConfirmCheck">
-            <span>I confirm the Emergency Fund transfer has been or will be made</span>
-          </label>
+          <label class="split-confirm"><input type="checkbox" id="splitConfirmCheck"><span>I confirm the Emergency Fund transfer has been or will be made</span></label>
         </div>
-
         <button type="submit" id="paymentBtn">Save payment</button>
         <div class="form-msg" id="paymentMsg"></div>
       </form>
@@ -366,11 +227,8 @@
   </div>
 
   <div class="loading" id="loadingState">Loading current numbers…</div>
-  <div class="error-state" id="errorState" style="display:none;">
-    Couldn't load data, and no previous numbers are saved on this device.<br>Check your connection and reload.
-  </div>
+  <div class="error-state" id="errorState" style="display:none;">Could not load data, and no saved data is available on this device.<br>Check your connection and reload.</div>
 </div>
-
 
 <div class="modal-backdrop" id="pinModal" role="dialog" aria-modal="true" aria-labelledby="pinModalTitle">
   <div class="modal">
@@ -378,235 +236,197 @@
     <p>Enter your 6-digit PIN.</p>
     <input type="password" id="modalPin" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" aria-label="6-digit PIN">
     <div class="form-msg" id="pinModalMsg"></div>
-    <div class="modal-actions">
-      <button type="button" class="secondary" id="pinCancel">Cancel</button>
-      <button type="button" id="pinConfirm">Confirm</button>
-    </div>
+    <div class="modal-actions"><button type="button" class="secondary" id="pinCancel">Cancel</button><button type="button" id="pinConfirm">Confirm</button></div>
   </div>
 </div>
 
 <script>
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZrhAbyejB9cOv-56cSNilWlrw626DOWLd5A7CezQiM2bAKN61oDk_9RNm_7zb5d4kTA/exec';
-const CACHE_KEY = 'familyCashFlow_lastGood';
+const CACHE_KEY = 'familyCashFlow_dashboardV2';
+let currentData = null;
+let goalPreviewEnabled = false;
+let efChartInstance = null;
 
-function fmt(n){
-  const v = Math.round(Number(n) || 0);
-  return v.toLocaleString('en-US');
-}
+function fmt(n){ return Math.round(Number(n) || 0).toLocaleString('en-US'); }
+function fmtMoney(n, currency){ return fmt(n) + ' ' + currency; }
 function fmtDate(iso){
+  if(!iso) return '';
   const d = new Date(iso + 'T00:00:00');
-  return d.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+  return d.toLocaleDateString('en-GB', {day:'numeric', month:'short'});
 }
-
-let chartInstance = null;
+function escapeHtml(value){
+  return String(value == null ? '' : value).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+}
+function activeWeeklyCards(data){
+  if(goalPreviewEnabled && data.goalPreview && data.goalPreview.previewPlan){
+    return data.goalPreview.previewPlan.weeklyVariablesCards || [];
+  }
+  return data.weeklyVariablesCards || [];
+}
+function activeGoalAllocations(data){
+  if(!goalPreviewEnabled || !data.goalPreview || !data.goalPreview.previewPlan) return [];
+  return data.goalPreview.previewPlan.allocations || [];
+}
 
 function renderWeeklyVarCards(data){
-  const section = document.getElementById('weeklyVarSection');
   const el = document.getElementById('weeklyVarCards');
-  const cards = data.weeklyVariablesCards || [];
+  const cards = activeWeeklyCards(data);
   const currency = data.config.currency;
   el.innerHTML = '';
-  if(cards.length === 0){ section.style.display = 'none'; return; }
-  section.style.display = 'block';
-
   cards.forEach(c => {
     const card = document.createElement('div');
     card.className = 'card' + (c.isCurrent ? ' current' : '') + (c.isClosed ? ' closed' : '');
-    const label = (c.isCurrent ? 'This week · ' : (c.isClosed ? 'Closed · ' : '')) +
-      fmtDate(c.cardStart) + '–' + fmtDate(c.cardEnd);
-    let html = '<div class="label">' + label + '</div>' +
-      '<div class="wv-row"><span class="wv-tag">Planned</span><span class="wv-value">' +
-      fmt(c.planned) + ' ' + currency + '</span></div>';
-
+    const labelPrefix = c.isCurrent ? 'This week · ' : (c.isClosed ? 'Closed · ' : '');
+    let html = '<div class="label">' + labelPrefix + fmtDate(c.cardStart) + '–' + fmtDate(c.cardEnd) + '</div>' +
+      '<div class="wv-row"><span class="wv-tag">Planned</span><span class="wv-value">' + fmtMoney(c.planned, currency) + '</span></div>';
     if(c.isClosed){
       const hasSpent = c.spent !== 'no data';
-      html += '<div class="wv-row"><span class="wv-tag">Spent</span><span class="wv-value">' +
-        (hasSpent ? fmt(c.spent) + ' ' + currency : 'No data') + '</span></div>';
+      html += '<div class="wv-row"><span class="wv-tag">Spent</span><span class="wv-value">' + (hasSpent ? fmtMoney(c.spent, currency) : 'No data') + '</span></div>';
       if(hasSpent){
         const diffClass = c.difference > 0 ? 'over' : (c.difference < 0 ? 'under' : '');
-        html += '<div class="wv-carry ' + diffClass + '">Difference: ' +
-          (c.difference >= 0 ? '+' : '') + fmt(c.difference) + ' ' + currency + '</div>';
+        html += '<div class="wv-carry ' + diffClass + '">Difference: ' + (c.difference >= 0 ? '+' : '') + fmtMoney(c.difference, currency) + '</div>';
       }
-      if(c.provisional){
-        html += '<div class="wv-provisional">Provisional — not yet frozen</div>';
-      }
+      if(c.provisional) html += '<div class="wv-provisional">Provisional — not yet frozen</div>';
     } else if(c.isCurrent){
       const hasData = c.spent !== 'no data' && c.available !== 'no data';
-      html += '<div class="wv-row"><span class="wv-tag">Spent</span><span class="wv-value">' +
-        (hasData ? fmt(c.spent) + ' ' + currency : 'No data') + '</span></div>';
-      const availableClass = hasData && c.available < 0 ? 'over' : '';
-      html += '<div class="wv-row"><span class="wv-tag">Available</span><span class="wv-value ' +
-        availableClass + '">' + (hasData ? fmt(c.available) + ' ' + currency : 'No data') + '</span></div>';
-      if(c.availableAsOf && c.availableAsOf !== data.asOf){
-        html += '<div class="wv-asof">as of ' + fmtDate(c.availableAsOf) + '</div>';
-      }
+      html += '<div class="wv-row"><span class="wv-tag">Spent</span><span class="wv-value">' + (hasData ? fmtMoney(c.spent, currency) : 'No data') + '</span></div>';
+      html += '<div class="wv-row"><span class="wv-tag">Available</span><span class="wv-value ' + (hasData && c.available < 0 ? 'over' : '') + '">' + (hasData ? fmtMoney(c.available, currency) : 'No data') + '</span></div>';
+      if(c.availableAsOf && c.availableAsOf !== data.asOf) html += '<div class="wv-asof">as of ' + fmtDate(c.availableAsOf) + '</div>';
     } else {
       const hasAvailable = c.available !== 'no data';
-      const availableClass = hasAvailable && c.available < 0 ? 'over' : '';
-      html += '<div class="wv-row"><span class="wv-tag">Available</span><span class="wv-value ' +
-        availableClass + '">' + (hasAvailable ? fmt(c.available) + ' ' + currency : 'No data') + '</span></div>';
+      html += '<div class="wv-row"><span class="wv-tag">Available</span><span class="wv-value ' + (hasAvailable && c.available < 0 ? 'over' : '') + '">' + (hasAvailable ? fmtMoney(c.available, currency) : 'No data') + '</span></div>';
     }
-
     card.innerHTML = html;
     el.appendChild(card);
   });
 }
 
+function renderSummary(data){
+  const currency = data.config.currency;
+  const efAvailable = data.efClaimThisWeek ? data.efClaimThisWeek.claimed : 0;
+  const goalAvailable = data.goalPreview ? data.goalPreview.availableAmount : 0;
+  document.getElementById('availableEF').textContent = fmtMoney(efAvailable, currency);
+  document.getElementById('availableGoals').textContent = fmtMoney(goalAvailable, currency);
+
+  const toggle = document.getElementById('goalPreviewToggle');
+  const label = document.getElementById('goalPreviewLabel');
+  const canPreview = Number(goalAvailable) > 0 && data.goalPreview && data.goalPreview.previewPlan;
+  toggle.disabled = !canPreview;
+  toggle.checked = goalPreviewEnabled && canPreview;
+  label.classList.toggle('disabled', !canPreview);
+
+  const status = document.getElementById('goalPreviewStatus');
+  if(goalPreviewEnabled && canPreview){
+    status.textContent = 'Preview active — Weekly Cards reduced by ' + fmtMoney(data.goalPreview.previewPlan.appliedAmount, currency) + '.';
+    status.className = 'preview-status active';
+  } else if(canPreview){
+    status.textContent = 'No money is moved until you decide to record a real transfer.';
+    status.className = 'preview-status';
+  } else {
+    status.textContent = 'No optional Variables amount is currently available for Goals.';
+    status.className = 'preview-status';
+  }
+}
+
+function renderEmergencyFund(data){
+  const currency = data.config.currency;
+  const ef = data.emergencyFund || {
+    current: Number(data.config.emergencyFundCurrent) || 0,
+    target: Number(data.config.emergencyFundTarget) || 0,
+    remaining: Math.max((Number(data.config.emergencyFundTarget) || 0) - (Number(data.config.emergencyFundCurrent) || 0), 0),
+    history: []
+  };
+  document.getElementById('efCurrent').textContent = fmtMoney(ef.current, currency);
+  document.getElementById('efTarget').textContent = fmtMoney(ef.target, currency);
+  document.getElementById('efRemaining').textContent = fmtMoney(ef.remaining, currency);
+
+  const history = ef.history || [];
+  const wrap = document.getElementById('efChartWrap');
+  const empty = document.getElementById('efChartEmpty');
+  if(efChartInstance){ efChartInstance.destroy(); efChartInstance = null; }
+  if(history.length === 0){ wrap.style.display = 'none'; empty.style.display = 'block'; return; }
+  wrap.style.display = 'block'; empty.style.display = 'none';
+
+  const labels = history.map(p => fmtDate(p.date));
+  const balances = history.map(p => Number(p.balance) || 0);
+  const targets = history.map(() => Number(ef.target) || 0);
+  const ctx = document.getElementById('efHistoryChart').getContext('2d');
+  efChartInstance = new Chart(ctx, {
+    type:'line',
+    data:{labels,datasets:[
+      {label:'EF balance',data:balances,borderColor:'#2e6f4e',backgroundColor:'rgba(46,111,78,.08)',borderWidth:2,pointRadius:history.length > 24 ? 0 : 3,fill:true,tension:.2},
+      {label:'Target',data:targets,borderColor:'#b08a3e',borderWidth:1.5,borderDash:[5,5],pointRadius:0,fill:false,tension:0}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true,labels:{boxWidth:14,font:{family:"'Inter'",size:11}}},tooltip:{callbacks:{afterLabel:ctx=>{
+      if(ctx.datasetIndex !== 0) return '';
+      const item = history[ctx.dataIndex];
+      return item.direction + ': ' + fmtMoney(item.amount, currency);
+    }}}},scales:{x:{ticks:{maxTicksLimit:8,font:{family:"'IBM Plex Mono'",size:10}},grid:{display:false}},y:{ticks:{font:{family:"'IBM Plex Mono'",size:10},callback:v=>fmt(v)},grid:{color:'#e4dfd2'}}}}
+  });
+}
+
+function renderGoals(data){
+  const el = document.getElementById('goalsList');
+  const currency = data.config.currency;
+  const allocations = {};
+  activeGoalAllocations(data).forEach(a => { allocations[a.name] = a; });
+  const goals = (data.goals || []).filter(g => g.status !== 'done').sort((a,b) => Number(a.priorityRank) - Number(b.priorityRank));
+  el.innerHTML = '';
+  goals.forEach(g => {
+    const a = allocations[g.name];
+    const saved = Number(g.savedSoFar) || 0;
+    const row = document.createElement('div');
+    row.className = 'goal';
+    let preview = '';
+    if(a && Number(a.previewAllocation) > 0){
+      preview = '<div class="preview-allocation">Preview: +' + fmtMoney(a.previewAllocation, currency) + ' · after preview ' + fmtMoney(saved + Number(a.previewAllocation), currency) + '</div>';
+    }
+    row.innerHTML = '<div class="goal-main"><div class="goal-head"><span class="rank">#' + escapeHtml(g.priorityRank) + '</span><span class="name">' + escapeHtml(g.name) + '</span></div>' +
+      '<div class="meta">' + escapeHtml(g.status || '') + (g.targetDate ? ' · target ' + escapeHtml(g.targetDate) : '') + '</div>' + preview + '</div>' +
+      '<div class="amt">' + fmt(saved) + ' / ' + fmt(g.targetAmount) + '<br><span style="color:var(--ink-soft);font-size:11px;">' + escapeHtml(currency) + '</span></div>';
+    el.appendChild(row);
+  });
+  if(goals.length === 0) el.innerHTML = '<div class="card" style="text-align:center;color:var(--ink-soft);">No active goals.</div>';
+  const rank = document.getElementById('g-rank');
+  if(rank && !rank.dataset.userEdited) rank.value = data.suggestedNextGoalRank;
+}
+
+function renderScenario(){
+  if(!currentData) return;
+  renderWeeklyVarCards(currentData);
+  renderSummary(currentData);
+  renderGoals(currentData);
+}
+
 function render(data, meta){
+  currentData = data;
   document.getElementById('loadingState').style.display = 'none';
   document.getElementById('errorState').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  renderWeeklyVarCards(data);
-
-  const staleBanner = document.getElementById('staleBanner');
+  const stale = document.getElementById('staleBanner');
   if(meta && meta.stale){
-    staleBanner.classList.add('show');
-    document.getElementById('asOfLine').textContent =
-      'As of ' + data.asOf + ' (cached ' + new Date(meta.fetchedAt).toLocaleString() + ')';
+    stale.classList.add('show');
+    document.getElementById('asOfLine').textContent = 'As of ' + data.asOf + ' (cached ' + new Date(meta.fetchedAt).toLocaleString() + ')';
   } else {
-    staleBanner.classList.remove('show');
+    stale.classList.remove('show');
     document.getElementById('asOfLine').textContent = 'As of ' + data.asOf;
   }
-
-  // Top four indicators
-  document.querySelector('#cardThisWeek .value').textContent =
-    fmt(data.distributableThisWeek.distributable) + ' ' + data.config.currency;
-  document.querySelector('#cardNextWeek .value').textContent =
-    fmt(data.distributableNextWeek.distributable) + ' ' + data.config.currency;
-
-  const covCard = document.getElementById('cardCoverage');
-  const covValue = covCard.querySelector('.value');
-  if(data.coverage.covered){
-    covCard.classList.add('positive'); covCard.classList.remove('warning');
-    covValue.textContent = 'Covered';
-  } else {
-    covCard.classList.add('warning'); covCard.classList.remove('positive');
-    covValue.textContent = 'Short ' + fmt(data.coverage.shortfall);
-    let sub = covCard.querySelector('.sub');
-    if(!sub){ sub = document.createElement('div'); sub.className='sub'; covCard.appendChild(sub); }
-    sub.textContent = data.coverage.obligationsCausingShortfall.join(', ');
-  }
-
-  document.querySelector('#cardEF .value').textContent =
-    fmt(data.efClaimThisWeek.claimed) + ' ' + data.config.currency;
-  const efGap = Number(data.config.emergencyFundTarget) - Number(data.config.emergencyFundCurrent);
-  let efSubText = fmt(data.config.emergencyFundCurrent) + ' / ' + fmt(data.config.emergencyFundTarget) +
-    ' saved (' + (efGap > 0 ? fmt(efGap) + ' to go' : 'target reached') + ')';
-  if(data.efClaimThisWeek.claimed < data.efClaimThisWeek.wanted){
-    efSubText += ' · limited this week';
-  }
-  document.getElementById('efSub').textContent = efSubText;
-
-  // Per-goal "Available for Goal X" indicators (Step 7 addendum sec 7)
-  const goalIndicatorsEl = document.getElementById('goalIndicators');
-  goalIndicatorsEl.innerHTML = '';
-  (data.goalsClaimsThisWeek || []).forEach(c => {
-    const card = document.createElement('div');
-    card.className = 'card indicator';
-    card.innerHTML =
-      '<div class="label">Available for ' + c.name + '</div>' +
-      '<div class="value">' + fmt(c.weeklyClaim) + ' ' + data.config.currency + '</div>';
-    goalIndicatorsEl.appendChild(card);
-  });
-
-  // Projection chart
-  const labels = data.projection.series.map(p => fmtDate(p.date));
-  const values = data.projection.series.map(p => p.balance);
-  const ctx = document.getElementById('projChart').getContext('2d');
-  if(chartInstance) chartInstance.destroy();
-  chartInstance = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        data: values,
-        borderColor: '#2e6f4e',
-        backgroundColor: 'rgba(46,111,78,0.08)',
-        borderWidth: 2,
-        pointRadius: 0,
-        fill: true,
-        tension: 0.25
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display:false } },
-      scales: {
-        x: { ticks:{ maxTicksLimit:8, font:{family:"'IBM Plex Mono'",size:10} }, grid:{ display:false } },
-        y: { ticks:{ font:{family:"'IBM Plex Mono'",size:10}, callback:v=>fmt(v) }, grid:{ color:'#e4dfd2' } }
-      }
-    }
-  });
-
-  const lp = data.projection.lowestPoint;
-  const lpEl = document.getElementById('lowpointCallout');
-  if(lp.balance < 0){
-    lpEl.className = 'lowpoint';
-    lpEl.innerHTML = '<span class="tag">Lowest point</span> ' + fmt(lp.balance) + ' ' + data.config.currency + ' around ' + fmtDate(lp.date);
-  } else {
-    lpEl.className = 'lowpoint ok';
-    lpEl.innerHTML = '<span class="tag">Lowest point</span> ' + fmt(lp.balance) + ' ' + data.config.currency + ' around ' + fmtDate(lp.date) + ' — stays positive';
-  }
-
-  // Tips
-  const tipsSection = document.getElementById('tipsSection');
-  const tipsList = document.getElementById('tipsList');
-  tipsList.innerHTML = '';
-  if(data.tips && data.tips.length > 0){
-    tipsSection.style.display = 'block';
-    data.tips.forEach(t => {
-      const div = document.createElement('div');
-      const isRisk = /shortfall|below zero|no surplus available|contribution limited/i.test(t);
-      div.className = 'tip ' + (isRisk ? 'risk' : 'ok');
-      div.textContent = t;
-      tipsList.appendChild(div);
-    });
-  } else {
-    tipsSection.style.display = 'none';
-  }
-
-  // Goals
-  const goalsList = document.getElementById('goalsList');
-  goalsList.innerHTML = '';
-  const goals = (data.goals || [])
-    .filter(g => g.status !== 'done')
-    .sort((a,b) => Number(a.priorityRank) - Number(b.priorityRank));
-  goals.forEach(g => {
-    const row = document.createElement('div');
-    row.className = 'goal';
-    row.innerHTML =
-      '<div>' +
-        '<span class="rank">#' + g.priorityRank + '</span>' +
-        '<div class="name">' + g.name + '</div>' +
-        '<div class="meta">' + (g.status || '') + (g.targetDate ? ' · target ' + g.targetDate : '') + '</div>' +
-      '</div>' +
-      '<div class="amt">' + fmt(g.savedSoFar || 0) + ' / ' + fmt(g.targetAmount) + '<br><span style="color:var(--ink-soft);font-size:11px;">' + data.config.currency + '</span></div>';
-    goalsList.appendChild(row);
-  });
-  if(goals.length === 0){
-    goalsList.innerHTML = '<div class="card" style="text-align:center;color:var(--ink-soft);">No active goals.</div>';
-  }
-
-  // Pre-fill the suggested next rank for the "add goal" form
-  const gRank = document.getElementById('g-rank');
-  if(gRank && !gRank.dataset.userEdited){
-    gRank.value = data.suggestedNextGoalRank;
-  }
+  renderScenario();
+  renderEmergencyFund(data);
 }
 
 async function loadData(){
   try{
-    const res = await fetch(APPS_SCRIPT_URL, { method:'GET' });
+    const res = await fetch(APPS_SCRIPT_URL, {method:'GET'});
     if(!res.ok) throw new Error('Network response not OK');
     const data = await res.json();
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ data, fetchedAt: new Date().toISOString() }));
-    render(data, { stale:false });
+    localStorage.setItem(CACHE_KEY, JSON.stringify({data,fetchedAt:new Date().toISOString()}));
+    render(data,{stale:false});
   } catch(err){
     const cached = localStorage.getItem(CACHE_KEY);
     if(cached){
       const parsed = JSON.parse(cached);
-      render(parsed.data, { stale:true, fetchedAt: parsed.fetchedAt });
+      render(parsed.data,{stale:true,fetchedAt:parsed.fetchedAt});
     } else {
       document.getElementById('loadingState').style.display = 'none';
       document.getElementById('errorState').style.display = 'block';
@@ -614,249 +434,81 @@ async function loadData(){
   }
 }
 
+document.getElementById('goalPreviewToggle').addEventListener('change', e => {
+  goalPreviewEnabled = e.target.checked;
+  renderScenario();
+});
 document.getElementById('f-date').valueAsDate = new Date();
 document.getElementById('p-date').valueAsDate = new Date();
+document.getElementById('g-rank').addEventListener('input', () => { document.getElementById('g-rank').dataset.userEdited = '1'; });
 
-document.getElementById('g-rank').addEventListener('input', () => {
-  document.getElementById('g-rank').dataset.userEdited = '1';
-});
-
-// ---- Reusable six-digit PIN modal ----
 let pendingPinResolve = null;
-
 function requestPin(){
-  const modal = document.getElementById('pinModal');
-  const input = document.getElementById('modalPin');
-  const msg = document.getElementById('pinModalMsg');
-  input.value = '';
-  msg.className = 'form-msg';
-  modal.classList.add('show');
-  setTimeout(() => input.focus(), 0);
-  return new Promise(resolve => { pendingPinResolve = resolve; });
+  const modal=document.getElementById('pinModal'),input=document.getElementById('modalPin'),msg=document.getElementById('pinModalMsg');
+  input.value='';msg.className='form-msg';modal.classList.add('show');setTimeout(()=>input.focus(),0);
+  return new Promise(resolve=>{pendingPinResolve=resolve;});
 }
-
 function closePinModal(value){
-  document.getElementById('pinModal').classList.remove('show');
-  document.getElementById('modalPin').value = '';
-  const resolve = pendingPinResolve;
-  pendingPinResolve = null;
-  if(resolve) resolve(value);
+  document.getElementById('pinModal').classList.remove('show');document.getElementById('modalPin').value='';
+  const resolve=pendingPinResolve;pendingPinResolve=null;if(resolve) resolve(value);
 }
-
-document.getElementById('pinCancel').addEventListener('click', () => closePinModal(null));
-document.getElementById('pinConfirm').addEventListener('click', () => {
-  const input = document.getElementById('modalPin');
-  const msg = document.getElementById('pinModalMsg');
-  const pin = input.value.trim();
-  if(!/^\d{6}$/.test(pin)){
-    msg.textContent = 'PIN must contain exactly 6 digits.';
-    msg.className = 'form-msg err show';
-    input.focus();
-    return;
-  }
+document.getElementById('pinCancel').addEventListener('click',()=>closePinModal(null));
+document.getElementById('pinConfirm').addEventListener('click',()=>{
+  const input=document.getElementById('modalPin'),msg=document.getElementById('pinModalMsg'),pin=input.value.trim();
+  if(!/^\d{6}$/.test(pin)){msg.textContent='PIN must contain exactly 6 digits.';msg.className='form-msg err show';input.focus();return;}
   closePinModal(pin);
 });
-document.getElementById('modalPin').addEventListener('input', e => {
-  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
-});
-document.getElementById('modalPin').addEventListener('keydown', e => {
-  if(e.key === 'Enter'){
-    e.preventDefault();
-    document.getElementById('pinConfirm').click();
-  } else if(e.key === 'Escape'){
-    closePinModal(null);
-  }
-});
-document.getElementById('pinModal').addEventListener('click', e => {
-  if(e.target.id === 'pinModal') closePinModal(null);
-});
+document.getElementById('modalPin').addEventListener('input',e=>{e.target.value=e.target.value.replace(/\D/g,'').slice(0,6);});
+document.getElementById('modalPin').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();document.getElementById('pinConfirm').click();}else if(e.key==='Escape') closePinModal(null);});
+document.getElementById('pinModal').addEventListener('click',e=>{if(e.target.id==='pinModal') closePinModal(null);});
 
 async function postAction(payload){
-  const res = await fetch(APPS_SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(payload)
-  });
+  const res=await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
   return res.json();
 }
 
-// ---- Balance Check ----
-document.getElementById('balanceForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const btn = document.getElementById('submitBtn');
-  const msg = document.getElementById('formMsg');
-  msg.className = 'form-msg';
-
-  const pin = await requestPin();
-  if(!pin) return;
-
-  btn.disabled = true;
-  btn.textContent = 'Saving…';
+document.getElementById('balanceForm').addEventListener('submit',async e=>{
+  e.preventDefault();const btn=document.getElementById('submitBtn'),msg=document.getElementById('formMsg');msg.className='form-msg';
+  const pin=await requestPin();if(!pin) return;btn.disabled=true;btn.textContent='Saving…';
   try{
-    const result = await postAction({
-      action: 'balanceCheck',
-      date: document.getElementById('f-date').value,
-      alexBalance: document.getElementById('f-alex').value,
-      olgaBalance: document.getElementById('f-olga').value,
-      oneOffName: '',
-      oneOffAmount: '',
-      oneOffAccount: '',
-      pin
-    });
-    if(result.ok){
-      window.location.reload();
-      return;
-    }
-    msg.textContent = result.error || 'Could not save.';
-    msg.className = 'form-msg err show';
-  } catch(err){
-    msg.textContent = 'Network error — try again.';
-    msg.className = 'form-msg err show';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Save balances';
-  }
+    const result=await postAction({action:'balanceCheck',date:document.getElementById('f-date').value,alexBalance:document.getElementById('f-alex').value,olgaBalance:document.getElementById('f-olga').value,oneOffName:'',oneOffAmount:'',oneOffAccount:'',pin});
+    if(result.ok){window.location.reload();return;}msg.textContent=result.error||'Could not save.';msg.className='form-msg err show';
+  }catch(err){msg.textContent='Network error — try again.';msg.className='form-msg err show';}
+  finally{btn.disabled=false;btn.textContent='Save balances';}
 });
 
-// ---- One-off Payment: two-stage POST, no preview GET ----
-let pendingEFPayment = null;
-
-function getOneOffAmounts(){
-  return {
-    alex: Number(document.getElementById('p-alex').value) || 0,
-    olga: Number(document.getElementById('p-olga').value) || 0
-  };
-}
-
-function resetEFConfirmation(){
-  pendingEFPayment = null;
-  document.getElementById('splitPreview').style.display = 'none';
-  document.getElementById('splitConfirmCheck').checked = false;
-  document.getElementById('paymentBtn').textContent = 'Save payment';
-}
-
-['p-date', 'p-name', 'p-alex', 'p-olga'].forEach(id => {
-  document.getElementById(id).addEventListener('input', resetEFConfirmation);
-});
-
-document.getElementById('paymentForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const btn = document.getElementById('paymentBtn');
-  const msg = document.getElementById('paymentMsg');
-  msg.className = 'form-msg';
-
-  const amounts = getOneOffAmounts();
-  if(amounts.alex < 0 || amounts.olga < 0 || amounts.alex + amounts.olga <= 0){
-    msg.textContent = 'Enter a positive amount for at least one account.';
-    msg.className = 'form-msg err show';
-    return;
-  }
-
-  const basePayload = {
-    action: 'oneOffPayment',
-    date: document.getElementById('p-date').value,
-    oneOffName: document.getElementById('p-name').value.trim(),
-    oneOffAlexAmount: amounts.alex,
-    oneOffOlgaAmount: amounts.olga
-  };
-
+let pendingEFPayment=null;
+function getOneOffAmounts(){return{alex:Number(document.getElementById('p-alex').value)||0,olga:Number(document.getElementById('p-olga').value)||0};}
+function resetEFConfirmation(){pendingEFPayment=null;document.getElementById('splitPreview').style.display='none';document.getElementById('splitConfirmCheck').checked=false;document.getElementById('paymentBtn').textContent='Save payment';}
+['p-date','p-name','p-alex','p-olga'].forEach(id=>document.getElementById(id).addEventListener('input',resetEFConfirmation));
+document.getElementById('paymentForm').addEventListener('submit',async e=>{
+  e.preventDefault();const btn=document.getElementById('paymentBtn'),msg=document.getElementById('paymentMsg');msg.className='form-msg';
+  const amounts=getOneOffAmounts();if(amounts.alex<0||amounts.olga<0||amounts.alex+amounts.olga<=0){msg.textContent='Enter a positive amount for at least one account.';msg.className='form-msg err show';return;}
+  const basePayload={action:'oneOffPayment',date:document.getElementById('p-date').value,oneOffName:document.getElementById('p-name').value.trim(),oneOffAlexAmount:amounts.alex,oneOffOlgaAmount:amounts.olga};
   let payload;
-
   if(pendingEFPayment){
-    if(!document.getElementById('splitConfirmCheck').checked){
-      msg.textContent = 'Please confirm the Emergency Fund transfer before saving.';
-      msg.className = 'form-msg err show';
-      return;
-    }
-
-    payload = Object.assign({}, basePayload, {
-      confirmEF: true,
-      confirmationToken: pendingEFPayment.confirmationToken
-    });
-  } else {
-    // PIN appears immediately. There is no preliminary network request.
-    const pin = await requestPin();
-    if(!pin) return;
-    payload = Object.assign({}, basePayload, { pin });
-  }
-
-  btn.disabled = true;
-  btn.textContent = pendingEFPayment ? 'Confirming…' : 'Saving…';
-
+    if(!document.getElementById('splitConfirmCheck').checked){msg.textContent='Please confirm the Emergency Fund transfer before saving.';msg.className='form-msg err show';return;}
+    payload=Object.assign({},basePayload,{confirmEF:true,confirmationToken:pendingEFPayment.confirmationToken});
+  }else{const pin=await requestPin();if(!pin) return;payload=Object.assign({},basePayload,{pin});}
+  btn.disabled=true;btn.textContent=pendingEFPayment?'Confirming…':'Saving…';
   try{
-    const result = await postAction(payload);
-
-    if(result.needsEFConfirmation){
-      pendingEFPayment = {
-        confirmationToken: result.confirmationToken,
-        split: result.split
-      };
-      document.getElementById('splitSafe').textContent = fmt(result.split.safePortion);
-      document.getElementById('splitEF').textContent = fmt(result.split.efPortion);
-      document.getElementById('splitPreview').style.display = 'block';
-      document.getElementById('splitConfirmCheck').checked = false;
-      msg.textContent = 'Confirm the Emergency Fund transfer, then save the payment.';
-      msg.className = 'form-msg err show';
-      btn.textContent = 'Confirm and save payment';
-      return;
-    }
-
-    if(result.ok){
-      window.location.reload();
-      return;
-    }
-
-    resetEFConfirmation();
-    msg.textContent = result.error || 'Could not save payment.';
-    msg.className = 'form-msg err show';
-  } catch(err){
-    msg.textContent = 'Network error — try again.';
-    msg.className = 'form-msg err show';
-  } finally {
-    btn.disabled = false;
-    if(!pendingEFPayment) btn.textContent = 'Save payment';
-  }
+    const result=await postAction(payload);
+    if(result.needsEFConfirmation){pendingEFPayment={confirmationToken:result.confirmationToken,split:result.split};document.getElementById('splitSafe').textContent=fmt(result.split.safePortion);document.getElementById('splitEF').textContent=fmt(result.split.efPortion);document.getElementById('splitPreview').style.display='block';document.getElementById('splitConfirmCheck').checked=false;msg.textContent='Confirm the Emergency Fund transfer, then save the payment.';msg.className='form-msg err show';btn.textContent='Confirm and save payment';return;}
+    if(result.ok){window.location.reload();return;}
+    resetEFConfirmation();msg.textContent=result.error||'Could not save payment.';msg.className='form-msg err show';
+  }catch(err){msg.textContent='Network error — try again.';msg.className='form-msg err show';}
+  finally{btn.disabled=false;if(!pendingEFPayment) btn.textContent='Save payment';}
 });
 
-// ---- Add goal ----
-document.getElementById('addGoalToggle').addEventListener('click', () => {
-  const form = document.getElementById('addGoalForm');
-  form.style.display = form.style.display === 'none' ? 'block' : 'none';
-});
-
-document.getElementById('addGoalForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const btn = document.getElementById('addGoalBtn');
-  const msg = document.getElementById('addGoalMsg');
-  msg.className = 'form-msg';
-
-  const pin = await requestPin();
-  if(!pin) return;
-
-  btn.disabled = true;
-  btn.textContent = 'Adding…';
+document.getElementById('addGoalToggle').addEventListener('click',()=>{const form=document.getElementById('addGoalForm');form.style.display=form.style.display==='none'?'block':'none';});
+document.getElementById('addGoalForm').addEventListener('submit',async e=>{
+  e.preventDefault();const btn=document.getElementById('addGoalBtn'),msg=document.getElementById('addGoalMsg');msg.className='form-msg';
+  const pin=await requestPin();if(!pin) return;btn.disabled=true;btn.textContent='Adding…';
   try{
-    const result = await postAction({
-      action: 'addGoal',
-      name: document.getElementById('g-name').value,
-      targetAmount: document.getElementById('g-amount').value,
-      priorityRank: document.getElementById('g-rank').value,
-      targetDate: document.getElementById('g-date').value,
-      pin
-    });
-    if(result.ok){
-      window.location.reload();
-      return;
-    }
-    msg.textContent = result.error || 'Could not add goal.';
-    msg.className = 'form-msg err show';
-  } catch(err){
-    msg.textContent = 'Network error — try again.';
-    msg.className = 'form-msg err show';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Add goal';
-  }
+    const result=await postAction({action:'addGoal',name:document.getElementById('g-name').value,targetAmount:document.getElementById('g-amount').value,priorityRank:document.getElementById('g-rank').value,targetDate:document.getElementById('g-date').value,pin});
+    if(result.ok){window.location.reload();return;}msg.textContent=result.error||'Could not add goal.';msg.className='form-msg err show';
+  }catch(err){msg.textContent='Network error — try again.';msg.className='form-msg err show';}
+  finally{btn.disabled=false;btn.textContent='Add goal';}
 });
 
 loadData();

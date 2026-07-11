@@ -206,7 +206,7 @@
 <body>
 <div class="wrap">
   <section class="weekly-var-section" id="weeklyVarSection" style="display:none;">
-    <div class="section-title">Weekly Variables pace</div>
+    <div class="section-title">Variables Plan</div>
     <div class="weekly-var-cards" id="weeklyVarCards"></div>
   </section>
 
@@ -367,42 +367,46 @@ function renderWeeklyVarCards(data){
   el.innerHTML = '';
   if(cards.length === 0){ section.style.display = 'none'; return; }
   section.style.display = 'block';
+
   cards.forEach(c => {
     const card = document.createElement('div');
     card.className = 'card' + (c.isCurrent ? ' current' : '') + (c.isClosed ? ' closed' : '');
-    const label = (c.isCurrent ? 'This week · ' : (c.isClosed ? 'Closed · ' : '')) + fmtDate(c.cardStart) + '–' + fmtDate(c.cardEnd);
+    const label = (c.isCurrent ? 'This week · ' : (c.isClosed ? 'Closed · ' : '')) +
+      fmtDate(c.cardStart) + '–' + fmtDate(c.cardEnd);
+    let html = '<div class="label">' + label + '</div>' +
+      '<div class="wv-row"><span class="wv-tag">Planned</span><span class="wv-value">' +
+      fmt(c.planned) + ' ' + currency + '</span></div>';
 
     if(c.isClosed){
-      const hasFactual = c.factual !== 'no data';
-      let html = '<div class="label">' + label + '</div>' +
-        '<div class="wv-row"><span class="wv-tag">Projected</span><span class="wv-value">' + fmt(c.weeklySlice) + ' ' + currency + '</span></div>' +
-        '<div class="wv-row"><span class="wv-tag">Factual</span><span class="wv-value">' + (hasFactual ? fmt(c.factual) + ' ' + currency : 'No data') + '</span></div>';
-      if(hasFactual){
-        const co = c.carryOver;
-        const coClass = co > 0 ? 'over' : (co < 0 ? 'under' : '');
-        html += '<div class="wv-carry ' + coClass + '">Carry-over: ' + (co >= 0 ? '+' : '') + fmt(co) + ' ' + currency + '</div>';
+      const hasSpent = c.spent !== 'no data';
+      html += '<div class="wv-row"><span class="wv-tag">Spent</span><span class="wv-value">' +
+        (hasSpent ? fmt(c.spent) + ' ' + currency : 'No data') + '</span></div>';
+      if(hasSpent){
+        const diffClass = c.difference > 0 ? 'over' : (c.difference < 0 ? 'under' : '');
+        html += '<div class="wv-carry ' + diffClass + '">Difference: ' +
+          (c.difference >= 0 ? '+' : '') + fmt(c.difference) + ' ' + currency + '</div>';
       }
-      html += '<div class="wv-provisional">Provisional — not yet frozen</div>';
-      card.innerHTML = html;
+      if(c.provisional){
+        html += '<div class="wv-provisional">Provisional — not yet frozen</div>';
+      }
     } else if(c.isCurrent){
-      let html = '<div class="label">' + label + '</div>' +
-        '<div class="value">' + fmt(c.weeklySlice) + ' ' + currency + '</div>';
-      if(c.remaining !== undefined){
-        const hasRemaining = c.remaining !== 'no data';
-        if(hasRemaining){
-          const remClass = c.remaining < 0 ? 'over' : '';
-          html += '<div class="wv-row"><span class="wv-tag">Remaining</span><span class="wv-value ' + remClass + '">' + fmt(c.remaining) + ' ' + currency + '</span></div>';
-          if(c.remainingAsOf && c.remainingAsOf !== data.asOf){
-            html += '<div class="wv-asof">as of ' + fmtDate(c.remainingAsOf) + '</div>';
-          }
-        } else {
-          html += '<div class="wv-row"><span class="wv-tag">Remaining</span><span class="wv-value">No data</span></div>';
-        }
+      const hasData = c.spent !== 'no data' && c.available !== 'no data';
+      html += '<div class="wv-row"><span class="wv-tag">Spent</span><span class="wv-value">' +
+        (hasData ? fmt(c.spent) + ' ' + currency : 'No data') + '</span></div>';
+      const availableClass = hasData && c.available < 0 ? 'over' : '';
+      html += '<div class="wv-row"><span class="wv-tag">Available</span><span class="wv-value ' +
+        availableClass + '">' + (hasData ? fmt(c.available) + ' ' + currency : 'No data') + '</span></div>';
+      if(c.availableAsOf && c.availableAsOf !== data.asOf){
+        html += '<div class="wv-asof">as of ' + fmtDate(c.availableAsOf) + '</div>';
       }
-      card.innerHTML = html;
     } else {
-      card.innerHTML = '<div class="label">' + label + '</div><div class="value">' + fmt(c.weeklySlice) + ' ' + currency + '</div>';
+      const hasAvailable = c.available !== 'no data';
+      const availableClass = hasAvailable && c.available < 0 ? 'over' : '';
+      html += '<div class="wv-row"><span class="wv-tag">Available</span><span class="wv-value ' +
+        availableClass + '">' + (hasAvailable ? fmt(c.available) + ' ' + currency : 'No data') + '</span></div>';
     }
+
+    card.innerHTML = html;
     el.appendChild(card);
   });
 }

@@ -149,6 +149,11 @@
   #paymentForm::before{background:var(--gold);}
   .form-card-title{font-family:'Fraunces',serif;font-weight:600;font-size:21px;margin:1px 0 3px;letter-spacing:-.01em;}
   .form-card-sub{font-size:12.5px;color:var(--ink-soft);margin-bottom:18px;max-width:620px;}
+  .current-balances{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 17px;}
+  .current-balance{background:var(--surface-soft);border:1px solid var(--line-soft);border-radius:11px;padding:11px 12px;min-width:0;}
+  .current-balance-label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);font-weight:650;margin-bottom:3px;}
+  .current-balance-value{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:650;letter-spacing:-.03em;white-space:nowrap;}
+  .current-balance-asof{grid-column:1/-1;font-size:10.5px;color:var(--ink-soft);margin-top:-3px;}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   label{display:block;font-size:12px;color:var(--ink-soft);font-weight:550;margin:14px 0 6px;}
   label:first-child{margin-top:0;}
@@ -193,7 +198,7 @@
     .weekly-var-cards{grid-template-columns:1fr;}
   }
   @media(max-width:560px){
-    .summary-grid,.row2{grid-template-columns:1fr;}
+    .summary-grid,.row2,.current-balances{grid-template-columns:1fr;}
     .summary-card{min-height:148px;}
     .ef-stats{grid-template-columns:1fr;}
     .ef-stat{display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-right:0;border-bottom:1px solid var(--line-soft);padding:15px 17px;}
@@ -287,12 +292,23 @@
     <section>
       <form class="action-form" id="balanceForm">
         <div class="form-card-title">Balance Update</div>
-        <div class="form-card-sub">Update the current balances of both accounts.</div>
+        <div class="form-card-sub">Update either account or both. Leave a field blank to keep its current balance.</div>
+        <div class="current-balances" aria-label="Current saved account balances">
+          <div class="current-balance">
+            <div class="current-balance-label">Current Alex KTB</div>
+            <div class="current-balance-value" id="currentAlexBalance">—</div>
+          </div>
+          <div class="current-balance">
+            <div class="current-balance-label">Current Olga KTB</div>
+            <div class="current-balance-value" id="currentOlgaBalance">—</div>
+          </div>
+          <div class="current-balance-asof" id="currentBalancesAsOf"></div>
+        </div>
         <label for="f-date">Date</label>
         <input type="date" id="f-date" required>
         <div class="row2">
-          <div><label for="f-alex">Alex KTB balance</label><input type="number" step="0.01" id="f-alex" required></div>
-          <div><label for="f-olga">Olga KTB balance</label><input type="number" step="0.01" id="f-olga" required></div>
+          <div><label for="f-alex">New Alex KTB balance</label><input type="number" min="0" step="0.01" id="f-alex" inputmode="decimal"></div>
+          <div><label for="f-olga">New Olga KTB balance</label><input type="number" min="0" step="0.01" id="f-olga" inputmode="decimal"></div>
         </div>
         <button type="submit" id="submitBtn">Save balances</button>
         <div class="form-msg" id="formMsg"></div>
@@ -560,6 +576,24 @@ function renderScenario(){
   renderGoals(currentData);
 }
 
+function renderCurrentBalances(data){
+  const balances = data.currentBalances || {};
+  const currency = data.config.currency;
+  const alex = Number(balances.alex);
+  const olga = Number(balances.olga);
+  const alexEl = document.getElementById('currentAlexBalance');
+  const olgaEl = document.getElementById('currentOlgaBalance');
+  const asOfEl = document.getElementById('currentBalancesAsOf');
+  const alexInput = document.getElementById('f-alex');
+  const olgaInput = document.getElementById('f-olga');
+
+  alexEl.textContent = Number.isFinite(alex) ? fmtMoney(alex, currency) : 'Unavailable';
+  olgaEl.textContent = Number.isFinite(olga) ? fmtMoney(olga, currency) : 'Unavailable';
+  asOfEl.textContent = balances.asOf ? 'Latest saved on ' + fmtDate(balances.asOf) : '';
+  alexInput.placeholder = Number.isFinite(alex) ? 'Keep ' + fmt(alex) : 'Enter balance';
+  olgaInput.placeholder = Number.isFinite(olga) ? 'Keep ' + fmt(olga) : 'Enter balance';
+}
+
 function render(data, meta){
   currentData = data;
   document.getElementById('loadingState').style.display = 'none';
@@ -575,6 +609,7 @@ function render(data, meta){
   }
   renderScenario();
   renderEmergencyFund(data);
+  renderCurrentBalances(data);
 }
 
 async function loadData(){
@@ -630,10 +665,27 @@ async function postAction(payload){
 }
 
 document.getElementById('balanceForm').addEventListener('submit',async e=>{
-  e.preventDefault();const btn=document.getElementById('submitBtn'),msg=document.getElementById('formMsg');msg.className='form-msg';
+  e.preventDefault();
+  const btn=document.getElementById('submitBtn'),msg=document.getElementById('formMsg');
+  const alexRaw=document.getElementById('f-alex').value.trim();
+  const olgaRaw=document.getElementById('f-olga').value.trim();
+  msg.className='form-msg';
+
+  if(alexRaw==='' && olgaRaw===''){
+    msg.textContent='Enter a new balance for Alex, Olga, or both.';
+    msg.className='form-msg err show';
+    return;
+  }
+  if((alexRaw!=='' && (!Number.isFinite(Number(alexRaw)) || Number(alexRaw)<0)) ||
+     (olgaRaw!=='' && (!Number.isFinite(Number(olgaRaw)) || Number(olgaRaw)<0))){
+    msg.textContent='Balances must be valid zero-or-positive numbers.';
+    msg.className='form-msg err show';
+    return;
+  }
+
   const pin=await requestPin();if(!pin) return;btn.disabled=true;btn.textContent='Saving…';
   try{
-    const result=await postAction({action:'balanceCheck',date:document.getElementById('f-date').value,alexBalance:document.getElementById('f-alex').value,olgaBalance:document.getElementById('f-olga').value,oneOffName:'',oneOffAmount:'',oneOffAccount:'',pin});
+    const result=await postAction({action:'balanceCheck',date:document.getElementById('f-date').value,alexBalance:alexRaw,olgaBalance:olgaRaw,oneOffName:'',oneOffAmount:'',oneOffAccount:'',pin});
     if(result.ok){window.location.reload();return;}msg.textContent=result.error||'Could not save.';msg.className='form-msg err show';
   }catch(err){msg.textContent='Network error — try again.';msg.className='form-msg err show';}
   finally{btn.disabled=false;btn.textContent='Save balances';}

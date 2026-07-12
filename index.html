@@ -59,32 +59,45 @@
   .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow-sm);}
 
   /* Weekly Variables */
-  .weekly-var-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:12px;}
-  .weekly-var-cards .card{position:relative;overflow:hidden;min-height:218px;padding:16px;display:flex;flex-direction:column;}
+  .weekly-var-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
+  .weekly-var-cards .card{position:relative;overflow:hidden;min-height:196px;padding:18px;display:flex;flex-direction:column;}
   .weekly-var-cards .card::before{content:'';position:absolute;inset:0 0 auto;height:3px;background:transparent;}
   .weekly-var-cards .card.current{border-color:rgba(46,111,78,.52);box-shadow:var(--shadow-md);background:linear-gradient(180deg,#fff 0%,#fbfdfb 100%);}
   .weekly-var-cards .card.current::before{background:var(--jade);}
-  .weekly-var-cards .card.closed{background:rgba(255,255,255,.5);box-shadow:none;}
-  .weekly-var-cards .label{font-size:11px;letter-spacing:.055em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;min-height:34px;margin-bottom:12px;}
-  .weekly-var-cards .card.current .label{color:var(--jade-dark);}
-  .wv-visual{display:grid;grid-template-columns:94px 1fr;align-items:center;gap:14px;margin:auto 0;}
-  .wv-donut{--progress:0;--ring:var(--jade);position:relative;width:92px;height:92px;border-radius:50%;background:conic-gradient(var(--ring) calc(var(--progress)*1%),var(--line-soft) 0);display:grid;place-items:center;flex:none;}
-  .wv-donut::before{content:'';position:absolute;width:68px;height:68px;border-radius:50%;background:var(--surface);box-shadow:inset 0 0 0 1px rgba(222,217,204,.7);}
-  .closed .wv-donut::before{background:#faf9f5;}
-  .wv-donut.over{--ring:var(--rust);}
-  .wv-donut.gold{--ring:var(--gold);}
-  .wv-donut-content{position:relative;z-index:1;text-align:center;line-height:1.15;}
-  .wv-donut-number{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:700;letter-spacing:-.04em;}
-  .wv-donut-caption{font-size:9.5px;color:var(--ink-soft);margin-top:4px;text-transform:uppercase;letter-spacing:.04em;}
-  .wv-details{min-width:0;}
-  .wv-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:7px 0 0;}
-  .wv-tag{font-size:11px;color:var(--ink-soft);}
-  .wv-value{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:12px;text-align:right;white-space:nowrap;}
-  .wv-value.over,.wv-carry.over{color:var(--rust);}
-  .wv-carry.under{color:var(--jade);}
-  .wv-carry{font-size:11px;color:var(--ink-soft);margin-top:10px;padding-top:9px;border-top:1px dashed var(--line);}
-  .wv-asof,.wv-provisional{font-size:11px;color:var(--ink-soft);margin-top:8px;font-style:italic;}
-  .wv-provisional{color:var(--gold);}
+  .weekly-var-cards .card.closed{background:rgba(255,255,255,.56);box-shadow:none;}
+  .weekly-var-cards .card.over-budget{border-color:rgba(177,80,43,.42);}
+  .weekly-var-cards .card.over-budget::before{background:var(--rust);}
+  .wv-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px;}
+  .wv-status{display:inline-flex;align-items:center;min-height:24px;padding:4px 8px;border-radius:999px;background:var(--surface-soft);color:var(--ink-soft);font-size:10px;font-weight:700;letter-spacing:.065em;text-transform:uppercase;white-space:nowrap;}
+  .current .wv-status{background:var(--jade-soft);color:var(--jade-dark);}
+  .closed .wv-status{background:#efede7;color:#747b76;}
+  .over-budget .wv-status{background:var(--rust-soft);color:var(--rust);}
+  .wv-date{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);text-align:right;white-space:nowrap;}
+  .wv-main{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:15px;min-width:0;}
+  .wv-primary{min-width:0;}
+  .wv-primary-label{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-soft);font-weight:650;margin-bottom:5px;}
+  .wv-primary-value{font-family:'IBM Plex Mono',monospace;font-size:clamp(26px,3.3vw,34px);font-weight:650;line-height:1;letter-spacing:-.055em;white-space:nowrap;max-width:100%;}
+  .wv-primary-value.over{color:var(--rust);}
+  .wv-primary-value .currency{font-family:'Inter',sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.05em;color:var(--ink-soft);margin-left:6px;vertical-align:middle;}
+  .wv-percent{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:650;color:var(--ink-soft);white-space:nowrap;padding-bottom:3px;}
+  .wv-percent.over{color:var(--rust);}
+  .wv-progress-block{margin-top:auto;}
+  .wv-progress-meta{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:11px;color:var(--ink-soft);margin-bottom:7px;}
+  .wv-progress-meta span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .wv-progress-track{height:7px;border-radius:999px;background:var(--line-soft);overflow:hidden;}
+  .wv-progress-fill{display:block;height:100%;width:var(--progress,0%);max-width:100%;border-radius:inherit;background:var(--jade);}
+  .wv-progress-fill.gold{background:var(--gold);}
+  .wv-progress-fill.over{background:var(--rust);}
+  .wv-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:14px;padding-top:12px;border-top:1px solid var(--line-soft);}
+  .wv-metrics.single{grid-template-columns:1fr;}
+  .wv-metric{min-width:0;padding-right:12px;}
+  .wv-metric + .wv-metric{padding-left:12px;padding-right:0;border-left:1px solid var(--line-soft);}
+  .wv-metric-label{font-size:10px;letter-spacing:.055em;text-transform:uppercase;color:var(--ink-faint);font-weight:650;margin-bottom:3px;}
+  .wv-metric-value{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;white-space:nowrap;}
+  .wv-metric-value.over,.wv-note.over{color:var(--rust);}
+  .wv-metric-value.under,.wv-note.under{color:var(--jade);}
+  .wv-note{font-size:10.5px;color:var(--ink-soft);margin-top:9px;font-style:italic;}
+  .wv-note.provisional{color:var(--gold);}
 
   /* Available cards */
   .summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
@@ -173,12 +186,11 @@
     header.top{align-items:flex-start;flex-direction:column;gap:7px;margin-bottom:24px;}
     .asof{padding:0;}
     section{margin-bottom:32px;}
-    .weekly-var-cards{grid-template-columns:repeat(2,minmax(0,1fr));}
-    .weekly-var-cards .card{min-height:205px;}
-    .wv-visual{grid-template-columns:82px 1fr;gap:11px;}
-    .wv-donut{width:80px;height:80px;}
-    .wv-donut::before{width:59px;height:59px;}
-    .wv-donut-number{font-size:14px;}
+    .weekly-var-cards .card{min-height:190px;}
+    .wv-primary-value{font-size:28px;}
+  }
+  @media(max-width:620px){
+    .weekly-var-cards{grid-template-columns:1fr;}
   }
   @media(max-width:560px){
     .summary-grid,.row2{grid-template-columns:1fr;}
@@ -194,9 +206,7 @@
   @media(max-width:430px){
     .weekly-var-cards{grid-template-columns:1fr;}
     .weekly-var-cards .card{min-height:0;}
-    .wv-visual{grid-template-columns:92px 1fr;}
-    .wv-donut{width:90px;height:90px;}
-    .wv-donut::before{width:66px;height:66px;}
+    .wv-primary-value{font-size:30px;}
     .goal{grid-template-columns:1fr;}
     .goal .amt{text-align:left;}
     .goal-progress{grid-column:1;}
@@ -359,50 +369,94 @@ function renderWeeklyVarCards(data){
   const el = document.getElementById('weeklyVarCards');
   const cards = activeWeeklyCards(data);
   const currency = data.config.currency;
+  const currencySafe = escapeHtml(currency);
   el.innerHTML = '';
+
+  const metric = (label, value, valueClass) =>
+    '<div class="wv-metric"><div class="wv-metric-label">' + label + '</div><div class="wv-metric-value ' + (valueClass || '') + '">' + value + '</div></div>';
+
   cards.forEach(c => {
     const card = document.createElement('div');
-    card.className = 'card' + (c.isCurrent ? ' current' : '') + (c.isClosed ? ' closed' : '');
-    const labelPrefix = c.isCurrent ? 'This week · ' : (c.isClosed ? 'Closed · ' : '');
     const planned = Math.max(Number(c.planned) || 0, 0);
     const hasSpent = c.spent !== 'no data';
     const spent = hasSpent ? Math.max(Number(c.spent) || 0, 0) : 0;
     const hasAvailable = c.available !== 'no data';
     const available = hasAvailable ? Number(c.available) || 0 : 0;
-    const progress = planned > 0 ? Math.min(Math.max((spent / planned) * 100, 0), 100) : 0;
+    const spendRatio = planned > 0 && hasSpent ? (spent / planned) * 100 : 0;
+    const availableRatio = planned > 0 && hasAvailable ? Math.max((available / planned) * 100, 0) : 0;
     const isOver = hasSpent && planned > 0 && spent > planned;
-    let centerValue = planned;
-    let centerCaption = 'Planned';
-    let ringClass = 'gold';
+
+    card.className = 'card' + (c.isCurrent ? ' current' : '') + (c.isClosed ? ' closed' : '') + (isOver || (c.isCurrent && hasAvailable && available < 0) ? ' over-budget' : '');
+
+    const status = c.isCurrent ? 'This week' : (c.isClosed ? 'Closed' : 'Upcoming');
+    const dateRange = fmtDate(c.cardStart) + '–' + fmtDate(c.cardEnd);
+
+    let primaryLabel = 'Available';
+    let primaryValue = hasAvailable ? available : planned;
     if(c.isClosed){
-      centerValue = hasSpent ? spent : planned;
-      centerCaption = hasSpent ? 'Spent' : 'Planned';
-      ringClass = isOver ? 'over' : '';
-    } else if(c.isCurrent){
-      centerValue = hasAvailable ? available : planned;
-      centerCaption = hasAvailable ? 'Available' : 'Planned';
-      ringClass = isOver || available < 0 ? 'over' : '';
+      primaryLabel = hasSpent ? 'Spent' : 'Planned';
+      primaryValue = hasSpent ? spent : planned;
     }
-    let details = '<div class="wv-row"><span class="wv-tag">Planned</span><span class="wv-value">' + fmtMoney(c.planned, currency) + '</span></div>';
+
+    const primaryClass = (c.isCurrent && hasAvailable && available < 0) || isOver ? ' over' : '';
+    const primary = '<div class="wv-primary"><div class="wv-primary-label">' + primaryLabel + '</div>' +
+      '<div class="wv-primary-value' + primaryClass + '">' + fmt(primaryValue) + '<span class="currency">' + currencySafe + '</span></div></div>';
+
+    let progressLabel = '';
+    let progressPercent = 0;
+    let progressText = '';
+    let progressClass = '';
+    let metrics = '';
+    let notes = '';
+
     if(c.isClosed){
-      details += '<div class="wv-row"><span class="wv-tag">Spent</span><span class="wv-value">' + (hasSpent ? fmtMoney(c.spent, currency) : 'No data') + '</span></div>';
+      if(hasSpent && planned > 0){
+        progressLabel = 'Spent against plan';
+        progressPercent = Math.min(Math.max(spendRatio, 0), 100);
+        progressText = Math.round(spendRatio) + '%';
+        progressClass = isOver ? 'over' : '';
+      } else {
+        progressLabel = 'Spending data unavailable';
+        progressText = '—';
+      }
+      metrics = metric('Planned', fmtMoney(c.planned, currencySafe), '');
       if(hasSpent){
         const diffClass = c.difference > 0 ? 'over' : (c.difference < 0 ? 'under' : '');
-        details += '<div class="wv-carry ' + diffClass + '">Difference: ' + (c.difference >= 0 ? '+' : '') + fmtMoney(c.difference, currency) + '</div>';
+        const diffValue = (c.difference >= 0 ? '+' : '') + fmtMoney(c.difference, currencySafe);
+        metrics += metric('Difference', diffValue, diffClass);
       }
-      if(c.provisional) details += '<div class="wv-provisional">Provisional — not yet frozen</div>';
+      if(c.provisional) notes += '<div class="wv-note provisional">Provisional — not yet frozen</div>';
     } else if(c.isCurrent){
-      const hasData = hasSpent && hasAvailable;
-      details += '<div class="wv-row"><span class="wv-tag">Spent</span><span class="wv-value">' + (hasData ? fmtMoney(c.spent, currency) : 'No data') + '</span></div>';
-      details += '<div class="wv-row"><span class="wv-tag">Available</span><span class="wv-value ' + (hasData && c.available < 0 ? 'over' : '') + '">' + (hasData ? fmtMoney(c.available, currency) : 'No data') + '</span></div>';
-      if(c.availableAsOf && c.availableAsOf !== data.asOf) details += '<div class="wv-asof">as of ' + fmtDate(c.availableAsOf) + '</div>';
+      if(hasSpent && planned > 0){
+        progressLabel = 'Spent against plan';
+        progressPercent = Math.min(Math.max(spendRatio, 0), 100);
+        progressText = Math.round(spendRatio) + '%';
+        progressClass = isOver ? 'over' : '';
+      } else {
+        progressLabel = 'Spending data unavailable';
+        progressText = '—';
+      }
+      metrics = metric('Planned', fmtMoney(c.planned, currencySafe), '') +
+        metric('Spent', hasSpent ? fmtMoney(c.spent, currencySafe) : 'No data', '');
+      if(c.availableAsOf && c.availableAsOf !== data.asOf) notes += '<div class="wv-note">Available as of ' + fmtDate(c.availableAsOf) + '</div>';
     } else {
-      details += '<div class="wv-row"><span class="wv-tag">Available</span><span class="wv-value ' + (hasAvailable && c.available < 0 ? 'over' : '') + '">' + (hasAvailable ? fmtMoney(c.available, currency) : 'No data') + '</span></div>';
+      progressLabel = 'Available against plan';
+      progressPercent = Math.min(Math.max(availableRatio, 0), 100);
+      progressText = hasAvailable && planned > 0 ? Math.round(availableRatio) + '%' : '—';
+      progressClass = 'gold';
+      metrics = metric('Planned', fmtMoney(c.planned, currencySafe), '');
     }
-    card.innerHTML = '<div class="label">' + labelPrefix + fmtDate(c.cardStart) + '–' + fmtDate(c.cardEnd) + '</div>' +
-      '<div class="wv-visual"><div class="wv-donut ' + ringClass + '" style="--progress:' + (c.isClosed || c.isCurrent ? progress : 100) + '">' +
-      '<div class="wv-donut-content"><div class="wv-donut-number">' + fmt(centerValue) + '</div><div class="wv-donut-caption">' + centerCaption + '</div></div></div>' +
-      '<div class="wv-details">' + details + '</div></div>';
+
+    const metricsClass = metrics.includes('</div></div><div class="wv-metric">') ? 'wv-metrics' : 'wv-metrics single';
+    const percentClass = progressClass === 'over' ? ' over' : '';
+    const fillClass = progressClass ? ' ' + progressClass : '';
+
+    card.innerHTML =
+      '<div class="wv-head"><span class="wv-status">' + status + '</span><span class="wv-date">' + dateRange + '</span></div>' +
+      '<div class="wv-main">' + primary + '<div class="wv-percent' + percentClass + '">' + progressText + '</div></div>' +
+      '<div class="wv-progress-block"><div class="wv-progress-meta"><span>' + progressLabel + '</span></div>' +
+      '<div class="wv-progress-track" role="img" aria-label="' + progressLabel + ': ' + progressText + '"><span class="wv-progress-fill' + fillClass + '" style="--progress:' + progressPercent + '%"></span></div>' +
+      '<div class="' + metricsClass + '">' + metrics + '</div>' + notes + '</div>';
     el.appendChild(card);
   });
 }
@@ -514,9 +568,6 @@ function render(data, meta){
   const stale = document.getElementById('staleBanner');
   if(meta && meta.stale){
     stale.classList.add('show');
-    stale.textContent = meta.refreshing
-      ? 'Showing the last saved data while fresh numbers are loading…'
-      : 'May be outdated — showing the last saved data because the latest data could not be fetched.';
     document.getElementById('asOfLine').textContent = 'As of ' + data.asOf + ' (cached ' + new Date(meta.fetchedAt).toLocaleString() + ')';
   } else {
     stale.classList.remove('show');
@@ -527,32 +578,17 @@ function render(data, meta){
 }
 
 async function loadData(){
-  let cachedRendered = false;
-  const cached = localStorage.getItem(CACHE_KEY);
-
-  // Stale-while-revalidate: returning visitors see the last successful
-  // dashboard immediately instead of waiting for Apps Script to finish.
-  if(cached){
-    try{
-      const parsed = JSON.parse(cached);
-      render(parsed.data,{stale:true,refreshing:true,fetchedAt:parsed.fetchedAt});
-      cachedRendered = true;
-    } catch(err){
-      localStorage.removeItem(CACHE_KEY);
-    }
-  }
-
   try{
-    const res = await fetch(APPS_SCRIPT_URL, {method:'GET',cache:'no-store'});
+    const res = await fetch(APPS_SCRIPT_URL, {method:'GET'});
     if(!res.ok) throw new Error('Network response not OK');
     const data = await res.json();
-    const fetchedAt = new Date().toISOString();
-    localStorage.setItem(CACHE_KEY, JSON.stringify({data,fetchedAt}));
+    localStorage.setItem(CACHE_KEY, JSON.stringify({data,fetchedAt:new Date().toISOString()}));
     render(data,{stale:false});
   } catch(err){
-    if(cachedRendered){
-      const parsed = JSON.parse(localStorage.getItem(CACHE_KEY));
-      render(parsed.data,{stale:true,refreshing:false,fetchedAt:parsed.fetchedAt});
+    const cached = localStorage.getItem(CACHE_KEY);
+    if(cached){
+      const parsed = JSON.parse(cached);
+      render(parsed.data,{stale:true,fetchedAt:parsed.fetchedAt});
     } else {
       document.getElementById('loadingState').style.display = 'none';
       document.getElementById('errorState').style.display = 'block';

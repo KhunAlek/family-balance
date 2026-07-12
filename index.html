@@ -141,6 +141,29 @@
   .goal-progress > span{display:block;height:100%;border-radius:inherit;background:var(--jade);width:var(--goal-progress,0%);}
   .link-btn{background:none;border:none;color:var(--jade);font-size:13px;font-weight:650;cursor:pointer;padding:8px 2px;font-family:'Inter',sans-serif;width:auto;margin:3px 0 0;}
   .link-btn:hover{color:var(--jade-dark);}
+  .goal-actions{display:flex;flex-direction:column;align-items:flex-end;gap:8px;min-width:150px;}
+  .mini-action{width:auto;margin:0;padding:8px 11px;border-radius:8px;font-size:12px;box-shadow:none;white-space:nowrap;}
+  .mini-action:disabled{opacity:.45;}
+  .ef-action-bar{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 18px;border-top:1px solid var(--line-soft);background:#fff;}
+  .ef-action-hint{font-size:11.5px;color:var(--ink-soft);}
+  .obligation-list{display:grid;gap:10px;}
+  .obligation{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px 16px;box-shadow:0 1px 2px rgba(31,41,35,.025);}
+  .obligation-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+  .obligation-name{font-weight:650;font-size:15px;}
+  .status-pill{display:inline-flex;padding:3px 7px;border-radius:999px;background:var(--surface-soft);font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);}
+  .status-pill.paid{background:var(--jade-soft);color:var(--jade-dark);}
+  .status-pill.partial,.status-pill.due{background:var(--gold-soft);color:#6b5424;}
+  .status-pill.overdue{background:var(--rust-soft);color:var(--rust);}
+  .obligation-meta{font-size:12px;color:var(--ink-soft);margin-top:4px;}
+  .obligation-amounts{font-family:'IBM Plex Mono',monospace;font-size:12px;margin-top:7px;display:flex;gap:12px;flex-wrap:wrap;}
+  .obligation-actions{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:6px;}
+  .obligation-remaining{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:650;white-space:nowrap;}
+  .movement-summary{background:var(--surface-soft);border:1px solid var(--line-soft);border-radius:11px;padding:12px 13px;margin-bottom:14px;font-size:12.5px;color:var(--ink-soft);}
+  .movement-summary strong{color:var(--ink);}
+  .movement-balance{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-soft);margin-top:5px;}
+  select,textarea{width:100%;padding:11px 12px;border:1px solid #d3cec1;border-radius:9px;font-family:'Inter',sans-serif;font-size:14px;background:var(--surface-soft);color:var(--ink);}
+  select:focus,textarea:focus{outline:none;border-color:var(--jade);box-shadow:0 0 0 3px rgba(46,111,78,.13);background:#fff;}
+  textarea{min-height:76px;resize:vertical;}
 
   /* Forms and actions */
   section:has(> form.action-form){margin-top:18px;}
@@ -212,9 +235,11 @@
     .weekly-var-cards{grid-template-columns:1fr;}
     .weekly-var-cards .card{min-height:0;}
     .wv-primary-value{font-size:30px;}
-    .goal{grid-template-columns:1fr;}
+    .goal,.obligation{grid-template-columns:1fr;}
     .goal .amt{text-align:left;}
+    .goal-actions,.obligation-actions{align-items:flex-start;min-width:0;}
     .goal-progress{grid-column:1;}
+    .ef-action-bar{align-items:flex-start;flex-direction:column;}
   }
   @media(prefers-reduced-motion:no-preference){
     .card,.goal{animation:fadein .28s ease both;}
@@ -263,11 +288,20 @@
           <div class="ef-stat"><div class="label">Target</div><div class="value" id="efTarget">—</div></div>
           <div class="ef-stat"><div class="label">Remaining</div><div class="value" id="efRemaining">—</div></div>
         </div>
+        <div class="ef-action-bar">
+          <div class="ef-action-hint" id="efTransferHint">Checking the safe transfer limit…</div>
+          <button type="button" class="mini-action" id="transferEFBtn">Transfer to EF</button>
+        </div>
         <div class="chart-card">
           <div class="chart-wrap" id="efChartWrap"><canvas id="efHistoryChart"></canvas></div>
           <div class="chart-empty" id="efChartEmpty">No Emergency Fund Ledger history yet.</div>
         </div>
       </div>
+    </section>
+
+    <section id="fixedObligationsSection">
+      <div class="section-title">Fixed Obligations</div>
+      <div class="obligation-list" id="obligationsList"></div>
     </section>
 
     <section>
@@ -353,12 +387,43 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="movementModal" role="dialog" aria-modal="true" aria-labelledby="movementTitle">
+  <div class="modal">
+    <h2 id="movementTitle">Record movement</h2>
+    <p id="movementDescription"></p>
+    <form id="movementForm">
+      <div class="movement-summary" id="movementSummary"></div>
+      <label for="movementDate">Date</label>
+      <input type="date" id="movementDate" required>
+      <label for="movementSource">Paid from</label>
+      <select id="movementSource" required>
+        <option value="Alex">Alex KTB</option>
+        <option value="Olga">Olga KTB</option>
+      </select>
+      <div class="movement-balance" id="movementSourceBalance"></div>
+      <label for="movementAmount">Amount</label>
+      <input type="number" min="0.01" step="0.01" id="movementAmount" required>
+      <div class="hint" id="movementAmountHint"></div>
+      <div id="movementNoteWrap" style="display:none;">
+        <label for="movementNote">Note (optional)</label>
+        <textarea id="movementNote"></textarea>
+      </div>
+      <div class="form-msg" id="movementMsg"></div>
+      <div class="modal-actions">
+        <button type="button" class="secondary" id="movementCancel">Cancel</button>
+        <button type="submit" id="movementSubmit">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZrhAbyejB9cOv-56cSNilWlrw626DOWLd5A7CezQiM2bAKN61oDk_9RNm_7zb5d4kTA/exec';
 const CACHE_KEY = 'familyCashFlow_dashboardV2';
 let currentData = null;
 let goalPreviewEnabled = false;
 let efChartInstance = null;
+let movementContext = null;
 
 function fmt(n){ return Math.round(Number(n) || 0).toLocaleString('en-US'); }
 function fmtMoney(n, currency){ return fmt(n) + ' ' + currency; }
@@ -514,6 +579,13 @@ function renderEmergencyFund(data){
   document.getElementById('efCurrent').textContent = fmtMoney(ef.current, currency);
   document.getElementById('efTarget').textContent = fmtMoney(ef.target, currency);
   document.getElementById('efRemaining').textContent = fmtMoney(ef.remaining, currency);
+  const safeEF = Math.max(Number(data.transferLimits && data.transferLimits.emergencyFund) || 0, 0);
+  const efBtn = document.getElementById('transferEFBtn');
+  efBtn.disabled = safeEF <= 0;
+  efBtn.dataset.safeAmount = safeEF;
+  document.getElementById('efTransferHint').textContent = safeEF > 0
+    ? 'Safe to transfer now: ' + fmtMoney(safeEF, currency)
+    : 'No safe EF transfer is currently available.';
 
   const history = ef.history || [];
   const wrap = document.getElementById('efChartWrap');
@@ -558,15 +630,47 @@ function renderGoals(data){
     }
     const target = Math.max(Number(g.targetAmount) || 0, 0);
     const progress = target > 0 ? Math.min(Math.max((saved / target) * 100, 0), 100) : 0;
+    const safeTransfer = Math.max(Number(g.safeTransferAmount) || 0, 0);
     row.innerHTML = '<div class="goal-main"><div class="goal-head"><span class="rank">#' + escapeHtml(g.priorityRank) + '</span><span class="name">' + escapeHtml(g.name) + '</span></div>' +
       '<div class="meta">' + escapeHtml(g.status || '') + (g.targetDate ? ' · target ' + escapeHtml(g.targetDate) : '') + '</div>' + preview + '</div>' +
-      '<div class="amt">' + fmt(saved) + ' / ' + fmt(g.targetAmount) + ' ' + escapeHtml(currency) + '</div>' +
+      '<div class="goal-actions"><div class="amt">' + fmt(saved) + ' / ' + fmt(g.targetAmount) + ' ' + escapeHtml(currency) + '</div>' +
+      '<button type="button" class="mini-action goal-transfer-btn" data-goal="' + escapeHtml(g.name) + '" data-safe="' + safeTransfer + '" ' + (safeTransfer <= 0 ? 'disabled' : '') + '>Transfer</button></div>' +
       '<div class="goal-progress" aria-label="' + Math.round(progress) + '% saved"><span style="--goal-progress:' + progress + '%"></span></div>';
     el.appendChild(row);
   });
   if(goals.length === 0) el.innerHTML = '<div class="card" style="text-align:center;color:var(--ink-soft);">No active goals.</div>';
   const rank = document.getElementById('g-rank');
   if(rank && !rank.dataset.userEdited) rank.value = data.suggestedNextGoalRank;
+}
+
+function renderFixedObligations(data){
+  const section = document.getElementById('fixedObligationsSection');
+  const el = document.getElementById('obligationsList');
+  const currency = data.config.currency;
+  const items = (data.fixedObligations && data.fixedObligations.items) || [];
+  el.innerHTML = '';
+  if(items.length === 0){
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+  items.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'obligation';
+    const statusClass = item.status === 'Paid' ? 'paid' :
+      item.status === 'Partially paid' ? 'partial' :
+      item.status === 'Overdue' ? 'overdue' :
+      item.status === 'Due today' ? 'due' : '';
+    const due = item.dueDate ? 'Due ' + fmtDate(item.dueDate) : (item.dueType || '');
+    const remaining = Math.max(Number(item.remainingAmount) || 0, 0);
+    row.innerHTML = '<div><div class="obligation-head"><span class="obligation-name">' + escapeHtml(item.name) + '</span>' +
+      '<span class="status-pill ' + statusClass + '">' + escapeHtml(item.status) + '</span></div>' +
+      '<div class="obligation-meta">' + escapeHtml(due) + '</div>' +
+      '<div class="obligation-amounts"><span>Expected ' + fmtMoney(item.expectedAmount, currency) + '</span><span>Paid ' + fmtMoney(item.paidAmount, currency) + '</span></div></div>' +
+      '<div class="obligation-actions"><div class="obligation-remaining">Remaining ' + fmtMoney(remaining, currency) + '</div>' +
+      '<button type="button" class="mini-action obligation-payment-btn" data-obligation="' + escapeHtml(item.name) + '" data-remaining="' + remaining + '" data-expected="' + Number(item.expectedAmount || 0) + '">' + (remaining > 0 ? 'Record payment' : 'Add payment') + '</button></div>';
+    el.appendChild(row);
+  });
 }
 
 function renderScenario(){
@@ -602,6 +706,9 @@ function render(data, meta){
   const stale = document.getElementById('staleBanner');
   if(meta && meta.stale){
     stale.classList.add('show');
+    stale.textContent = meta.refreshing
+      ? 'Showing the last saved data while fresh numbers are loading…'
+      : 'May be outdated — showing the last saved data because the latest data could not be fetched.';
     document.getElementById('asOfLine').textContent = 'As of ' + data.asOf + ' (cached ' + new Date(meta.fetchedAt).toLocaleString() + ')';
   } else {
     stale.classList.remove('show');
@@ -609,21 +716,30 @@ function render(data, meta){
   }
   renderScenario();
   renderEmergencyFund(data);
+  renderFixedObligations(data);
   renderCurrentBalances(data);
 }
 
 async function loadData(){
+  let cachedRendered = false;
+  const cached = localStorage.getItem(CACHE_KEY);
+  if(cached){
+    try{
+      const parsed = JSON.parse(cached);
+      render(parsed.data,{stale:true,refreshing:true,fetchedAt:parsed.fetchedAt});
+      cachedRendered = true;
+    }catch(err){ localStorage.removeItem(CACHE_KEY); }
+  }
   try{
-    const res = await fetch(APPS_SCRIPT_URL, {method:'GET'});
+    const res = await fetch(APPS_SCRIPT_URL, {method:'GET',cache:'no-store'});
     if(!res.ok) throw new Error('Network response not OK');
     const data = await res.json();
     localStorage.setItem(CACHE_KEY, JSON.stringify({data,fetchedAt:new Date().toISOString()}));
     render(data,{stale:false});
   } catch(err){
-    const cached = localStorage.getItem(CACHE_KEY);
-    if(cached){
+    if(cachedRendered && cached){
       const parsed = JSON.parse(cached);
-      render(parsed.data,{stale:true,fetchedAt:parsed.fetchedAt});
+      render(parsed.data,{stale:true,refreshing:false,fetchedAt:parsed.fetchedAt});
     } else {
       document.getElementById('loadingState').style.display = 'none';
       document.getElementById('errorState').style.display = 'block';
@@ -663,6 +779,113 @@ async function postAction(payload){
   const res=await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
   return res.json();
 }
+
+function currentSourceBalance(source){
+  const balances = (currentData && currentData.currentBalances) || {};
+  return Math.max(Number(source === 'Alex' ? balances.alex : balances.olga) || 0, 0);
+}
+
+function updateMovementSourceBalance(){
+  if(!movementContext) return;
+  const source = document.getElementById('movementSource').value;
+  const currency = currentData.config.currency;
+  const balance = currentSourceBalance(source);
+  document.getElementById('movementSourceBalance').textContent = 'Current ' + source + ' KTB balance: ' + fmtMoney(balance, currency);
+  const amount = document.getElementById('movementAmount');
+  const limit = movementContext.type === 'obligation'
+    ? balance
+    : Math.min(balance, Number(movementContext.safeAmount) || 0);
+  amount.max = Math.max(limit, 0);
+}
+
+function openMovementModal(context){
+  movementContext = context;
+  const currency = currentData.config.currency;
+  const modal = document.getElementById('movementModal');
+  const title = document.getElementById('movementTitle');
+  const description = document.getElementById('movementDescription');
+  const summary = document.getElementById('movementSummary');
+  const amount = document.getElementById('movementAmount');
+  const noteWrap = document.getElementById('movementNoteWrap');
+  const msg = document.getElementById('movementMsg');
+  document.getElementById('movementDate').valueAsDate = new Date();
+  document.getElementById('movementNote').value = '';
+  msg.className = 'form-msg';
+
+  if(context.type === 'ef'){
+    title.textContent = 'Transfer to Emergency Fund';
+    description.textContent = 'This records the EF contribution and reduces the selected KTB balance.';
+    summary.innerHTML = '<strong>Safe transfer limit:</strong> ' + fmtMoney(context.safeAmount, currency);
+    amount.value = context.safeAmount > 0 ? context.safeAmount : '';
+    document.getElementById('movementAmountHint').textContent = 'The backend blocks any amount above the current safe EF limit.';
+    noteWrap.style.display = 'none';
+  }else if(context.type === 'goal'){
+    title.textContent = 'Transfer to ' + context.name;
+    description.textContent = 'This records a real Goal contribution. Goal Preview itself remains unchanged and creates no Ledger entry.';
+    summary.innerHTML = '<strong>Safe priority allocation:</strong> ' + fmtMoney(context.safeAmount, currency);
+    amount.value = context.safeAmount > 0 ? context.safeAmount : '';
+    document.getElementById('movementAmountHint').textContent = 'The limit follows the approved Goal priority waterfall.';
+    noteWrap.style.display = 'none';
+  }else{
+    title.textContent = 'Record ' + context.name + ' payment';
+    description.textContent = 'Partial payments are supported. The selected KTB balance is reduced automatically.';
+    summary.innerHTML = '<strong>Planned remaining:</strong> ' + fmtMoney(context.remaining, currency) + '<br><strong>Expected this month:</strong> ' + fmtMoney(context.expected, currency);
+    amount.value = context.remaining > 0 ? context.remaining : '';
+    document.getElementById('movementAmountHint').textContent = 'Enter the actual amount paid. It may differ from the expected amount.';
+    noteWrap.style.display = 'block';
+  }
+  updateMovementSourceBalance();
+  modal.classList.add('show');
+  setTimeout(()=>amount.focus(),0);
+}
+
+function closeMovementModal(){
+  document.getElementById('movementModal').classList.remove('show');
+  movementContext = null;
+}
+
+document.getElementById('transferEFBtn').addEventListener('click', e => {
+  const safe = Number(e.currentTarget.dataset.safeAmount) || 0;
+  if(safe > 0) openMovementModal({type:'ef',safeAmount:safe});
+});
+document.getElementById('goalsList').addEventListener('click', e => {
+  const btn = e.target.closest('.goal-transfer-btn');
+  if(!btn || btn.disabled) return;
+  openMovementModal({type:'goal',name:btn.dataset.goal,safeAmount:Number(btn.dataset.safe)||0});
+});
+document.getElementById('obligationsList').addEventListener('click', e => {
+  const btn = e.target.closest('.obligation-payment-btn');
+  if(!btn) return;
+  openMovementModal({type:'obligation',name:btn.dataset.obligation,remaining:Number(btn.dataset.remaining)||0,expected:Number(btn.dataset.expected)||0});
+});
+document.getElementById('movementSource').addEventListener('change',updateMovementSourceBalance);
+document.getElementById('movementCancel').addEventListener('click',closeMovementModal);
+document.getElementById('movementModal').addEventListener('click',e=>{if(e.target.id==='movementModal') closeMovementModal();});
+
+document.getElementById('movementForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!movementContext) return;
+  const btn=document.getElementById('movementSubmit'),msg=document.getElementById('movementMsg');
+  const amount=Number(document.getElementById('movementAmount').value);
+  const source=document.getElementById('movementSource').value;
+  const sourceBalance=currentSourceBalance(source);
+  msg.className='form-msg';
+  if(!Number.isFinite(amount)||amount<=0){msg.textContent='Enter a positive amount.';msg.className='form-msg err show';return;}
+  if(amount>sourceBalance){msg.textContent='The amount exceeds the selected account balance.';msg.className='form-msg err show';return;}
+  if(movementContext.type!=='obligation' && amount>Number(movementContext.safeAmount)){msg.textContent='The amount exceeds the current safe transfer limit.';msg.className='form-msg err show';return;}
+  const pin=await requestPin();if(!pin) return;
+  btn.disabled=true;btn.textContent='Saving…';
+  try{
+    const common={date:document.getElementById('movementDate').value,sourceAccount:source,amount,pin};
+    const payload=movementContext.type==='obligation'
+      ? Object.assign(common,{action:'obligationPayment',obligationName:movementContext.name,note:document.getElementById('movementNote').value})
+      : Object.assign(common,{action:'dedicatedTransfer',destinationType:movementContext.type==='ef'?'EF':'Goal',destinationName:movementContext.name||'EF'});
+    const result=await postAction(payload);
+    if(result.ok){window.location.reload();return;}
+    msg.textContent=result.error||'Could not save the transaction.';msg.className='form-msg err show';
+  }catch(err){msg.textContent='Network error — try again.';msg.className='form-msg err show';}
+  finally{btn.disabled=false;btn.textContent='Save';}
+});
 
 document.getElementById('balanceForm').addEventListener('submit',async e=>{
   e.preventDefault();

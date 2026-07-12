@@ -158,6 +158,7 @@
   .obligation-amounts{font-family:'IBM Plex Mono',monospace;font-size:12px;margin-top:7px;display:flex;gap:12px;flex-wrap:wrap;}
   .obligation-actions{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:6px;}
   .obligation-remaining{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:650;white-space:nowrap;}
+  .obligation-complete{font-size:11.5px;color:var(--jade-dark);font-weight:650;}
   .movement-summary{background:var(--surface-soft);border:1px solid var(--line-soft);border-radius:11px;padding:12px 13px;margin-bottom:14px;font-size:12.5px;color:var(--ink-soft);}
   .movement-summary strong{color:var(--ink);}
   .movement-balance{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-soft);margin-top:5px;}
@@ -472,14 +473,16 @@ function renderWeeklyVarCards(data){
     const status = c.isCurrent ? 'This week' : (c.isClosed ? 'Closed' : 'Upcoming');
     const dateRange = fmtDate(c.cardStart) + '–' + fmtDate(c.cardEnd);
 
-    let primaryLabel = 'Available';
+    let primaryLabel = c.isCurrent ? 'Available from now' : 'Available';
     let primaryValue = hasAvailable ? available : planned;
     if(c.isClosed){
       primaryLabel = hasSpent ? 'Spent' : 'Planned';
       primaryValue = hasSpent ? spent : planned;
     }
 
-    const primaryClass = (c.isCurrent && hasAvailable && available < 0) || isOver ? ' over' : '';
+    const primaryClass = c.isClosed
+      ? (isOver ? ' over' : '')
+      : (c.isCurrent && hasAvailable && available < 0 ? ' over' : '');
     const primary = '<div class="wv-primary"><div class="wv-primary-label">' + primaryLabel + '</div>' +
       '<div class="wv-primary-value' + primaryClass + '">' + fmt(primaryValue) + '<span class="currency">' + currencySafe + '</span></div></div>';
 
@@ -519,7 +522,10 @@ function renderWeeklyVarCards(data){
       }
       metrics = metric('Planned', fmtMoney(c.planned, currencySafe), '') +
         metric('Spent', hasSpent ? fmtMoney(c.spent, currencySafe) : 'No data', '');
-      if(c.availableAsOf && c.availableAsOf !== data.asOf) notes += '<div class="wv-note">Available as of ' + fmtDate(c.availableAsOf) + '</div>';
+      if(isOver){
+        notes += '<div class="wv-note over">' + fmtMoney(spent - planned, currencySafe) + ' over the original weekly plan</div>';
+      }
+      if(c.availableAsOf && c.availableAsOf !== data.asOf) notes += '<div class="wv-note">Available from now as of ' + fmtDate(c.availableAsOf) + '</div>';
     } else {
       progressLabel = 'Available against plan';
       progressPercent = Math.min(Math.max(availableRatio, 0), 100);
@@ -663,12 +669,14 @@ function renderFixedObligations(data){
       item.status === 'Due today' ? 'due' : '';
     const due = item.dueDate ? 'Due ' + fmtDate(item.dueDate) : (item.dueType || '');
     const remaining = Math.max(Number(item.remainingAmount) || 0, 0);
+    const paymentAction = remaining > 0
+      ? '<button type="button" class="mini-action obligation-payment-btn" data-obligation="' + escapeHtml(item.name) + '" data-remaining="' + remaining + '" data-expected="' + Number(item.expectedAmount || 0) + '">Record payment</button>'
+      : '<div class="obligation-complete">Paid in full</div>';
     row.innerHTML = '<div><div class="obligation-head"><span class="obligation-name">' + escapeHtml(item.name) + '</span>' +
       '<span class="status-pill ' + statusClass + '">' + escapeHtml(item.status) + '</span></div>' +
       '<div class="obligation-meta">' + escapeHtml(due) + '</div>' +
       '<div class="obligation-amounts"><span>Expected ' + fmtMoney(item.expectedAmount, currency) + '</span><span>Paid ' + fmtMoney(item.paidAmount, currency) + '</span></div></div>' +
-      '<div class="obligation-actions"><div class="obligation-remaining">Remaining ' + fmtMoney(remaining, currency) + '</div>' +
-      '<button type="button" class="mini-action obligation-payment-btn" data-obligation="' + escapeHtml(item.name) + '" data-remaining="' + remaining + '" data-expected="' + Number(item.expectedAmount || 0) + '">' + (remaining > 0 ? 'Record payment' : 'Add payment') + '</button></div>';
+      '<div class="obligation-actions"><div class="obligation-remaining">Remaining ' + fmtMoney(remaining, currency) + '</div>' + paymentAction + '</div>';
     el.appendChild(row);
   });
 }

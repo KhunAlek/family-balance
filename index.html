@@ -73,7 +73,7 @@
 
       <section id="allocations"><div class="section-head"><h2>Safe allocations</h2><span>Decision tiles for optional money</span></div><div class="allocation-grid">
         <article class="allocation ef"><div class="allocation-label">Available for Emergency Fund</div><div class="allocation-value" id="availableEF">—</div><p>Safe after protected Variables and remaining fixed obligations.</p><div class="allocation-action"><button type="button" class="soft-btn" id="transferEFBtn">Transfer to EF →</button></div></article>
-        <article class="allocation goals"><div class="allocation-label">Available for Goals</div><div class="allocation-value" id="availableGoals">—</div><p>Optional money from the Variables top-up band—not extra cash.</p><div class="allocation-action"><label class="toggle-row" id="goalPreviewLabel"><span class="toggle"><input type="checkbox" id="goalPreviewToggle"><span></span></span>Preview allocation in weekly cards</label><div class="allocation-note" id="goalPreviewStatus"></div></div></article>
+        <article class="allocation goals"><div class="allocation-label">Available for Goals</div><div class="allocation-value" id="availableGoals">Disabled</div><p>Temporarily disabled — this figure was based on an uncalculated/unsafe method and could suggest money that's actually still needed for groceries. Re-enable once fixed on the backend.</p><div class="allocation-action"><label class="toggle-row disabled" id="goalPreviewLabel"><span class="toggle"><input type="checkbox" id="goalPreviewToggle" disabled><span></span></span>Preview allocation in weekly cards</label><div class="allocation-note" id="goalPreviewStatus">Disabled pending a safety fix.</div></div></article>
         <article class="allocation balance"><div class="allocation-label">Combined KTB balance</div><div class="allocation-value" id="combinedBalance">—</div><p id="combinedBalanceNote">Current saved Alex and Olga balances.</p><div class="allocation-action"><button type="button" class="soft-btn" data-open-drawer="balance">Update balances →</button></div></article>
       </div><div class="preview-banner" id="previewBanner"><div id="previewBannerText"></div><button type="button" id="exitPreview">Exit preview</button></div></section>
 
@@ -206,37 +206,28 @@ function renderWeeklyVarCards(data){
 function renderSummary(data){
   const currency = data.config.currency;
   const efAvailable = data.efClaimThisWeek ? data.efClaimThisWeek.claimed : 0;
-  const goalAvailable = data.goalPreview ? data.goalPreview.availableAmount : 0;
   document.getElementById('availableEF').textContent = fmtMoney(efAvailable, currency);
-  document.getElementById('availableGoals').textContent = fmtMoney(goalAvailable, currency);
 
+  // "Available for Goals" (goalPreview.availableAmount) is DISABLED client-side.
+  // It is sourced from an unverified "Variables top-up band" calculation that is
+  // not part of the canonical waterfall (obligations -> Variables floor -> EF -> Goals)
+  // and was found to report money as "safe" while the household was actively
+  // overspending its Variables plan. Do not re-enable until the backend replaces
+  // this with a gated figure per Decision N (last-closed CarryOver > 0 OR live
+  // run-rate > Projected => 0) built on top of the existing computeGoalsClaims().
+  document.getElementById('availableGoals').textContent = 'Disabled';
   const toggle = document.getElementById('goalPreviewToggle');
   const label = document.getElementById('goalPreviewLabel');
-  const canPreview = Number(goalAvailable) > 0 && data.goalPreview && data.goalPreview.previewPlan;
-  toggle.disabled = !canPreview;
-  toggle.checked = goalPreviewEnabled && canPreview;
-  label.classList.toggle('disabled', !canPreview);
+  toggle.disabled = true;
+  toggle.checked = false;
+  goalPreviewEnabled = false;
+  label.classList.add('disabled');
 
   const status = document.getElementById('goalPreviewStatus');
   const banner = document.getElementById('previewBanner');
-  const bannerText = document.getElementById('previewBannerText');
-  if(goalPreviewEnabled && canPreview){
-    const applied = data.goalPreview.previewPlan.appliedAmount;
-    status.textContent = 'Preview active — open Weekly Cards are reduced by ' + fmtMoney(applied, currency) + '.';
-    status.className = 'allocation-note active';
-    banner.classList.add('show');
-    bannerText.innerHTML = '<b>Goal Preview active</b> · ' + fmtMoney(applied, currency) + ' redirected from optional Variables. No money has moved.';
-  } else if(canPreview){
-    status.textContent = 'Preview only. A real transfer must still be recorded separately.';
-    status.className = 'allocation-note';
-    banner.classList.remove('show');
-  } else {
-    goalPreviewEnabled = false;
-    toggle.checked = false;
-    status.textContent = 'No optional Variables amount is currently available for Goals.';
-    status.className = 'allocation-note';
-    banner.classList.remove('show');
-  }
+  status.textContent = 'Disabled pending a safety fix.';
+  status.className = 'allocation-note';
+  banner.classList.remove('show');
 }
 
 function renderEmergencyFund(data){
@@ -296,20 +287,22 @@ function renderGoals(data){
     const target = Math.max(Number(g.targetAmount) || 0, 0);
     const remaining = Math.max(target - saved, 0);
     const progress = target > 0 ? Math.min(Math.max((saved / target) * 100, 0), 100) : 0;
-    const safeTransfer = Math.max(Number(g.safeTransferAmount) || 0, 0);
+    // safeTransferAmount is DISABLED client-side: not yet confirmed whether this
+    // field is fed by the verified Goals waterfall (computeGoalsClaims()) or by
+    // the same unverified "top-up band" pipeline behind the disabled Goals tile
+    // above. Treat as unavailable until confirmed. See renderSummary() note.
+    const safeTransfer = 0;
     const row = document.createElement('div');
     row.className = 'compact-row';
-    const preview = a && Number(a.previewAllocation) > 0
-      ? '<div class="preview-allocation">Preview +' + fmtMoney(a.previewAllocation, currency) + ' · after preview ' + fmtMoney(saved + Number(a.previewAllocation), currency) + '</div>'
-      : '';
-    const eligibility = safeTransfer > 0 ? 'Eligible for a safe transfer up to ' + fmtMoney(safeTransfer, currency) : 'Waiting for a higher-priority allocation or available cash';
+    const preview = '';
+    const eligibility = 'Safe-transfer amount disabled pending a safety fix';
     row.innerHTML =
       '<div class="row-main"><div class="row-title"><span class="rank">#' + escapeHtml(g.priorityRank) + '</span>' + escapeHtml(g.name) + '</div>' +
       '<div class="row-meta">' + fmtMoney(saved, currency) + ' of ' + fmtMoney(target, currency) + (g.targetDate ? ' · target ' + escapeHtml(g.targetDate) : '') + '</div>' +
       '<div class="row-meta">' + eligibility + '</div>' + preview +
       '<div class="progress" aria-label="' + Math.round(progress) + '% saved"><i style="width:' + progress + '%"></i></div></div>' +
       '<div class="row-side"><b>' + Math.round(progress) + '%</b><small>' + fmtMoney(remaining, currency) + ' remaining</small>' +
-      '<button type="button" class="mini-action goal-transfer-btn" data-goal="' + escapeHtml(g.name) + '" data-safe="' + safeTransfer + '" ' + (safeTransfer <= 0 ? 'disabled' : '') + '>' + (safeTransfer > 0 ? 'Transfer' : 'Waiting') + '</button></div>';
+      '<button type="button" class="mini-action goal-transfer-btn" data-goal="' + escapeHtml(g.name) + '" data-safe="0" disabled>Disabled</button></div>';
     el.appendChild(row);
   });
   if(goals.length === 0) el.innerHTML = '<div class="empty-state">No active goals.</div>';

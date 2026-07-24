@@ -153,7 +153,6 @@ function renderWeeklyVarCards(data){
     const hasAvailable = c.available !== 'no data';
     const available = hasAvailable ? Number(c.available) || 0 : 0;
     const spendRatio = planned > 0 && hasSpent ? (spent / planned) * 100 : 0;
-    const availableRatio = planned > 0 && hasAvailable ? Math.max((available / planned) * 100, 0) : 0;
     const isOver = hasSpent && planned > 0 && spent > planned;
     const isNegative = c.isCurrent && hasAvailable && available < 0;
 
@@ -175,10 +174,6 @@ function renderWeeklyVarCards(data){
       ratio = Math.min(Math.max(spendRatio, 0), 100);
       ratioText = hasSpent && planned > 0 ? Math.round(spendRatio) + '%' : '—';
       ratioLabel = hasSpent ? 'Spent against plan' : 'Spending data unavailable';
-    } else {
-      ratio = Math.min(Math.max(availableRatio, 0), 100);
-      ratioText = hasAvailable && planned > 0 ? Math.round(availableRatio) + '%' : '—';
-      ratioLabel = 'Available against plan';
     }
 
     const detailParts = [];
@@ -198,8 +193,10 @@ function renderWeeklyVarCards(data){
       '<div class="week-top"><span>' + status + '</span><span>' + dateRange + '</span></div>' +
       '<div class="week-value' + ((isOver || isNegative) ? ' danger' : '') + '">' + fmt(primaryValue) + '<small>' + currencySafe + ' ' + primaryLabel + '</small></div>' +
       '<div class="week-desc">' + detailParts.join(' · ') + '</div>' +
-      '<div class="meter" role="img" aria-label="' + ratioLabel + ': ' + ratioText + '"><i style="width:' + ratio + '%"></i></div>' +
-      '<div class="week-meta"><span>' + ratioLabel + '</span><b class="' + (isOver ? 'danger' : '') + '">' + ratioText + '</b></div>' + note;
+      (c.isClosed || c.isCurrent
+        ? '<div class="meter" role="img" aria-label="' + ratioLabel + ': ' + ratioText + '"><i style="width:' + ratio + '%"></i></div>' +
+          '<div class="week-meta"><span>' + ratioLabel + '</span><b class="' + (isOver ? 'danger' : '') + '">' + ratioText + '</b></div>'
+        : '') + note;
     el.appendChild(card);
   });
 }

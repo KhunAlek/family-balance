@@ -107,7 +107,7 @@
 
 <div class="modal-backdrop" id="pinModal" role="dialog" aria-modal="true" aria-labelledby="pinModalTitle"><div class="modal"><h2 id="pinModalTitle">Enter PIN to confirm</h2><p>Enter your 6-digit PIN.</p><input type="password" id="modalPin" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" aria-label="6-digit PIN"><div class="form-msg" id="pinModalMsg"></div><div class="modal-actions"><button type="button" class="btn secondary" id="pinCancel">Cancel</button><button type="button" class="btn primary" id="pinConfirm">Confirm</button></div></div></div>
 
-<div class="modal-backdrop" id="movementModal" role="dialog" aria-modal="true" aria-labelledby="movementTitle"><aside class="modal movement-drawer"><div class="drawer-head"><div><h2 id="movementTitle">Record movement</h2><p id="movementDescription"></p></div><button type="button" class="close" id="movementCancel" aria-label="Close">×</button></div><form id="movementForm"><div class="movement-summary" id="movementSummary"></div><label for="movementDate">Date</label><input type="date" id="movementDate" required><label for="movementSource">Paid from</label><select id="movementSource" required><option value="Alex">Alex KTB</option><option value="Olga">Olga KTB</option></select><div class="movement-balance" id="movementSourceBalance"></div><label for="movementAmount">Amount</label><input type="number" min="0.01" step="0.01" id="movementAmount" required><div class="hint" id="movementAmountHint"></div><div id="movementNoteWrap" style="display:none"><label for="movementNote">Note (optional)</label><textarea id="movementNote"></textarea></div><div class="form-msg" id="movementMsg"></div><div class="modal-actions"><button type="button" class="btn secondary" onclick="closeMovementModal()">Cancel</button><button type="submit" class="btn primary" id="movementSubmit">Save</button></div></form></aside></div>
+<div class="modal-backdrop" id="movementModal" role="dialog" aria-modal="true" aria-labelledby="movementTitle"><aside class="modal movement-drawer"><div class="drawer-head"><div><h2 id="movementTitle">Record movement</h2><p id="movementDescription"></p></div><button type="button" class="close" id="movementCancel" aria-label="Close">×</button></div><form id="movementForm"><div class="movement-summary" id="movementSummary"></div><label for="movementDate">Date</label><input type="date" id="movementDate" required><label for="movementSource">Paid from</label><select id="movementSource" required><option value="Alex">Alex KTB</option><option value="Olga">Olga KTB</option></select><div class="movement-balance" id="movementSourceBalance"></div><label for="movementAmount">Amount</label><input type="number" min="0.01" step="0.01" id="movementAmount" required><div class="hint" id="movementAmountHint"></div><div id="movementPaymentStatusWrap" style="display:none"><label for="movementPaymentStatus">Payment type</label><select id="movementPaymentStatus"><option value="Final">Final payment — close this bill</option><option value="Partial">Partial payment — keep it open</option></select><div class="hint">Variable bills default to final payment.</div></div><div id="movementNoteWrap" style="display:none"><label for="movementNote">Note (optional)</label><textarea id="movementNote"></textarea></div><div class="form-msg" id="movementMsg"></div><div class="modal-actions"><button type="button" class="btn secondary" onclick="closeMovementModal()">Cancel</button><button type="submit" class="btn primary" id="movementSubmit">Save</button></div></form></aside></div>
 
 <script>
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZrhAbyejB9cOv-56cSNilWlrw626DOWLd5A7CezQiM2bAKN61oDk_9RNm_7zb5d4kTA/exec';
@@ -321,13 +321,18 @@ function renderFixedObligations(data){
       item.status === 'Due today' ? 'due' : '';
     const due = item.dueDate ? 'Due ' + fmtDate(item.dueDate) : (item.dueType || '');
     const remaining = Math.max(Number(item.remainingAmount) || 0, 0);
+    const isVariable = item.amountType === 'Variable';
+    const difference = Number(item.estimateDifference);
+    const differenceText = item.isFinalPayment && Number.isFinite(difference) && difference !== 0
+      ? ' · ' + fmtMoney(Math.abs(difference), currency) + (difference > 0 ? ' below estimate' : ' above estimate')
+      : '';
     const paymentAction = remaining > 0
-      ? '<button type="button" class="mini-action obligation-payment-btn" data-obligation="' + escapeHtml(item.name) + '" data-remaining="' + remaining + '" data-expected="' + Number(item.expectedAmount || 0) + '">Record payment</button>'
-      : '<span class="complete-label">Paid in full</span>';
+      ? '<button type="button" class="mini-action obligation-payment-btn" data-obligation="' + escapeHtml(item.name) + '" data-remaining="' + remaining + '" data-expected="' + Number(item.expectedAmount || 0) + '" data-amount-type="' + escapeHtml(item.amountType || 'Fixed') + '">Record payment</button>'
+      : '<span class="complete-label">Paid</span>';
     row.innerHTML =
       '<div class="row-main"><div class="row-title">' + escapeHtml(item.name) + '<span class="row-status ' + statusClass + '">' + escapeHtml(item.status) + '</span></div>' +
-      '<div class="row-meta">' + escapeHtml(due) + ' · expected ' + fmtMoney(item.expectedAmount, currency) + ' · paid ' + fmtMoney(item.paidAmount, currency) + '</div></div>' +
-      '<div class="row-side"><b>' + fmtMoney(remaining, currency) + '</b><small>remaining</small>' + paymentAction + '</div>';
+      '<div class="row-meta">' + escapeHtml(due) + ' · ' + (isVariable ? 'estimated ' : 'expected ') + fmtMoney(item.expectedAmount, currency) + ' · ' + (item.isFinalPayment ? 'actual ' : 'paid ') + fmtMoney(item.paidAmount, currency) + differenceText + '</div></div>' +
+      '<div class="row-side"><b>' + fmtMoney(remaining, currency) + '</b><small>' + (remaining > 0 ? 'remaining' : 'closed') + '</small>' + paymentAction + '</div>';
     el.appendChild(row);
   });
 }
@@ -558,9 +563,12 @@ function openMovementModal(context){
   const summary = document.getElementById('movementSummary');
   const amount = document.getElementById('movementAmount');
   const noteWrap = document.getElementById('movementNoteWrap');
+  const paymentStatusWrap = document.getElementById('movementPaymentStatusWrap');
   const msg = document.getElementById('movementMsg');
   document.getElementById('movementDate').valueAsDate = new Date();
   document.getElementById('movementNote').value = '';
+  document.getElementById('movementPaymentStatus').value = 'Final';
+  paymentStatusWrap.style.display = 'none';
   msg.className = 'form-msg';
 
   if(context.type === 'ef'){
@@ -579,11 +587,15 @@ function openMovementModal(context){
     noteWrap.style.display = 'none';
   }else{
     title.textContent = 'Record ' + context.name + ' payment';
-    description.textContent = 'Partial payments are supported. The selected KTB balance is reduced automatically.';
-    summary.innerHTML = '<strong>Planned remaining:</strong> ' + fmtMoney(context.remaining, currency) + '<br><strong>Expected this month:</strong> ' + fmtMoney(context.expected, currency);
+    const isVariable = context.amountType === 'Variable';
+    description.textContent = isVariable
+      ? 'Enter the actual bill amount. Final payment closes this variable bill even when it differs from the estimate.'
+      : 'Partial payments are supported. The selected KTB balance is reduced automatically.';
+    summary.innerHTML = '<strong>Planned remaining:</strong> ' + fmtMoney(context.remaining, currency) + '<br><strong>' + (isVariable ? 'Estimated' : 'Expected') + ' this month:</strong> ' + fmtMoney(context.expected, currency);
     amount.value = context.remaining > 0 ? context.remaining : '';
     document.getElementById('movementAmountHint').textContent = 'Enter the actual amount paid. It may differ from the expected amount.';
     noteWrap.style.display = 'block';
+    paymentStatusWrap.style.display = isVariable ? 'block' : 'none';
   }
   updateMovementSourceBalance();
   modal.classList.add('show');
@@ -621,7 +633,7 @@ document.getElementById('goalsList').addEventListener('click', e => {
 document.getElementById('obligationsList').addEventListener('click', e => {
   const btn = e.target.closest('.obligation-payment-btn');
   if(!btn) return;
-  openMovementModal({type:'obligation',name:btn.dataset.obligation,remaining:Number(btn.dataset.remaining)||0,expected:Number(btn.dataset.expected)||0});
+  openMovementModal({type:'obligation',name:btn.dataset.obligation,remaining:Number(btn.dataset.remaining)||0,expected:Number(btn.dataset.expected)||0,amountType:btn.dataset.amountType||'Fixed'});
 });
 document.getElementById('movementSource').addEventListener('change',updateMovementSourceBalance);
 document.getElementById('movementCancel').addEventListener('click',closeMovementModal);
@@ -643,7 +655,7 @@ document.getElementById('movementForm').addEventListener('submit',async e=>{
   try{
     const common={date:document.getElementById('movementDate').value,sourceAccount:source,amount,pin};
     const payload=movementContext.type==='obligation'
-      ? Object.assign(common,{action:'obligationPayment',obligationName:movementContext.name,note:document.getElementById('movementNote').value})
+      ? Object.assign(common,{action:'obligationPayment',obligationName:movementContext.name,note:document.getElementById('movementNote').value,paymentStatus:document.getElementById('movementPaymentStatus').value})
       : Object.assign(common,{action:'dedicatedTransfer',destinationType:movementContext.type==='ef'?'EF':'Goal',destinationName:movementContext.name||'EF'});
     const result=await postAction(payload);
     if(result.ok){window.location.reload();return;}

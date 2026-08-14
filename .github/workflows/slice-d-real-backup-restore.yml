@@ -73,7 +73,7 @@ jobs:
         run: |
           set -euo pipefail
           ORIGIN="https://${TEST_WORKER}.abystrov66.workers.dev"
-          curl --fail-with-body --retry 12 --retry-delay 5 "$ORIGIN/health"
+          curl --fail-with-body --retry 12 --retry-all-errors --retry-delay 5 "$ORIGIN/health"
           curl --fail-with-body -X POST "$ORIGIN/weekly" > /tmp/weekly.json
           curl --fail-with-body -X POST "$ORIGIN/backup" > /tmp/backup-result.json
           node <<'NODE'

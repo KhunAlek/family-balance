@@ -136,9 +136,9 @@ test('explicit EF withdrawal is persisted as a ledger withdrawal and KTB credit'
   const result = await write(db, 'efWithdrawal', { date: '2026-08-14', destinationAccount: 'Alex', amount: 500 }, { writeToken: 'ef-withdrawal' });
   assert.equal(result.ok, true);
   const ledger = raw.prepare("SELECT account,direction,amount_satang FROM ledger_movements WHERE source_sheet='Cloudflare' ORDER BY ledger_id DESC LIMIT 1").get();
-  assert.deepEqual(ledger, { account: 'EF', direction: 'Withdrawal', amount_satang: 50000 });
+  assert.deepEqual({ ...ledger }, { account: 'EF', direction: 'Withdrawal', amount_satang: 50000 });
   const latest = raw.prepare('SELECT business_date,alex_balance_satang,olga_balance_satang FROM balance_history ORDER BY business_date DESC,sheet_order DESC LIMIT 1').get();
-  assert.deepEqual(latest, { business_date: '2026-08-14', alex_balance_satang: 278500, olga_balance_satang: 1145500 });
+  assert.deepEqual({ ...latest }, { business_date: '2026-08-14', alex_balance_satang: 278500, olga_balance_satang: 1145500 });
 });
 
 test('backdated permitted obligation payment persists the submitted movement date', async () => {
@@ -148,7 +148,7 @@ test('backdated permitted obligation payment persists the submitted movement dat
     obligationName: 'Claude', occurrenceDueDate: '2026-08-03', paymentStatus: 'Partial', note: 'finish'
   }, { writeToken: 'backdated-payment' });
   const payment = raw.prepare("SELECT payment_date,occurrence_due_date,actual_amount_satang FROM obligation_payments WHERE payment_id='backdated-payment:obligation'").get();
-  assert.deepEqual(payment, { payment_date: '2026-08-12', occurrence_due_date: '2026-08-03', actual_amount_satang: 1400 });
+  assert.deepEqual({ ...payment }, { payment_date: '2026-08-12', occurrence_due_date: '2026-08-03', actual_amount_satang: 1400 });
   const movement = raw.prepare("SELECT business_date FROM balance_history WHERE source_sheet='Cloudflare' ORDER BY balance_row_id DESC LIMIT 1").get();
   assert.equal(movement.business_date, '2026-08-12');
 });

@@ -1,0 +1,64 @@
+name: Post-containment read-only evidence
+
+on:
+  push:
+    branches: [cutover-readonly-preflight-20260815]
+    paths:
+      - '.github/workflows/post-containment-readonly.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 6ee48ea46390bcf76f1d924f4a7d88f1
+      D1_NAME: family-cash-flow-production-v1
+      R2_BUCKET: family-cash-flow-production-backups
+      BACKUP_KEY: production/2026/08/14/2026-08-14T17-29-18Z.json
+      WORKER_ORIGIN: https://family-cash-flow-production.abystrov66.workers.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Capture production D1 bookmark and unchanged state
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.123.0 d1 time-travel info "$D1_NAME" --json > /tmp/post-containment-bookmark.json
+          QUERY="SELECT (SELECT COUNT(*) FROM balance_history) balance_rows,(SELECT COUNT(*) FROM ledger_movements) ledger_rows,(SELECT COUNT(*) FROM obligation_payments) payment_rows,(SELECT COUNT(*) FROM weekly_snapshots) weekly_rows,(SELECT COUNT(*) FROM financial_write_claims) claim_rows,(SELECT COUNT(*) FROM correction_audit) correction_rows,(SELECT current_revision FROM household_revisions WHERE household_id='family') revision;"
+          npx --yes wrangler@4.123.0 d1 execute "$D1_NAME" --remote --json --command "$QUERY" > /tmp/post-containment-state.json
+      - name: Verify retained backup and public containment
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.123.0 r2 object get "$R2_BUCKET/$BACKUP_KEY" --remote --file /tmp/portable-backup.json
+          WORKER_STATUS="$(curl -sS -o /tmp/worker-body.txt -w '%{http_code}' "$WORKER_ORIGIN/health" || true)"
+          if [ "$WORKER_STATUS" -ge 200 ] && [ "$WORKER_STATUS" -lt 400 ]; then exit 1; fi
+          PAGES_STATUS="$(curl -sS -o /tmp/pages.html -w '%{http_code}' 'https://khunalek.github.io/family-balance/?rollback=evidence')"
+          test "$PAGES_STATUS" = 200
+          grep -Fq 'Continue with Google' /tmp/pages.html
+          node <<'NODE'
+          const fs=require('fs');
+          const q=JSON.parse(fs.readFileSync('/tmp/post-containment-state.json'));
+          const b=Array.isArray(q)?q[0]:q;
+          const state=(b.results||b.result||[])[0];
+          const expected={balance_rows:69,ledger_rows:3,payment_rows:8,weekly_rows:8,claim_rows:0,correction_rows:0,revision:0};
+          for(const [k,v] of Object.entries(expected)) if(String(state[k])!==String(v)) throw new Error('State mismatch '+k);
+          const backup=JSON.parse(fs.readFileSync('/tmp/portable-backup.json'));
+          if(backup.integrity.tablesSha256!=='01ea96efd0b9be127f5c10c87f3d0dc7134638b8ee07ac1e1e7bf05ac284b530') throw new Error('Tables hash mismatch');
+          if(backup.integrity.payloadSha256!=='b7a7d2eab38ad45e196a9fd3a957bb1ceb3e3d1b7d9f3ec6b5f385b567269307') throw new Error('Payload hash mismatch');
+          const evidence={status:'PASS',capturedAt:new Date().toISOString(),workerOrigin:'offline',currentProduction:'https://khunalek.github.io/family-balance/',d1:process.env.D1_NAME,r2:process.env.R2_BUCKET,backupKey:process.env.BACKUP_KEY,state,bookmark:JSON.parse(fs.readFileSync('/tmp/post-containment-bookmark.json'))};
+          fs.writeFileSync('/tmp/post-containment-evidence.json',JSON.stringify(evidence,null,2)+'\n');
+          console.log(JSON.stringify({status:evidence.status,capturedAt:evidence.capturedAt,state:evidence.state}));
+          NODE
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: post-containment-read-only-evidence
+          path: |
+            /tmp/post-containment-evidence.json
+            /tmp/post-containment-bookmark.json
+          if-no-files-found: error

@@ -16,8 +16,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy Slice A staging Worker
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: 6ee48ea46390bcf76f1d924f4a7d88f1
+      - name: Deploy Slice A staging Worker with Wrangler 4
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 6ee48ea46390bcf76f1d924f4a7d88f1
+        run: npx --yes wrangler@4.123.0 deploy --config wrangler.jsonc

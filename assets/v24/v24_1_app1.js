@@ -1,8 +1,6 @@
-const API_ENDPOINT='https://family-cash-flow-staging-bridge.abystrov66.workers.dev/api/apps-script';
 const GOOGLE_CLIENT_ID='394909658100-9d73ghog78vr13lgfn0gjch2hd8ljohd.apps.googleusercontent.com';
-const SESSION_KEY='familyCashFlow_session_v24_1';
 let AUTHENTICATED_USER='';
-let authTokenClient=null;
+let googleButtonInitialized=false;
 let currentData=null,efChartInstance=null,movementContext=null,paymentPreview=null,paymentPreviewKey='';
 function fmt(n){return Math.round(Number(n)||0).toLocaleString('en-US')}
 function fmt2(n){return (Math.round((Number(n)||0)*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}

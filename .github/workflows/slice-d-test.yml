@@ -1,0 +1,49 @@
+name: Slice D final runtime tests
+
+on:
+  push:
+    branches: [staging-startup-repair-20260814]
+    paths:
+      - 'wrangler.jsonc'
+      - '.assetsignore'
+      - 'index.html'
+      - 'assets/**'
+      - 'cloudflare/slice-b/**'
+      - 'cloudflare/slice-c/**'
+      - 'cloudflare/slice-d/**'
+      - '.github/workflows/slice-d-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  final-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Slice D auth, runtime, weekly and backup tests
+        working-directory: cloudflare/slice-d
+        run: npm test
+      - name: Accepted financial regressions remain green
+        run: |
+          node --test cloudflare/slice-b/test/*.test.mjs
+          node --test cloudflare/slice-c/test/*.test.mjs
+      - name: Frontend and Worker syntax
+        run: |
+          for file in assets/v24/*.js cloudflare/slice-d/src/*.js cloudflare/slice-d/src/*.mjs cloudflare/slice-d/tools/*.mjs; do
+            node --check "$file"
+          done
+      - name: Reject legacy final-runtime dependencies
+        run: |
+          set -euo pipefail
+          ! grep -R -E "script\.google\.com|api/apps-script|sessionToken|sessionStorage|localStorage|assets/v24/v24/v24_1_app4" index.html assets/v24 cloudflare/slice-d wrangler.jsonc
+          grep -q "run_worker_first" wrangler.jsonc
+          grep -q '"BACKUPS"' wrangler.jsonc
+          grep -q '"crons"' wrangler.jsonc
+      - name: Wrangler 4 deployment dry run
+        run: npx --yes wrangler@4.123.0 deploy --dry-run --outdir /tmp/slice-d-dry-run --config wrangler.jsonc

@@ -41,8 +41,10 @@ function isClaimConflict(error) {
 }
 
 function defaultWriteToken() {
-  if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') return globalThis.crypto.randomUUID();
-  return `write-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  if (!globalThis.crypto || typeof globalThis.crypto.randomUUID !== 'function') {
+    throw new Error('Secure random UUID generation is unavailable.');
+  }
+  return globalThis.crypto.randomUUID();
 }
 
 export async function loadAuthoritativeFinancialState(db, householdId = 'family') {

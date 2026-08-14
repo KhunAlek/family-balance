@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "family-cash-flow-staging-bridge",
-  "main": "cloudflare/slice-a-bridge/src/index.js",
+  "main": "cloudflare/slice-d/src/index.js",
   "compatibility_date": "2026-08-14",
   "compatibility_flags": ["nodejs_compat"],
   "observability": {
@@ -9,8 +9,15 @@
     "head_sampling_rate": 1
   },
   "vars": {
-    "UPSTREAM_URL": "https://script.google.com/macros/s/AKfycbwtgB7WGkR-XRe19xda5xWmxPg4d_uymyu7wk-Vc0HEQpWdOHTuJ48pj1BIADZ8nOqLUA/exec",
-    "ALLOWED_ORIGIN": "https://khunalek.github.io"
+    "GOOGLE_CLIENT_ID": "394909658100-9d73ghog78vr13lgfn0gjch2hd8ljohd.apps.googleusercontent.com",
+    "APPROVED_GOOGLE_EMAILS": "abystrov66@gmail.com,harlyhanz@gmail.com",
+    "BACKUP_ENVIRONMENT": "staging",
+    "BACKUP_RETENTION_DAYS": "35"
+  },
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*", "/health"]
   },
   "d1_databases": [
     {
@@ -18,5 +25,17 @@
       "database_name": "family-cash-flow-staging-v1",
       "database_id": "bde37169-c1f5-42bd-b83d-ae7adfbbe4e2"
     }
-  ]
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BACKUPS",
+      "bucket_name": "family-cash-flow-staging-backups"
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "0 21 * * SUN",
+      "0 20 * * *"
+    ]
+  }
 }

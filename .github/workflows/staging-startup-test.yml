@@ -14,13 +14,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Validate staging transport wiring
+      - name: Validate same-origin Slice D wiring
         run: |
           node --check assets/v24/v24_1_app1.js
           node --check assets/v24/v24_1_app2.js
           node <<'NODE'
           const fs = require('node:fs');
-          const endpoint = 'https://family-cash-flow-staging-bridge.abystrov66.workers.dev/api/apps-script';
           const html = fs.readFileSync('index.html','utf8');
           const app1 = fs.readFileSync('assets/v24/v24_1_app1.js','utf8');
           const app2 = fs.readFileSync('assets/v24/v24_1_app2.js','utf8');
@@ -31,17 +30,20 @@ jobs:
           if (html.includes('assets/v24/v24/v24_1_app4.js')) {
             throw new Error('Obsolete nested app4 reference is still present in index.html');
           }
-          if (!app1.startsWith(`const API_ENDPOINT='${endpoint}';`)) {
-            throw new Error('Centralized Cloudflare API endpoint is missing or incorrect');
+          if (/https?:\/\//.test(app1.split('\n')[0]) || /API_ENDPOINT/.test(app1 + app2)) {
+            throw new Error('Cross-origin or duplicate API endpoint remains in the frontend');
           }
-          if (!app2.includes('fetch(API_ENDPOINT,{')) {
-            throw new Error('Frontend rawApi is not using centralized API_ENDPOINT');
+          if (!app2.includes("requestJson('/api/action'")) {
+            throw new Error('Frontend is not using same-origin /api/action');
           }
-          if (/fetch\('https:\/\/script\.google\.com/.test(app2)) {
-            throw new Error('Direct GitHub Pages to Apps Script fetch remains in app2');
+          if (!app2.includes('google.accounts.id.initialize') || !app2.includes('google.accounts.id.renderButton')) {
+            throw new Error('Google Identity Services ID-token flow is missing');
           }
-          if (app2.includes("document.createElement('iframe')") || app2.includes('form.submit()')) {
-            throw new Error('Obsolete iframe/form transport remains in app2');
+          if (/sessionStorage|localStorage|sessionToken|script\.google\.com/.test(app1 + app2)) {
+            throw new Error('Legacy browser session or Apps Script dependency remains');
+          }
+          if (!html.includes('<script src="assets/v24/v24_1_correction.js"></script>')) {
+            throw new Error('Correction UI is not loaded directly');
           }
           NODE
       - name: Install Playwright
@@ -83,6 +85,9 @@ jobs:
 
             await page.route('**/assets/v24/v24/v24_1_app4.js', route =>
               route.fulfill({status:200,contentType:'application/javascript',body:"throw new Error('obsolete loader executed')"})
+            );
+            await page.route('http://127.0.0.1:4173/api/**', route =>
+              route.fulfill({status:401,contentType:'application/json',body:JSON.stringify({ok:false,error:'Authentication required.'})})
             );
 
             const response = await page.goto('http://127.0.0.1:4173/index.html?case='+name, {

@@ -23,5 +23,3 @@ document.getElementById('movementForm').addEventListener('submit',async e=>{e.pr
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.getElementById('movementModal').classList.contains('show'))closeMovementModal();else if(document.getElementById('actionDrawer').classList.contains('show'))closeActionDrawer()}});
 function setDefaultDates(){['f-date','p-date','i-date','ew-date','kt-date','movementDate'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=todayIso()})}
 setDefaultDates();syncKtbDestination();initializeApp();
-
-const correctionUxScript=document.createElement('script');correctionUxScript.src='assets/v24/v24_1_correction.js';correctionUxScript.defer=true;document.body.appendChild(correctionUxScript);

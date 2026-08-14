@@ -1,0 +1,121 @@
+name: Slice D deployed same-origin test
+
+on:
+  push:
+    branches: [staging-startup-repair-20260814]
+    paths:
+      - 'wrangler.jsonc'
+      - 'index.html'
+      - 'assets/**'
+      - 'cloudflare/slice-d/**'
+      - '.github/workflows/cloudflare-staging-direct-deploy.yml'
+      - '.github/workflows/slice-d-deployed-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deployed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Wait for Slice D and verify same-origin transport
+        env:
+          WORKER_ORIGIN: https://family-cash-flow-staging-bridge.abystrov66.workers.dev
+        run: |
+          node <<'NODE'
+          const worker = process.env.WORKER_ORIGIN;
+          const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+          let health;
+          let last = '';
+          for (let i = 0; i < 36; i++) {
+            try {
+              const response = await fetch(worker + '/health', {cache:'no-store'});
+              last = `HTTP ${response.status}: ${await response.clone().text()}`;
+              if (response.ok) {
+                const data = await response.json();
+                if (data.ok && data.runtime === 'slice-d' && data.appsScriptDependency === false) { health = data; break; }
+              }
+            } catch (error) { last = String(error); }
+            await sleep(5000);
+          }
+          if (!health) throw new Error('Slice D health did not become ready: ' + last);
+
+          const invalid = await fetch(worker + '/api/auth/google', {
+            method:'POST',
+            headers:{Origin:worker,'Content-Type':'application/json'},
+            body:JSON.stringify({credential:'intentionally-invalid-google-id-token'})
+          });
+          const invalidData = await invalid.json();
+          if (invalid.status !== 401 || invalidData.error !== 'Google sign-in could not be verified.') {
+            throw new Error('Unexpected invalid-Google response: '+invalid.status+' '+JSON.stringify(invalidData));
+          }
+          if (invalid.headers.get('access-control-allow-origin')) throw new Error('Same-origin API unexpectedly exposes CORS.');
+          if (invalid.headers.get('cache-control') !== 'no-store') throw new Error('Auth response is not no-store.');
+
+          const unauthenticated = await fetch(worker + '/api/auth/session');
+          if (unauthenticated.status !== 401) throw new Error('Unsigned session unexpectedly accepted.');
+
+          const crossOrigin = await fetch(worker + '/api/auth/logout', {
+            method:'POST',
+            headers:{Origin:'https://example.com','Content-Type':'application/json'},
+            body:'{}'
+          });
+          if (crossOrigin.status !== 403) throw new Error('Cross-origin mutation was not rejected.');
+          console.log(JSON.stringify({health,invalid:invalidData,unauthenticated:unauthenticated.status,crossOrigin:crossOrigin.status},null,2));
+          NODE
+      - name: Install Playwright
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.54.2 --no-save
+          npx playwright install --with-deps chromium
+      - name: Mobile and desktop same-origin browser proof
+        env:
+          WORKER_ORIGIN: https://family-cash-flow-staging-bridge.abystrov66.workers.dev
+        run: |
+          cat > slice-d-browser.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          const origin=process.env.WORKER_ORIGIN;
+          const browser=await chromium.launch({headless:true});
+          const results=[];
+          for(const [name,viewport] of [['mobile',{width:390,height:844}],['desktop',{width:1440,height:900}]]){
+            const context=await browser.newContext({viewport});
+            const page=await context.newPage();
+            const errors=[];
+            const failed=[];
+            const appsScript=[];
+            page.on('pageerror',error=>errors.push(String(error)));
+            page.on('requestfailed',request=>failed.push(`${request.url()} :: ${request.failure()?.errorText||'failed'}`));
+            page.on('request',request=>{if(/script\.google\.com|api\/apps-script/.test(request.url()))appsScript.push(request.url())});
+            const response=await page.goto(origin+'/?slice-d='+name,{waitUntil:'domcontentloaded',timeout:30000});
+            if(!response||!response.ok())throw new Error(`${name}: page HTTP ${response?.status()}`);
+            await page.waitForTimeout(3000);
+            const state={
+              loading:await page.locator('#loadingState').isVisible().catch(()=>false),
+              auth:await page.locator('#authGate').isVisible().catch(()=>false),
+              login:await page.locator('#googleLoginBtn').isVisible().catch(()=>false),
+              error:await page.locator('#errorState').isVisible().catch(()=>false),
+              errors,failed:failed.filter(value=>value.startsWith(origin)),appsScript
+            };
+            await page.screenshot({path:`slice-d-${name}.png`,fullPage:true});
+            await context.close();
+            if(state.errors.length||state.failed.length||state.appsScript.length||state.loading||state.error||!state.auth||!state.login){
+              throw new Error(`${name}: bad startup state ${JSON.stringify(state)}`);
+            }
+            results.push({name,viewport,state});
+          }
+          console.log(JSON.stringify(results,null,2));
+          await browser.close();
+          EOF
+          node slice-d-browser.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: slice-d-deployed-browser-screenshots
+          path: slice-d-*.png
+          if-no-files-found: ignore

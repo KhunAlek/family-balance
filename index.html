@@ -33,7 +33,7 @@
   <main class="main">
     <header class="topbar">
       <div class="greeting"><img class="topbar-icon" src="assets/v24/logo.svg" alt=""><div class="title-block"><h1 class="screen-title">Household dashboard</h1><div class="mobile-app-name">Family Cash Flow</div><p id="asOfLine">Loading current numbers…</p></div></div>
-      <div class="top-actions"><button class="btn" data-open-drawer="payment">One-off payment</button><button class="btn" data-open-drawer="income">Income received</button><button class="btn primary" data-open-drawer="balance">Update balances</button></div>
+      <div class="top-actions"><button class="btn" data-open-drawer="payment">One-off payment</button><button class="btn" data-open-drawer="income">Income received</button><button class="btn primary" data-open-drawer="balance">Update balances</button><button class="btn" type="button" id="logoutBtn">Sign out</button></div>
     </header>
 
     <div class="content">
@@ -78,10 +78,7 @@
     <img src="assets/v24/logo.svg" alt="Family Cash Flow logo">
     <h1>Family Cash Flow</h1>
     <p>Sign in with an approved Google account to open the household dashboard.</p>
-    <button type="button" class="btn google-login" id="googleLoginBtn">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" stroke="none" d="M21.6 12.23c0-.71-.06-1.23-.2-1.77H12v3.42h5.52c-.11.85-.71 2.12-2.04 2.98l-.02.11 2.96 2.29.2.02c1.84-1.7 2.98-4.2 2.98-7.05Z"/><path fill="#34A853" stroke="none" d="M12 22c2.69 0 4.95-.89 6.6-2.42l-3.14-2.43c-.84.57-1.97.97-3.46.97-2.64 0-4.88-1.78-5.68-4.24l-.1.01-3.08 2.38-.04.1C4.74 19.65 8.12 22 12 22Z"/><path fill="#FBBC05" stroke="none" d="M6.32 13.88a6.01 6.01 0 0 1 0-3.76l-.01-.11-3.12-2.42-.1.05C2.4 8.83 2 10.36 2 12s.4 3.17 1.1 4.36l3.22-2.48Z"/><path fill="#EA4335" stroke="none" d="M12 5.88c1.87 0 3.13.81 3.85 1.49l2.81-2.74C16.93 3.02 14.69 2 12 2 8.12 2 4.74 4.35 3.1 7.64l3.22 2.48C7.12 7.66 9.36 5.88 12 5.88Z"/></svg>
-      <span>Continue with Google</span>
-    </button>
+    <div class="google-login" id="googleLoginBtn" aria-label="Continue with Google"></div>
     <div class="auth-error" id="authError"></div>
   </div>
 </div>
@@ -119,5 +116,6 @@
 <script src="assets/v24/v24_1_app2.js"></script>
 <script src="assets/v24/v24_1_app3.js"></script>
 <script src="assets/v24/v24_1_app4.js"></script>
+<script src="assets/v24/v24_1_correction.js"></script>
 </body>
 </html>

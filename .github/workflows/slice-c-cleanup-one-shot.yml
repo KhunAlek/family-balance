@@ -1,0 +1,43 @@
+name: Clean one-shot Slice C workflows
+
+on:
+  push:
+    branches: [staging-startup-repair-20260814]
+    paths:
+      - '.github/workflows/slice-c-cleanup-one-shot.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: staging-startup-repair-20260814
+      - name: Remove completed one-shot migration and acceptance automation
+        run: |
+          set -euo pipefail
+          git rm -f --ignore-unmatch \
+            .github/workflows/slice-b-d1-bootstrap.yml \
+            .github/workflows/slice-c-d1-migrate.yml \
+            .github/workflows/slice-c-d1-salary-source-migrate.yml \
+            .github/workflows/slice-c-fix-salary-test.yml \
+            .github/workflows/slice-c-harden-correction.yml \
+            .github/workflows/slice-c-pre-human-state.yml \
+            .github/workflows/slice-c-post-human-acceptance.yml \
+            .github/workflows/slice-c-remote-concurrency.yml \
+            .github/workflows/slice-c-remote-concurrency-v2.yml \
+            .github/workflows/slice-c-remote-concurrency-v3.yml \
+            .github/workflows/slice-c-remote-integration-v4.yml \
+            .github/workflows/slice-c-wire-correction-ui.yml \
+            .github/workflows/slice-c-wire-correction.yml \
+            .github/workflows/slice-c-wire-salary-transition.yml \
+            cloudflare/slice-c/.ci-trigger-salary-v2 \
+            cloudflare/slice-b/.slice-c-final-gate-20260814 \
+            .github/workflows/slice-c-cleanup-one-shot.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Remove completed one-shot Slice C automation'
+          git push origin HEAD:staging-startup-repair-20260814

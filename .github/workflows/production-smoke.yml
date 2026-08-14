@@ -21,7 +21,7 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Verify production startup
         run: |
-          cat > /tmp/smoke.mjs <<'EOF'
+          cat > smoke.mjs <<'EOF'
           import { chromium } from 'playwright';
           const url = 'https://khunalek.github.io/family-balance/?smoke=' + Date.now();
           const browser = await chromium.launch({ headless: true });
@@ -46,7 +46,7 @@ jobs:
           if (loadingVisible) throw new Error('Loading screen is still visible after startup.');
           if (!authVisible || !loginVisible) throw new Error('Google sign-in gate is not visible.');
           EOF
-          node /tmp/smoke.mjs
+          node smoke.mjs
       - name: Upload smoke screenshot
         if: always()
         uses: actions/upload-artifact@v4

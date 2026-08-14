@@ -1,0 +1,160 @@
+name: Cutover read-only Cloudflare preflight
+
+on:
+  push:
+    branches: [cutover-readonly-preflight-20260815]
+    paths:
+      - '.github/workflows/cutover-readonly-preflight.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 6ee48ea46390bcf76f1d924f4a7d88f1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Collect sanitized read-only Cloudflare inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+          const token = process.env.CLOUDFLARE_API_TOKEN;
+          if (!token) throw new Error('CLOUDFLARE_API_TOKEN is unavailable.');
+
+          const base = 'https://api.cloudflare.com/client/v4';
+          async function get(path) {
+            try {
+              const response = await fetch(base + path, {
+                headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }
+              });
+              const payload = await response.json().catch(() => ({}));
+              return {
+                ok: response.ok && payload.success !== false,
+                status: response.status,
+                errors: payload.errors || [],
+                result: payload.result ?? null,
+                result_info: payload.result_info ?? null
+              };
+            } catch (error) {
+              return { ok: false, status: 0, errors: [{ message: String(error) }], result: null };
+            }
+          }
+
+          function safeBinding(binding) {
+            const out = { name: binding.name, type: binding.type };
+            for (const key of ['id', 'database_id', 'database_name', 'bucket_name', 'namespace_id', 'class_name', 'service', 'environment']) {
+              if (binding[key] !== undefined) out[key] = binding[key];
+            }
+            if (binding.type === 'plain_text' &&
+                ['GOOGLE_CLIENT_ID', 'APPROVED_GOOGLE_EMAILS', 'BACKUP_ENVIRONMENT', 'BACKUP_RETENTION_DAYS'].includes(binding.name)) {
+              out.text = binding.text;
+            }
+            return out;
+          }
+
+          const inventory = {
+            generated_at: new Date().toISOString(),
+            account_id: accountId,
+            proposed_names_checked: {
+              worker: 'family-cash-flow-production',
+              d1: 'family-cash-flow-production-v1',
+              r2: 'family-cash-flow-production-backups'
+            }
+          };
+
+          inventory.workers_subdomain = await get('/accounts/' + accountId + '/workers/subdomain');
+          inventory.workers = await get('/accounts/' + accountId + '/workers/scripts');
+
+          const workerRows = Array.isArray(inventory.workers.result) ? inventory.workers.result : [];
+          inventory.worker_details = [];
+          for (const worker of workerRows) {
+            const name = worker.id || worker.name;
+            const [settings, secrets, schedules, deployments] = await Promise.all([
+              get('/accounts/' + accountId + '/workers/scripts/' + encodeURIComponent(name) + '/settings'),
+              get('/accounts/' + accountId + '/workers/scripts/' + encodeURIComponent(name) + '/secrets'),
+              get('/accounts/' + accountId + '/workers/scripts/' + encodeURIComponent(name) + '/schedules'),
+              get('/accounts/' + accountId + '/workers/scripts/' + encodeURIComponent(name) + '/deployments')
+            ]);
+            const rawSettings = settings.result || {};
+            inventory.worker_details.push({
+              name,
+              created_on: worker.created_on,
+              modified_on: worker.modified_on,
+              settings: {
+                ok: settings.ok,
+                status: settings.status,
+                compatibility_date: rawSettings.compatibility_date,
+                compatibility_flags: rawSettings.compatibility_flags,
+                usage_model: rawSettings.usage_model,
+                bindings: Array.isArray(rawSettings.bindings) ? rawSettings.bindings.map(safeBinding) : []
+              },
+              secret_names: {
+                ok: secrets.ok,
+                status: secrets.status,
+                result: Array.isArray(secrets.result) ? secrets.result.map(x => ({ name: x.name, type: x.type })) : []
+              },
+              schedules: {
+                ok: schedules.ok,
+                status: schedules.status,
+                result: schedules.result
+              },
+              deployments: {
+                ok: deployments.ok,
+                status: deployments.status,
+                result: deployments.result
+              }
+            });
+          }
+
+          inventory.d1 = await get('/accounts/' + accountId + '/d1/database?per_page=100');
+          inventory.r2 = await get('/accounts/' + accountId + '/r2/buckets?per_page=100');
+          inventory.zones = await get('/zones?account.id=' + accountId + '&per_page=50');
+
+          const zoneRows = Array.isArray(inventory.zones.result) ? inventory.zones.result : [];
+          inventory.routes = [];
+          for (const zone of zoneRows) {
+            const routes = await get('/zones/' + zone.id + '/workers/routes');
+            inventory.routes.push({
+              zone_id: zone.id,
+              zone_name: zone.name,
+              status: routes.status,
+              ok: routes.ok,
+              result: routes.result
+            });
+          }
+
+          fs.writeFileSync('/tmp/cloudflare-readonly-inventory.json', JSON.stringify(inventory, null, 2) + '\n');
+          console.log(JSON.stringify({
+            generated_at: inventory.generated_at,
+            worker_count: workerRows.length,
+            d1_count: Array.isArray(inventory.d1.result) ? inventory.d1.result.length : null,
+            r2_count: Array.isArray(inventory.r2.result?.buckets) ? inventory.r2.result.buckets.length :
+              (Array.isArray(inventory.r2.result) ? inventory.r2.result.length : null),
+            zone_count: zoneRows.length
+          }));
+          NODE
+
+      - name: Check staging D1 Time Travel availability read-only
+        continue-on-error: true
+        shell: bash
+        run: |
+          npx --yes wrangler@4.123.0 d1 time-travel info family-cash-flow-staging-v1 --json > /tmp/staging-time-travel.json
+
+      - name: Upload sanitized preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cutover-readonly-preflight
+          path: |
+            /tmp/cloudflare-readonly-inventory.json
+            /tmp/staging-time-travel.json
+          if-no-files-found: error

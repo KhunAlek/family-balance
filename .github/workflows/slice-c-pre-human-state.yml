@@ -1,0 +1,41 @@
+name: Slice C pre-human staging state
+
+on:
+  push:
+    branches: [staging-startup-repair-20260814]
+    paths:
+      - '.github/workflows/slice-c-pre-human-state.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 6ee48ea46390bcf76f1d924f4a7d88f1
+      DB_NAME: family-cash-flow-staging-v1
+    steps:
+      - name: Verify pristine write state and factual snapshot
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.123.0 d1 execute "$DB_NAME" --remote --json --command "SELECT (SELECT current_revision FROM household_revisions WHERE household_id='family') AS revision,(SELECT COUNT(*) FROM financial_write_claims) AS claims,(SELECT COUNT(*) FROM correction_audit) AS corrections,(SELECT COUNT(*) FROM balance_history) AS balances,(SELECT COUNT(*) FROM ledger_movements) AS ledger,(SELECT COUNT(*) FROM obligation_payments) AS payments,(SELECT COUNT(*) FROM weekly_snapshots) AS weekly,(SELECT COUNT(*) FROM salary_cycle_sources WHERE household_id='family') AS salary_sources;" > /tmp/state.json
+          npx --yes wrangler@4.123.0 d1 execute "$DB_NAME" --remote --json --command "SELECT business_date,alex_balance_satang,olga_balance_satang,source_sheet FROM balance_history WHERE household_id='family' AND alex_balance_satang IS NOT NULL AND olga_balance_satang IS NOT NULL ORDER BY business_date DESC,sheet_order DESC LIMIT 1;" > /tmp/latest.json
+          node <<'NODE'
+          const fs=require('fs');
+          const rows=f=>{const x=JSON.parse(fs.readFileSync(f));const b=Array.isArray(x)?x[0]:x;return b.results||b.result||[]};
+          const s=rows('/tmp/state.json')[0], l=rows('/tmp/latest.json')[0];
+          const expected={revision:0,claims:0,corrections:0,balances:69,ledger:3,payments:8,weekly:8,salary_sources:2};
+          for(const [k,v] of Object.entries(expected))if(Number(s[k])!==v)throw new Error(`${k}: expected ${v}, got ${s[k]}`);
+          if(l.business_date!=='2026-08-12'||Number(l.alex_balance_satang)!==228500||Number(l.olga_balance_satang)!==1145500)throw new Error('latest balances diverged: '+JSON.stringify(l));
+          console.log(JSON.stringify({status:'PASS',state:s,latest:l},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: slice-c-pre-human-staging-state
+          path: |
+            /tmp/state.json
+            /tmp/latest.json

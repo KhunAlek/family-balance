@@ -76,7 +76,8 @@ export async function executeRevisionClaimWrite(db, options) {
     planWrite,
     nowIso = new Date().toISOString(),
     writeToken = defaultWriteToken(),
-    testOnlyForcedFailure = false
+    testOnlyForcedFailure = false,
+    testOnlyBeforeBatch = null
   } = options || {};
 
   if (typeof planWrite !== 'function') throw new Error('A write planner is required.');
@@ -124,6 +125,10 @@ export async function executeRevisionClaimWrite(db, options) {
     specs.push(statement('INSERT INTO __slice_c_forced_failure__(x) VALUES(1)'));
   }
   specs.push(revisionCommit);
+
+  // Test hook only: it allows two requests to pause after both have read the
+  // same authoritative revision, making the stale-writer race deterministic.
+  if (typeof testOnlyBeforeBatch === 'function') await testOnlyBeforeBatch({ baseRevision, writeToken, action });
 
   try {
     const results = await target.batch(specs.map(spec => prepareSpec(target, spec)));

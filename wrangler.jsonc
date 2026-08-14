@@ -9,7 +9,7 @@
     "head_sampling_rate": 1
   },
   "vars": {
-    "UPSTREAM_URL": "https://script.google.com/macros/s/AKfycbzJHbXZPiYPCfYGmG3CYd9dryXk0r8clMYgGsV73T7KzHEwshxBP_z5RjX700EBMOTBAg/exec",
+    "UPSTREAM_URL": "https://script.google.com/macros/s/AKfycbwtgB7WGkR-XRe19xda5xWmxPg4d_uymyu7wk-Vc0HEQpWdOHTuJ48pj1BIADZ8nOqLUA/exec",
     "ALLOWED_ORIGIN": "https://khunalek.github.io"
   }
 }

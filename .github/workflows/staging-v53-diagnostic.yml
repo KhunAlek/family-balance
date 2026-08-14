@@ -1,0 +1,68 @@
+name: Staging v53 backend diagnostic
+
+on:
+  push:
+    branches: [staging-startup-repair-20260814]
+    paths: ['.github/workflows/staging-v53-diagnostic.yml']
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Server-side GET and POST
+        run: |
+          URL='https://script.google.com/macros/s/AKfycbzJHbXZPiYPCfYGmG3CYd9dryXk0r8clMYgGsV73T7KzHEwshxBP_z5RjX700EBMOTBAg/exec'
+          echo '=== GET ==='
+          curl -sS -L -D /tmp/get.headers -o /tmp/get.body "$URL" || true
+          cat /tmp/get.headers
+          echo
+          cat /tmp/get.body
+          echo
+          echo '=== POST ==='
+          curl -sS -L -D /tmp/post.headers -o /tmp/post.body \
+            -H 'Content-Type: text/plain;charset=UTF-8' \
+            --data '{"apiAction":"authBootstrap","googleAccessToken":"fcf-intentionally-invalid-v53-token"}' \
+            "$URL" || true
+          cat /tmp/post.headers
+          echo
+          cat /tmp/post.body
+          echo
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Playwright
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.54.2 --no-save
+          npx playwright install --with-deps chromium
+      - name: Browser CORS probe from GitHub Pages origin
+        run: |
+          cat > probe.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          const URL='https://script.google.com/macros/s/AKfycbzJHbXZPiYPCfYGmG3CYd9dryXk0r8clMYgGsV73T7KzHEwshxBP_z5RjX700EBMOTBAg/exec';
+          const browser=await chromium.launch({headless:true});
+          const context=await browser.newContext();
+          const page=await context.newPage();
+          const events=[];
+          page.on('console',m=>events.push({type:'console',text:m.text()}));
+          page.on('pageerror',e=>events.push({type:'pageerror',text:String(e)}));
+          page.on('requestfailed',r=>{if(r.url().includes('script.google'))events.push({type:'requestfailed',url:r.url(),failure:r.failure()});});
+          page.on('response',r=>{if(r.url().includes('script.google')||r.url().includes('script.googleusercontent'))events.push({type:'response',url:r.url(),status:r.status(),headers:r.headers()});});
+          await page.route('https://khunalek.github.io/family-balance/**',route=>{
+            route.fulfill({status:200,contentType:'text/html',body:'<!doctype html><meta charset="utf-8"><title>probe</title>'});
+          });
+          await page.goto('https://khunalek.github.io/family-balance/v53-probe',{waitUntil:'domcontentloaded'});
+          const result=await page.evaluate(async url=>{
+            const started=Date.now();
+            try{
+              const r=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({apiAction:'authBootstrap',googleAccessToken:'fcf-intentionally-invalid-v53-token'}),redirect:'follow'});
+              return {ok:true,elapsedMs:Date.now()-started,status:r.status,type:r.type,url:r.url,text:await r.text(),headers:[...r.headers.entries()]};
+            }catch(e){return {ok:false,elapsedMs:Date.now()-started,error:String(e&&e.message||e)};}
+          },URL);
+          console.log(JSON.stringify({origin:await page.evaluate(()=>location.origin),result,events},null,2));
+          await browser.close();
+          EOF
+          node probe.mjs

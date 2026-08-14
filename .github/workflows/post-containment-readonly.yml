@@ -1,5 +1,5 @@
 name: Post-containment read-only evidence
-# Second cutover Gate 1 refresh: 2026-08-15T00:59+07:00
+# Second cutover settled rollback verification: 2026-08-15T01:08+07:00
 
 on:
   push:

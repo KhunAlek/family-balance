@@ -1,4 +1,4 @@
-const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbwtgB7WGkR-XRe19xda5xWmxPg4d_uymyu7wk-Vc0HEQpWdOHTuJ48pj1BIADZ8nOqLUA/exec';
+const API_ENDPOINT='https://family-cash-flow-staging-bridge.abystrov66.workers.dev/api/apps-script';
 const GOOGLE_CLIENT_ID='394909658100-9d73ghog78vr13lgfn0gjch2hd8ljohd.apps.googleusercontent.com';
 const SESSION_KEY='familyCashFlow_session_v24_1';
 let AUTHENTICATED_USER='';

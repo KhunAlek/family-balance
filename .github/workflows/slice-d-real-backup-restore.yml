@@ -74,8 +74,8 @@ jobs:
           set -euo pipefail
           ORIGIN="https://${TEST_WORKER}.abystrov66.workers.dev"
           curl --fail-with-body --retry 12 --retry-all-errors --retry-delay 5 "$ORIGIN/health"
-          curl --fail-with-body --retry 12 --retry-all-errors --retry-delay 5 -X POST "$ORIGIN/weekly" > /tmp/weekly.json
-          curl --fail-with-body --retry 12 --retry-all-errors --retry-delay 5 -X POST "$ORIGIN/backup" > /tmp/backup-result.json
+          curl --fail-with-body --retry 12 --retry-all-errors --retry-delay 5 --remove-on-error --output /tmp/weekly.json -X POST "$ORIGIN/weekly"
+          curl --fail-with-body --retry 12 --retry-all-errors --retry-delay 5 --remove-on-error --output /tmp/backup-result.json -X POST "$ORIGIN/backup"
           node <<'NODE'
           const fs=require('fs');
           const weekly=JSON.parse(fs.readFileSync('/tmp/weekly.json'));

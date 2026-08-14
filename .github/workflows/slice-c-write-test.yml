@@ -25,10 +25,15 @@ jobs:
         run: |
           node --check cloudflare/slice-c/src/write-protocol.mjs
           node --check cloudflare/slice-c/src/write-actions.mjs
+          node --check cloudflare/slice-c/src/correction.mjs
+          node --check cloudflare/slice-c/src/salary-cycle.mjs
+          node --check cloudflare/slice-c/src/weekly-freeze.mjs
           node --check cloudflare/slice-c/test/sqlite-d1.mjs
           node --check cloudflare/slice-c/test/write-actions.test.mjs
           node --check cloudflare/slice-c/test/revision-protocol.test.mjs
-      - name: Slice C action, race, rollback and persistence tests
+          node --check cloudflare/slice-c/test/correction.test.mjs
+          node --check cloudflare/slice-c/test/salary-cycle.test.mjs
+      - name: Slice C action, race, rollback, salary and correction tests
         working-directory: cloudflare/slice-c
         run: npm test
       - name: Locked Slice B financial regression remains green
@@ -41,7 +46,9 @@ jobs:
           sqlite3 /tmp/slice-c.db < cloudflare/slice-b/migrations/0001_initial.sql
           sqlite3 /tmp/slice-c.db < /tmp/import.sql
           sqlite3 /tmp/slice-c.db < cloudflare/slice-c/migrations/0002_revision_state.sql
+          sqlite3 /tmp/slice-c.db < cloudflare/slice-c/migrations/0003_salary_cycle_sources.sql
           test "$(sqlite3 /tmp/slice-c.db "SELECT current_revision FROM household_revisions WHERE household_id='family';")" = "0"
           test "$(sqlite3 /tmp/slice-c.db 'SELECT COUNT(*) FROM financial_write_claims;')" = "0"
+          test "$(sqlite3 /tmp/slice-c.db "SELECT COUNT(*) FROM salary_cycle_sources WHERE household_id='family' AND cycle_start='2026-07-31';")" = "2"
           sqlite3 /tmp/slice-c.db "PRAGMA foreign_key_check;" | tee /tmp/fk.txt
           test ! -s /tmp/fk.txt

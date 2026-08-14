@@ -4,13 +4,27 @@ const url=process.env.TEST_URL;
 const secret=process.env.TEST_SECRET;
 const nowIso=process.env.NOW_ISO;
 const headers={'content-type':'application/json','x-slice-c-test-secret':secret};
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 
 async function request(path,body,method='POST'){
   const r=await fetch(url+path,{method,headers,body:method==='POST'?JSON.stringify(body):undefined});
   let data;try{data=await r.json()}catch{data={};}
   return {status:r.status,data};
 }
-const state=async()=>{const r=await request('/state',null,'GET');assert.equal(r.status,200);return r.data;};
+
+// Read-only state polling may retry transient workers.dev propagation failures.
+// Financial writes below are NEVER retried.
+async function state(){
+  let last=null;
+  for(let i=0;i<20;i++){
+    last=await request('/state',null,'GET');
+    if(last.status===200)return last.data;
+    if(![404,500,502,503].includes(last.status))break;
+    await sleep(500);
+  }
+  assert.equal(last?.status,200,`state endpoint did not stabilize: ${JSON.stringify(last)}`);
+  return last.data;
+}
 const write=(action,payload,writeToken,extra={})=>request('/write',{action,payload,writeToken,nowIso,...extra});
 const preview=payload=>request('/preview',{payload,nowIso});
 const unchanged=(a,b,fields)=>{for(const f of fields)assert.equal(b[f],a[f],`${f} changed unexpectedly`);};

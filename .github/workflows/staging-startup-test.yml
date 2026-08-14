@@ -24,7 +24,7 @@ jobs:
           python3 -m http.server 4173 >/tmp/fcf-http.log 2>&1 &
           echo $! > /tmp/fcf-http.pid
           sleep 2
-      - name: Run startup tests
+      - name: Run startup and transport tests
         run: |
           cat > staging-smoke.mjs <<'EOF'
           import { chromium } from 'playwright';
@@ -36,6 +36,14 @@ jobs:
           }
           if (html.includes('assets/v24/v24/v24_1_app4.js')) {
             throw new Error('Obsolete nested app4 reference is still present in index.html');
+          }
+
+          const app2 = fs.readFileSync('assets/v24/v24_1_app2.js','utf8');
+          if (!app2.includes('fetch(APPS_SCRIPT_URL')) {
+            throw new Error('Direct fetch transport is missing from app2');
+          }
+          if (app2.includes("document.createElement('iframe')") || app2.includes('form.submit()')) {
+            throw new Error('Obsolete iframe/form transport is still present in app2');
           }
 
           const browser = await chromium.launch({headless:true});
@@ -89,8 +97,42 @@ jobs:
             if (!authVisible || !loginVisible) throw new Error(`${name}: Google sign-in gate not visible`);
           }
 
+          async function runTransportProbe() {
+            const context = await browser.newContext({viewport:{width:390,height:844}});
+            const page = await context.newPage();
+            const pageErrors = [];
+            page.on('pageerror', e => pageErrors.push(String(e)));
+
+            const response = await page.goto('http://127.0.0.1:4173/index.html?case=transport', {waitUntil:'domcontentloaded',timeout:30000});
+            if (!response || !response.ok()) throw new Error(`transport: page HTTP ${response?.status()}`);
+            await page.waitForTimeout(500);
+
+            const probe = await Promise.race([
+              page.evaluate(async()=>{
+                const started=Date.now();
+                try {
+                  const result=await rawApi({apiAction:'authBootstrap',googleAccessToken:'fcf-intentionally-invalid-staging-token'});
+                  return {elapsedMs:Date.now()-started,result};
+                } catch (err) {
+                  return {elapsedMs:Date.now()-started,error:String(err&&err.message||err)};
+                }
+              }),
+              new Promise(resolve=>setTimeout(()=>resolve({probeTimeout:true}),12000))
+            ]);
+
+            await context.close();
+            results.push({name:'transport',probe,pageErrors});
+
+            if (pageErrors.length) throw new Error(`transport: page errors: ${pageErrors.join(' | ')}`);
+            if (probe.probeTimeout) throw new Error('transport: rawApi did not settle within 12 seconds');
+            if (probe.error) throw new Error('transport: rawApi threw instead of returning backend JSON: '+probe.error);
+            if (!probe.result || probe.result.ok !== false) throw new Error('transport: invalid Google token should produce structured backend rejection: '+JSON.stringify(probe));
+            if (probe.elapsedMs > 10000) throw new Error('transport: rawApi was unexpectedly slow: '+probe.elapsedMs+'ms');
+          }
+
           await runCase('mobile',{width:390,height:844});
           await runCase('desktop',{width:1440,height:900});
+          await runTransportProbe();
           console.log(JSON.stringify(results,null,2));
           await browser.close();
           EOF

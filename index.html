@@ -6,20 +6,20 @@
 <title>Family Cash Flow</title>
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#102b3b">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/v24/logo.svg?rollback=5df6a84">
-<link rel="apple-touch-icon" href="assets/v24/logo.svg?rollback=5df6a84">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/v24/logo.svg">
+<link rel="apple-touch-icon" href="assets/v24/logo.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<link rel="stylesheet" href="assets/v24/v24_1_core.css?rollback=5df6a84">
-<link rel="stylesheet" href="assets/v24/v24_1_responsive.css?rollback=5df6a84">
+<link rel="stylesheet" href="assets/v24/v24_1_core.css">
+<link rel="stylesheet" href="assets/v24/v24_1_responsive.css">
 </head>
 <body>
 <div id="app" style="display:none">
   <aside class="sidebar">
-    <div class="brand"><img class="brand-icon" src="assets/v24/logo.svg?rollback=5df6a84" alt=""><div class="brand-copy"><div class="brand-name">Family Cash Flow</div><div class="brand-subtitle">Household planning</div></div></div>
+    <div class="brand"><img class="brand-icon" src="assets/v24/logo.svg" alt=""><div class="brand-copy"><div class="brand-name">Family Cash Flow</div><div class="brand-subtitle">Household planning</div></div></div>
     <nav class="nav" aria-label="Dashboard sections">
       <button class="active" data-scroll="overview"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm10 7h6V11h-6v9ZM4 20h6v-3H4v3Zm10-13h6V4h-6v3Z"/></svg>Overview</button>
       <button data-scroll="weekly"><svg viewBox="0 0 24 24"><path d="M4 5h16v15H4zM8 3v4m8-4v4M4 10h16"/></svg>Weekly plan</button>
@@ -32,8 +32,8 @@
 
   <main class="main">
     <header class="topbar">
-      <div class="greeting"><img class="topbar-icon" src="assets/v24/logo.svg?rollback=5df6a84" alt=""><div class="title-block"><h1 class="screen-title">Household dashboard</h1><div class="mobile-app-name">Family Cash Flow</div><p id="asOfLine">Loading current numbers…</p></div></div>
-      <div class="top-actions"><button class="btn" data-open-drawer="payment">One-off payment</button><button class="btn" data-open-drawer="income">Income received</button><button class="btn primary" data-open-drawer="balance">Update balances</button></div>
+      <div class="greeting"><img class="topbar-icon" src="assets/v24/logo.svg" alt=""><div class="title-block"><h1 class="screen-title">Household dashboard</h1><div class="mobile-app-name">Family Cash Flow</div><p id="asOfLine">Loading current numbers…</p></div></div>
+      <div class="top-actions"><button class="btn" data-open-drawer="payment">One-off payment</button><button class="btn" data-open-drawer="income">Income received</button><button class="btn primary" data-open-drawer="balance">Update balances</button><button class="btn" type="button" id="logoutBtn">Sign out</button></div>
     </header>
 
     <div class="content">
@@ -75,18 +75,15 @@
 
 <div class="auth-gate" id="authGate" aria-live="polite">
   <div class="auth-card">
-    <img src="assets/v24/logo.svg?rollback=5df6a84" alt="Family Cash Flow logo">
+    <img src="assets/v24/logo.svg" alt="Family Cash Flow logo">
     <h1>Family Cash Flow</h1>
     <p>Sign in with an approved Google account to open the household dashboard.</p>
-    <button type="button" class="btn google-login" id="googleLoginBtn">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" stroke="none" d="M21.6 12.23c0-.71-.06-1.23-.2-1.77H12v3.42h5.52c-.11.85-.71 2.12-2.04 2.98l-.02.11 2.96 2.29.2.02c1.84-1.7 2.98-4.2 2.98-7.05Z"/><path fill="#34A853" stroke="none" d="M12 22c2.69 0 4.95-.89 6.6-2.42l-3.14-2.43c-.84.57-1.97.97-3.46.97-2.64 0-4.88-1.78-5.68-4.24l-.1.01-3.08 2.38-.04.1C4.74 19.65 8.12 22 12 22Z"/><path fill="#FBBC05" stroke="none" d="M6.32 13.88a6.01 6.01 0 0 1 0-3.76l-.01-.11-3.12-2.42-.1.05C2.4 8.83 2 10.36 2 12s.4 3.17 1.1 4.36l3.22-2.48Z"/><path fill="#EA4335" stroke="none" d="M12 5.88c1.87 0 3.13.81 3.85 1.49l2.81-2.74C16.93 3.02 14.69 2 12 2 8.12 2 4.74 4.35 3.1 7.64l3.22 2.48C7.12 7.66 9.36 5.88 12 5.88Z"/></svg>
-      <span>Continue with Google</span>
-    </button>
+    <div class="google-login" id="googleLoginBtn" aria-label="Continue with Google"></div>
     <div class="auth-error" id="authError"></div>
   </div>
 </div>
 
-<div class="loading-shell" id="loadingState"><div class="loading-card"><img class="loading-logo" src="assets/v24/logo.svg?rollback=5df6a84" alt=""><div class="loading-title">Loading Family Cash Flow</div><div class="loading-copy">Retrieving current balances and the latest planning state…  </div><div class="skeleton big"></div><div class="skeleton row"></div></div></div>
+<div class="loading-shell" id="loadingState"><div class="loading-card"><img class="loading-logo" src="assets/v24/logo.svg" alt=""><div class="loading-title">Loading Family Cash Flow</div><div class="loading-copy">Retrieving current balances and the latest planning state…  </div><div class="skeleton big"></div><div class="skeleton row"></div></div></div>
 <div class="error-state" id="errorState" style="display:none">Could not load the dashboard.</div>
 
 <nav class="mobile-tabs" aria-label="Mobile navigation">
@@ -115,9 +112,10 @@
 
 <div class="modal-backdrop" id="movementModal" role="dialog" aria-modal="true" aria-labelledby="movementTitle"><aside class="modal movement-drawer"><div class="drawer-head"><div><h2 id="movementTitle">Record movement</h2><p id="movementDescription"></p></div><button type="button" class="close" id="movementCancel" aria-label="Close">×</button></div><form id="movementForm"><div class="movement-summary" id="movementSummary"></div><label for="movementDate">Date</label><input type="date" id="movementDate" required><label for="movementSource">Paid from</label><select id="movementSource" required><option value="Alex">Alex KTB</option><option value="Olga">Olga KTB</option></select><div class="movement-balance" id="movementSourceBalance"></div><label for="movementAmount">Amount</label><input type="number" min="0.01" step="0.01" id="movementAmount" required><div class="hint" id="movementAmountHint"></div><div id="movementPaymentStatusWrap" style="display:none"><label for="movementPaymentStatus">Payment type</label><select id="movementPaymentStatus"><option value="Final">Final payment — Close this bill</option><option value="Partial">Partial payment — keep it open</option></select><div class="hint">Variable bills default to final payment.</div></div><div id="movementNoteWrap" style="display:none"><label for="movementNote">Note (optional)</label><textarea id="movementNote"></textarea></div><div class="form-msg" id="movementMsg"></div><div class="modal-actions"><button type="button" class="btn secondary" id="movementCancelBottom">Cancel</button><button type="submit" class="btn primary" id="movementSubmit">Save</button></div></form></aside></div>
 
-<script src="assets/v24/v24_1_app1.js?rollback=5df6a84"></script>
-<script src="assets/v24/v24_1_app2.js?rollback=5df6a84"></script>
-<script src="assets/v24/v24_1_app3.js?rollback=5df6a84"></script>
-<script src="assets/v24/v24/v24_1_app4.js?rollback=5df6a84"></script>
+<script src="assets/v24/v24_1_app1.js"></script>
+<script src="assets/v24/v24_1_app2.js"></script>
+<script src="assets/v24/v24_1_app3.js"></script>
+<script src="assets/v24/v24_1_app4.js"></script>
+<script src="assets/v24/v24_1_correction.js"></script>
 </body>
 </html>

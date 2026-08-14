@@ -1,0 +1,8 @@
+{
+  "name": "family-cash-flow-slice-d",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  }
+}

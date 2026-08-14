@@ -1,0 +1,9 @@
+{
+  "name": "family-cash-flow-slice-b",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "fixture-shape": "node test/verify-fixture-shape.mjs"
+  }
+}

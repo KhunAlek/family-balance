@@ -1,0 +1,112 @@
+[
+  {
+    "Date": "2026-08-01",
+    "Alex KTB balance": 15415,
+    "Olga KTB balance": 35384,
+    "One-off payment name": "Fixed obligation: Electricity & Water",
+    "One-off payment amount": 3746,
+    "One-off payment account": "Alex",
+    "Income receipt source": null,
+    "Income receipt amount": null,
+    "sourceRow": 42
+  },
+  {
+    "Date": "2026-08-01",
+    "Alex KTB balance": 14755,
+    "Olga KTB balance": 35384,
+    "One-off payment name": "Fixed obligation: Mobile Phones",
+    "One-off payment amount": 660,
+    "One-off payment account": "Alex",
+    "Income receipt source": null,
+    "Income receipt amount": null,
+    "sourceRow": 43
+  },
+  {
+    "Date": "2026-08-01",
+    "Alex KTB balance": 12038,
+    "Olga KTB balance": 35384,
+    "One-off payment name": "Fixed obligation: Nick School",
+    "One-off payment amount": 2717,
+    "One-off payment account": "Alex",
+    "Income receipt source": null,
+    "Income receipt amount": null,
+    "sourceRow": 44
+  },
+  {
+    "Date": "2026-08-01",
+    "Alex KTB balance": 11688,
+    "Olga KTB balance": 35384,
+    "One-off payment name": "Fixed obligation: Google",
+    "One-off payment amount": 350,
+    "One-off payment account": "Alex",
+    "Income receipt source": null,
+    "Income receipt amount": null,
+    "sourceRow": 45
+  },
+  {
+    "Date": "2026-08-01",
+    "Alex KTB balance": 11046,
+    "Olga KTB balance": 35384,
+    "One-off payment name": null,
+    "One-off payment amount": null,
+    "One-off payment account": null,
+    "Income receipt source": null,
+    "Income receipt amount": null,
+    "sourceRow": 46
+  },
+  {
+    "Date": "2026-08-02",
+    "Alex KTB balance": 11046,
+    "Olga KTB balance": 17917,
+    "One-off payment name": null,
+    "One-off payment amount": null,
+    "One-off payment account": null,
+    "Income receipt source": null,
+    "Income receipt amount": null,
+    "sourceRow": 47
+  },
+  {
+    "Date": "2026-08-02",
+    "Alex KTB balance": 11046,
+    "Olga KTB balance": 31917,
+    "One-off payment name": null,
+    "One-off payment amount": null,
+    "One-off payment account": null,
+    "Income receipt source": null,
+    "Income receipt amount": null,
+    "sourceRow": 48
+  },
+  {
+    "Date": "2026-08-02",
+    "Alex KTB balance": 11046,
+    "Olga KTB balance": 17917,
+    "One-off payment name": "Transfer to EF",
+    "One-off payment amount": 14000,
+    "One-off payment account": "Olga",
+    "Income receipt source": null,
+    "Income receipt amount": null,
+    "sourceRow": 49
+  },
+  {
+    "Date": "2026-08-02",
+    "Alex KTB balance": 10484,
+    "Olga KTB balance": 17917,
+    "One-off payment name": null,
+    "One-off payment amount": null,
+    "One-off payment account": null,
+    "Income receipt source": null,
+    "Income receipt amount": null,
+    "sourceRow": 50
+  },
+  {
+    "Date": "2026-08-03",
+    "Alex KTB balance": 10484,
+    "Olga KTB balance": 17709,
+    "One-off payment name": null,
+    "One-off payment amount": null,
+    "One-off payment account": null,
+    "Income receipt source": null,
+    "Income receipt amount": null,
+    "sourceRow": 51
+  }
+]

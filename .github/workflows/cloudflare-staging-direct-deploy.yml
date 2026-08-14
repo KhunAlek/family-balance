@@ -1,0 +1,51 @@
+name: Cloudflare staging direct deploy
+
+on:
+  push:
+    branches: [staging-startup-repair-20260814]
+    paths:
+      - '.cloudflare-direct-deploy-trigger'
+      - '.assetsignore'
+      - 'wrangler.jsonc'
+      - 'index.html'
+      - 'assets/**'
+      - 'cloudflare/slice-b/**'
+      - 'cloudflare/slice-c/**'
+      - 'cloudflare/slice-d/**'
+      - '.github/workflows/cloudflare-staging-direct-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure staging R2 backup bucket exists
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 6ee48ea46390bcf76f1d924f4a7d88f1
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.123.0 r2 bucket list > /tmp/r2-buckets.txt
+          if ! grep -Fq 'family-cash-flow-staging-backups' /tmp/r2-buckets.txt; then
+            npx --yes wrangler@4.123.0 r2 bucket create family-cash-flow-staging-backups
+          fi
+      - name: Ensure signed-session secret exists
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 6ee48ea46390bcf76f1d924f4a7d88f1
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.123.0 secret list --name family-cash-flow-staging-bridge --format json > /tmp/worker-secrets.json
+          if ! node -e "const x=require('/tmp/worker-secrets.json'); process.exit(x.some(v=>v.name==='SESSION_SIGNING_KEY')?0:1)"; then
+            openssl rand -base64 48 | npx --yes wrangler@4.123.0 secret put SESSION_SIGNING_KEY --name family-cash-flow-staging-bridge
+          fi
+      - name: Deploy Slice D same-origin staging Worker with Wrangler 4
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 6ee48ea46390bcf76f1d924f4a7d88f1
+        run: npx --yes wrangler@4.123.0 deploy --config wrangler.jsonc

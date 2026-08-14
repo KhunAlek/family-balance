@@ -1,0 +1,21 @@
+{
+  "source": {
+    "file": "Family_CashFlow_Tool_LIVE_EXPORT_2026-08-15.xlsx",
+    "sha256": "28377d3a287656fe2c3c4071fe5540d6c3c3dd770a8d77dc0653c3effae0d126",
+    "extractedAt": "2026-08-14T17:26:14Z",
+    "timezone": "Asia/Bangkok"
+  },
+  "scriptProperties": {
+    "OBLIGATION_PAYMENTS_CUTOVER_PERIOD": "2026-08"
+  },
+  "sheetRowCounts": {
+    "Obligations": 8,
+    "Obligation Payments": 8,
+    "WeeklySnapshot": 8,
+    "Income": 4,
+    "Config": 1,
+    "Goals": 1,
+    "Ledger": 3,
+    "Balance Check": 69
+  }
+}

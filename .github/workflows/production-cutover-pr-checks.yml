@@ -1,0 +1,37 @@
+name: Production cutover PR checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [production-cutover-20260815]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Assert production isolation
+        run: |
+          set -euo pipefail
+          ! grep -i 'staging' wrangler.production.jsonc
+          grep -Fq '"name": "family-cash-flow-production"' wrangler.production.jsonc
+          grep -Fq '"database_id": "d605f4fb-f42a-4610-9805-1c4f8b8329b8"' wrangler.production.jsonc
+          grep -Fq '"bucket_name": "family-cash-flow-production-backups"' wrangler.production.jsonc
+      - name: Run all accepted regression tests
+        run: |
+          set -euo pipefail
+          (cd cloudflare/slice-b && npm test)
+          (cd cloudflare/slice-c && npm test)
+          (cd cloudflare/slice-d && npm test)
+          find assets -name '*.js' -type f -print0 | xargs -0 -n1 node --check
+          node --check cloudflare/slice-d/src/index.js
+      - name: Production deployment dry run
+        run: npx --yes wrangler@4.123.0 deploy --config wrangler.production.jsonc --dry-run --outdir /tmp/production-dry-run

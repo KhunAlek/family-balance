@@ -83,3 +83,5 @@ jobs:
             /tmp/ef.json
             /tmp/obligations.json
           if-no-files-found: error
+
+# 2026-08-14 retry after adding Account -> D1 -> Edit to the existing deployment token.

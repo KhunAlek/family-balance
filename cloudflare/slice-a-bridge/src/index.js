@@ -1,5 +1,9 @@
 import { loadFinancialSnapshot } from '../../slice-b/src/d1-repository.mjs';
 import { buildDashboardReadModel } from '../../slice-b/src/read-model.mjs';
+import { executeRevisionClaimWrite, FinancialWriteValidationError, StaleFinancialWriterError } from '../../slice-c/src/write-protocol.mjs';
+import { buildOneOffPaymentPreview, planFinancialWrite } from '../../slice-c/src/write-actions.mjs';
+import { previewCorrection } from '../../slice-c/src/correction.mjs';
+import { buildCorrectionCatalog } from '../../slice-c/src/correction-catalog.mjs';
 
 const MAX_REQUEST_BYTES = 64 * 1024;
 
@@ -103,34 +107,92 @@ async function fetchAppsScriptJson(env, payload) {
   return { response, data };
 }
 
-async function handleDashboardRead(payload, env, cors) {
-  const sessionToken = String(payload && payload.sessionToken || '').trim();
-  if (!sessionToken) return jsonResponse({ ok: false, error: 'Authentication required.' }, 200, cors);
+async function authenticateSession(payload, env) {
+  const sessionToken = String(payload?.sessionToken || '').trim();
+  if (!sessionToken) return { ok: false, status: 200, body: { ok: false, error: 'Authentication required.' } };
 
   let auth;
   try {
     auth = await fetchAppsScriptJson(env, { apiAction: 'authStatus', sessionToken });
   } catch (error) {
-    console.error(JSON.stringify({ event: 'apps_script_auth_status_failure', message: String(error && error.message || error) }));
-    return jsonResponse({ ok: false, error: 'Authentication service is unavailable.' }, 502, cors);
+    console.error(JSON.stringify({ event: 'apps_script_auth_status_failure', message: String(error?.message || error) }));
+    return { ok: false, status: 502, body: { ok: false, error: 'Authentication service is unavailable.' } };
   }
 
   if (!auth.response.ok || !auth.data || auth.data.ok === false) {
-    const status = auth.response.ok ? 200 : auth.response.status;
-    return jsonResponse(auth.data || { ok: false, error: 'Authentication required.' }, status, cors);
+    return {
+      ok: false,
+      status: auth.response.ok ? 200 : auth.response.status,
+      body: auth.data || { ok: false, error: 'Authentication required.' },
+    };
   }
 
-  try {
-    const snapshot = await loadFinancialSnapshot(env.DB, 'family');
-    const model = buildDashboardReadModel(snapshot);
-    return jsonResponse({
-      ...model,
-      authenticatedUser: auth.data.identity && auth.data.identity.email || '',
-    }, 200, cors);
-  } catch (error) {
-    console.error(JSON.stringify({ event: 'd1_dashboard_read_failure', message: String(error && error.message || error) }));
-    return jsonResponse({ ok: false, error: 'Cloudflare financial read model is unavailable.' }, 503, cors);
+  return {
+    ok: true,
+    sessionToken,
+    identity: auth.data.identity || {},
+    email: String(auth.data.identity?.email || '').trim(),
+  };
+}
+
+function financialErrorBody(error) {
+  const body = { ok: false, error: String(error?.message || 'Financial action failed.') };
+  for (const key of ['staleWriter','requiresEFWithdrawal','requiresKTBTransfer','split','preview']) {
+    if (error && error[key] !== undefined) body[key] = error[key];
   }
+  return body;
+}
+
+async function handleCloudflareFinancialAction(payload, env, cors) {
+  const auth = await authenticateSession(payload, env);
+  if (!auth.ok) return jsonResponse(auth.body, auth.status, cors);
+
+  try {
+    if (payload.apiAction === 'dashboard') {
+      const snapshot = await loadFinancialSnapshot(env.DB, 'family');
+      const model = buildDashboardReadModel(snapshot);
+      return jsonResponse({ ...model, authenticatedUser: auth.email }, 200, cors);
+    }
+
+    if (payload.apiAction === 'previewPayment') {
+      const snapshot = await loadFinancialSnapshot(env.DB, 'family');
+      const preview = buildOneOffPaymentPreview(snapshot, payload.payload || {});
+      return jsonResponse(preview, 200, cors);
+    }
+
+    if (payload.apiAction === 'correctionCatalog') {
+      const snapshot = await loadFinancialSnapshot(env.DB, 'family');
+      return jsonResponse(buildCorrectionCatalog(snapshot), 200, cors);
+    }
+
+    if (payload.apiAction === 'correctionPreview') {
+      const snapshot = await loadFinancialSnapshot(env.DB, 'family');
+      return jsonResponse(previewCorrection(snapshot, payload.payload || {}), 200, cors);
+    }
+
+    if (payload.apiAction === 'write') {
+      const writePayload = payload.payload || {};
+      const action = String(writePayload.action || '').trim();
+      const result = await executeRevisionClaimWrite(env.DB, {
+        householdId: 'family',
+        actorEmail: auth.email,
+        action,
+        payload: writePayload,
+        planWrite: planFinancialWrite,
+      });
+      return jsonResponse(result, 200, cors);
+    }
+  } catch (error) {
+    if (error instanceof FinancialWriteValidationError || error instanceof StaleFinancialWriterError || error?.validation || error?.staleWriter) {
+      // Current frontend intentionally treats domain conflicts as settled API
+      // results. Non-2xx would be collapsed into a generic network error.
+      return jsonResponse(financialErrorBody(error), 200, cors);
+    }
+    console.error(JSON.stringify({ event: 'd1_financial_action_failure', apiAction: String(payload?.apiAction || ''), message: String(error?.message || error) }));
+    return jsonResponse({ ok: false, error: 'Cloudflare financial service is unavailable.' }, 503, cors);
+  }
+
+  return null;
 }
 
 async function handleProxy(request, env) {
@@ -153,16 +215,19 @@ async function handleProxy(request, env) {
     try {
       payload = JSON.parse(new TextDecoder().decode(bodyResult.body));
     } catch (error) {
-      // Non-dashboard requests retain the exact Slice A proxy behavior.
+      // Requests we do not understand retain exact Slice A proxy behavior.
     }
-    if (payload && payload.apiAction === 'dashboard') return handleDashboardRead(payload, env, cors);
+    if (payload && ['dashboard','previewPayment','write','correctionCatalog','correctionPreview'].includes(payload.apiAction)) {
+      const response = await handleCloudflareFinancialAction(payload, env, cors);
+      if (response) return response;
+    }
   }
 
   let upstream;
   try {
     upstream = await fetchAppsScript(env, bodyResult.body);
   } catch (error) {
-    console.error(JSON.stringify({ event: 'apps_script_proxy_failure', message: String(error && error.message || error) }));
+    console.error(JSON.stringify({ event: 'apps_script_proxy_failure', message: String(error?.message || error) }));
     return jsonResponse({ ok: false, error: 'Backend transport failed.' }, 502, cors);
   }
 

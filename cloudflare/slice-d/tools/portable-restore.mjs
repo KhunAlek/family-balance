@@ -19,7 +19,10 @@ function literal(value) {
 
 export async function buildRestoreSql(backup, options = {}) {
   if (backup?.format !== BACKUP_FORMAT || !await verifyPortableBackup(backup)) throw new Error('Portable backup integrity verification failed.');
-  const lines = ['PRAGMA foreign_keys = OFF;'];
+  // D1 enforces foreign_keys=ON and rejects attempts to disable it. Deferring
+  // validation is the supported import mechanism and still fails the import if
+  // the restored database has unresolved references at transaction end.
+  const lines = ['PRAGMA defer_foreign_keys = ON;'];
   if (options.includeSchema) {
     for (const item of backup.schema || []) {
       const sql = String(item?.sql || '').trim();
@@ -37,7 +40,7 @@ export async function buildRestoreSql(backup, options = {}) {
       lines.push(`INSERT INTO ${identifier(table)}(${columnSql}) VALUES(${values});`);
     }
   }
-  lines.push('PRAGMA foreign_keys = ON;', 'PRAGMA foreign_key_check;');
+  lines.push('PRAGMA defer_foreign_keys = OFF;', 'PRAGMA foreign_key_check;');
   return `${lines.join('\n')}\n`;
 }
 

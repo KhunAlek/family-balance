@@ -90,6 +90,14 @@ jobs:
           npx --yes wrangler@4.123.0 r2 object get "$R2_BUCKET/$BACKUP_KEY" --remote --file /tmp/portable-backup.json
           node cloudflare/slice-d/tools/portable-restore.mjs /tmp/portable-backup.json /tmp/restore.sql
           npx --yes wrangler@4.123.0 d1 execute "$RESTORE_DB" --remote --file /tmp/restore.sql
+          npx --yes wrangler@4.123.0 d1 execute "$RESTORE_DB" --remote --json --command "PRAGMA foreign_key_check" > /tmp/foreign-keys.json
+          node <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/foreign-keys.json'));
+          const block=Array.isArray(x)?x[0]:x;
+          const rows=block.results||block.result||[];
+          if(rows.length)throw new Error('Restored D1 has foreign-key violations: '+JSON.stringify(rows));
+          NODE
       - name: Reconcile restored D1 against source D1
         run: |
           set -euo pipefail
@@ -113,6 +121,7 @@ jobs:
             /tmp/weekly.json
             /tmp/backup-result.json
             /tmp/time-travel.json
+            /tmp/foreign-keys.json
             /tmp/source-state.json
             /tmp/restore-state.json
           if-no-files-found: ignore

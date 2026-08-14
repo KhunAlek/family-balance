@@ -35,6 +35,9 @@ test('daily backup writes environment-specific portable JSON and prunes expired 
   assert.match(restoreSql, /CREATE TABLE households/);
   assert.match(restoreSql, /INSERT INTO "households"/);
   assert.match(restoreSql, /INSERT INTO "household_revisions"/);
+  assert.match(restoreSql, /^PRAGMA defer_foreign_keys = ON;/);
+  assert.doesNotMatch(restoreSql, /PRAGMA foreign_keys\s*=/);
+  assert.match(restoreSql, /PRAGMA defer_foreign_keys = OFF;/);
   assert.match(restoreSql, /PRAGMA foreign_key_check/);
   const restored = new DatabaseSync(':memory:');
   restored.exec(restoreSql);

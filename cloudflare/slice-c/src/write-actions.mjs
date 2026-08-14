@@ -4,6 +4,7 @@ import { latestUsableBalance, manualReconciliationFreshness } from '../../slice-
 import { buildPlanningState } from '../../slice-b/src/planning.mjs';
 import { accountLedgerBalance } from '../../slice-b/src/ef-goals.mjs';
 import { enumerateObligationOccurrences } from '../../slice-b/src/obligations.mjs';
+import { planCorrection } from './correction.mjs';
 
 const round2 = value => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 const toSatang = value => Math.round((Number(value) + Number.EPSILON) * 100);
@@ -534,6 +535,7 @@ export async function planFinancialWrite(ctx) {
     case 'dedicatedTransfer': return planDedicatedTransfer(ctx);
     case 'obligationPayment': return planObligationPayment(ctx);
     case 'oneOffPayment': return planOneOffPayment(ctx);
+    case 'correctRecord': return planCorrection(ctx);
     default: fail(`Unsupported financial write action: ${ctx.action}`);
   }
 }

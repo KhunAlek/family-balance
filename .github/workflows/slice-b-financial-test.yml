@@ -22,11 +22,10 @@ jobs:
           node-version: '24'
       - name: Syntax checks
         run: |
-          node --check cloudflare/slice-b/src/financial.mjs
-          node --check cloudflare/slice-b/test/financial-regression.test.mjs
-          node --check cloudflare/slice-b/tools/build-import.mjs
-          node --check cloudflare/slice-b/tools/verify-import.mjs
-      - name: Locked v2.5 financial fixtures
+          for file in cloudflare/slice-b/src/*.mjs cloudflare/slice-b/test/*.mjs cloudflare/slice-b/tools/*.mjs; do
+            node --check "$file"
+          done
+      - name: Locked v2.5 fixtures and live read-model reconciliation
         working-directory: cloudflare/slice-b
         run: npm test
       - name: Build deterministic live-snapshot import

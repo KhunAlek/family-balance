@@ -1,0 +1,34 @@
+name: Slice B financial regression
+
+on:
+  push:
+    branches: [staging-startup-repair-20260814]
+    paths:
+      - 'cloudflare/slice-b/**'
+      - '.github/workflows/slice-b-financial-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Syntax checks
+        run: |
+          node --check cloudflare/slice-b/src/financial.mjs
+          node --check cloudflare/slice-b/test/financial-regression.test.mjs
+      - name: Locked v2.5 financial fixtures
+        working-directory: cloudflare/slice-b
+        run: npm test
+      - name: Schema smoke check with SQLite
+        run: |
+          sqlite3 /tmp/fcf-slice-b.db < cloudflare/slice-b/migrations/0001_initial.sql
+          sqlite3 /tmp/fcf-slice-b.db ".tables"
+          sqlite3 /tmp/fcf-slice-b.db "PRAGMA foreign_key_check;"

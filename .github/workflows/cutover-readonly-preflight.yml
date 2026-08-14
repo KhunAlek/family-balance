@@ -26,6 +26,7 @@ jobs:
           set -euo pipefail
           node <<'NODE'
           const fs = require('fs');
+          (async () => {
           const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
           const token = process.env.CLOUDFLARE_API_TOKEN;
           if (!token) throw new Error('CLOUDFLARE_API_TOKEN is unavailable.');
@@ -141,6 +142,7 @@ jobs:
               (Array.isArray(inventory.r2.result) ? inventory.r2.result.length : null),
             zone_count: zoneRows.length
           }));
+          })().catch(error => { console.error(String(error)); process.exit(1); });
           NODE
 
       - name: Check staging D1 Time Travel availability read-only

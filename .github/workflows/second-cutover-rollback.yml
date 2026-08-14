@@ -1,0 +1,82 @@
+name: Second production cutover rollback
+
+on:
+  push:
+    branches: [cutover-readonly-preflight-20260815]
+    paths:
+      - '.github/workflows/second-cutover-rollback.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 6ee48ea46390bcf76f1d924f4a7d88f1
+      WORKER_NAME: family-cash-flow-production
+      WORKER_ORIGIN: https://family-cash-flow-production.abystrov66.workers.dev
+      D1_NAME: family-cash-flow-production-v1
+      R2_BUCKET: family-cash-flow-production-backups
+      BACKUP_KEY: production/2026/08/14/2026-08-14T18-01-39Z.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Preserve bookmark and prove D1 was not mutated
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.123.0 d1 time-travel info "$D1_NAME" --json > /tmp/rollback-bookmark.json
+          QUERY="SELECT (SELECT COUNT(*) FROM balance_history) balance_rows,(SELECT COUNT(*) FROM ledger_movements) ledger_rows,(SELECT COUNT(*) FROM obligation_payments) payment_rows,(SELECT COUNT(*) FROM weekly_snapshots) weekly_rows,(SELECT COUNT(*) FROM financial_write_claims) claim_rows,(SELECT COUNT(*) FROM correction_audit) correction_rows,(SELECT current_revision FROM household_revisions WHERE household_id='family') revision;"
+          npx --yes wrangler@4.123.0 d1 execute "$D1_NAME" --remote --json --command "$QUERY" > /tmp/rollback-state.json
+          node <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/rollback-state.json'));
+          const b=Array.isArray(x)?x[0]:x;
+          const r=(b.results||b.result||[])[0];
+          const expected={balance_rows:69,ledger_rows:3,payment_rows:8,weekly_rows:8,claim_rows:0,correction_rows:0,revision:0};
+          for(const [key,value] of Object.entries(expected)) if(String(r[key])!==String(value)) throw new Error('Rollback state mismatch '+key);
+          NODE
+
+      - name: Reverify fresh portable backup
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.123.0 r2 object get "$R2_BUCKET/$BACKUP_KEY" --remote --file /tmp/portable-backup.json
+          node <<'NODE'
+          const fs=require('fs');
+          const b=JSON.parse(fs.readFileSync('/tmp/portable-backup.json'));
+          if(b.format!=='family-cash-flow-d1-portable-v2'||b.environment!=='production') throw new Error('Backup identity mismatch');
+          if(b.integrity.tablesSha256!=='01ea96efd0b9be127f5c10c87f3d0dc7134638b8ee07ac1e1e7bf05ac284b530') throw new Error('Tables hash mismatch');
+          if(b.integrity.payloadSha256!=='b7a7d2eab38ad45e196a9fd3a957bb1ceb3e3d1b7d9f3ec6b5f385b567269307') throw new Error('Payload hash mismatch');
+          NODE
+
+      - name: Delete only the failed production Worker
+        run: npx --yes wrangler@4.123.0 delete --name "$WORKER_NAME" --force
+
+      - name: Verify Worker offline and legacy UI restored
+        run: |
+          set -euo pipefail
+          STATUS="$(curl -sS -o /tmp/worker-body.txt -w '%{http_code}' "$WORKER_ORIGIN/health" || true)"
+          if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then exit 1; fi
+          curl --fail-with-body --retry 30 --retry-all-errors --retry-delay 2 --retry-max-time 120 'https://khunalek.github.io/family-balance/?rollback=attempt2' > /tmp/legacy.html
+          grep -Fq 'Continue with Google' /tmp/legacy.html
+          node <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/rollback-state.json'));
+          const b=Array.isArray(x)?x[0]:x;
+          const evidence={status:'PASS',reason:'Gate 3 health verification failed after deploy (404 then Cloudflare 1042)',rolledBackMain:'3b8032242763da6655cb161efab7cef6484eba61',deletedWorker:process.env.WORKER_NAME,offlineOrigin:process.env.WORKER_ORIGIN,preservedD1:process.env.D1_NAME,preservedR2:process.env.R2_BUCKET,preservedBackupKey:process.env.BACKUP_KEY,d1State:(b.results||b.result||[])[0],bookmark:JSON.parse(fs.readFileSync('/tmp/rollback-bookmark.json')),legacyUrl:'https://khunalek.github.io/family-balance/',capturedAt:new Date().toISOString()};
+          fs.writeFileSync('/tmp/second-cutover-rollback-evidence.json',JSON.stringify(evidence,null,2)+'\n');
+          NODE
+
+      - name: Upload rollback evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: second-cutover-rollback-evidence
+          path: |
+            /tmp/second-cutover-rollback-evidence.json
+            /tmp/rollback-bookmark.json
+          if-no-files-found: error

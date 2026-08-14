@@ -5,6 +5,7 @@ import { buildPlanningState } from '../../slice-b/src/planning.mjs';
 import { accountLedgerBalance } from '../../slice-b/src/ef-goals.mjs';
 import { enumerateObligationOccurrences } from '../../slice-b/src/obligations.mjs';
 import { planCorrection } from './correction.mjs';
+import { planSalaryReceiptTransition } from './salary-cycle.mjs';
 
 const round2 = value => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 const toSatang = value => Math.round((Number(value) + Number.EPSILON) * 100);
@@ -208,14 +209,8 @@ function planIncomeReceipt(ctx) {
     ));
     seq += 1;
   }
-  const transition = salaryTransition(snapshot, movement.date, source);
-  if (transition.advanced) {
-    statements.push(statement(
-      'UPDATE salary_cycle_state SET current_cycle_start=?,next_salary_date=NULL WHERE household_id=?',
-      transition.newCycleStart,
-      ctx.householdId
-    ));
-  }
+  const transition = planSalaryReceiptTransition(snapshot, movement.date, source, ctx.householdId);
+  statements.push(...transition.statements);
   return {
     statements,
     response: {

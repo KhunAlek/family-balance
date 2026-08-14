@@ -1,0 +1,48 @@
+name: Wire Slice C salary transition
+
+on:
+  push:
+    branches: [staging-startup-repair-20260814]
+    paths:
+      - '.github/workflows/slice-c-wire-salary-transition.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: staging-startup-repair-20260814
+      - name: Wire canonical salary transition
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          p=Path('cloudflare/slice-c/src/write-actions.mjs')
+          s=p.read_text()
+          imp="import { planSalaryReceiptTransition } from './salary-cycle.mjs';\n"
+          if imp not in s:
+              marker="import { planCorrection } from './correction.mjs';\n"
+              if marker not in s: raise SystemExit('correction import marker not found')
+              s=s.replace(marker,marker+imp)
+          old="""  const transition = salaryTransition(snapshot, movement.date, source);\n  if (transition.advanced) {\n    statements.push(statement(\n      'UPDATE salary_cycle_state SET current_cycle_start=?,next_salary_date=NULL WHERE household_id=?',\n      transition.newCycleStart,\n      ctx.householdId\n    ));\n  }\n"""
+          new="""  const transition = planSalaryReceiptTransition(snapshot, movement.date, source, ctx.householdId);\n  statements.push(...transition.statements);\n"""
+          if old in s:
+              s=s.replace(old,new)
+          elif new not in s:
+              raise SystemExit('salary transition block not found')
+          p.write_text(s)
+          PY
+          node --check cloudflare/slice-c/src/write-actions.mjs
+          node --check cloudflare/slice-c/src/salary-cycle.mjs
+          node --check cloudflare/slice-c/src/weekly-freeze.mjs
+      - name: Commit salary transition wiring
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add cloudflare/slice-c/src/write-actions.mjs
+          git commit -m 'Wire canonical salary transition and weekly freeze'
+          git push origin HEAD:staging-startup-repair-20260814

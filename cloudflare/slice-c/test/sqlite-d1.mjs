@@ -63,6 +63,7 @@ export function createSeededSqliteD1() {
   execFileSync(process.execPath, [path.join(sliceB, 'tools/build-import.mjs'), importSql, report], { stdio: 'pipe' });
   raw.exec(fs.readFileSync(importSql, 'utf8'));
   raw.exec(fs.readFileSync(path.join(sliceC, 'migrations/0002_revision_state.sql'), 'utf8'));
+  raw.exec(fs.readFileSync(path.join(sliceC, 'migrations/0003_salary_cycle_sources.sql'), 'utf8'));
   fs.rmSync(tmp, { recursive: true, force: true });
   return { db: new SqliteD1Adapter(raw), raw };
 }

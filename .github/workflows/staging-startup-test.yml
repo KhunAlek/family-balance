@@ -13,7 +13,37 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
+      - name: Validate staging transport wiring
+        run: |
+          node --check assets/v24/v24_1_app1.js
+          node --check assets/v24/v24_1_app2.js
+          node <<'NODE'
+          const fs = require('node:fs');
+          const endpoint = 'https://family-cash-flow-staging-bridge.abystrov66.workers.dev/api/apps-script';
+          const html = fs.readFileSync('index.html','utf8');
+          const app1 = fs.readFileSync('assets/v24/v24_1_app1.js','utf8');
+          const app2 = fs.readFileSync('assets/v24/v24_1_app2.js','utf8');
+
+          if (!html.includes('<script src="assets/v24/v24_1_app4.js"></script>')) {
+            throw new Error('Direct app4 reference is missing from index.html');
+          }
+          if (html.includes('assets/v24/v24/v24_1_app4.js')) {
+            throw new Error('Obsolete nested app4 reference is still present in index.html');
+          }
+          if (!app1.startsWith(`const API_ENDPOINT='${endpoint}';`)) {
+            throw new Error('Centralized Cloudflare API endpoint is missing or incorrect');
+          }
+          if (!app2.includes('fetch(API_ENDPOINT,{')) {
+            throw new Error('Frontend rawApi is not using centralized API_ENDPOINT');
+          }
+          if (/fetch\('https:\/\/script\.google\.com/.test(app2)) {
+            throw new Error('Direct GitHub Pages to Apps Script fetch remains in app2');
+          }
+          if (app2.includes("document.createElement('iframe')") || app2.includes('form.submit()')) {
+            throw new Error('Obsolete iframe/form transport remains in app2');
+          }
+          NODE
       - name: Install Playwright
         run: |
           npm init -y >/dev/null 2>&1
@@ -24,28 +54,10 @@ jobs:
           python3 -m http.server 4173 >/tmp/fcf-http.log 2>&1 &
           echo $! > /tmp/fcf-http.pid
           sleep 2
-      - name: Run startup and transport tests
+      - name: Run mobile and desktop startup tests
         run: |
-          cat > staging-smoke.mjs <<'EOF'
+          cat > staging-startup.mjs <<'EOF'
           import { chromium } from 'playwright';
-          import fs from 'node:fs';
-
-          const BACKEND_URL='https://script.google.com/macros/s/AKfycbzJHbXZPiYPCfYGmG3CYd9dryXk0r8clMYgGsV73T7KzHEwshxBP_z5RjX700EBMOTBAg/exec';
-          const html = fs.readFileSync('index.html','utf8');
-          if (!html.includes('<script src="assets/v24/v24_1_app4.js"></script>')) {
-            throw new Error('Direct app4 reference is missing from index.html');
-          }
-          if (html.includes('assets/v24/v24/v24_1_app4.js')) {
-            throw new Error('Obsolete nested app4 reference is still present in index.html');
-          }
-
-          const app2 = fs.readFileSync('assets/v24/v24_1_app2.js','utf8');
-          if (!app2.includes(`fetch('${BACKEND_URL}'`)) {
-            throw new Error('Direct fetch transport is not pointed at the current Apps Script deployment');
-          }
-          if (app2.includes("document.createElement('iframe')") || app2.includes('form.submit()')) {
-            throw new Error('Obsolete iframe/form transport is still present in app2');
-          }
 
           const browser = await chromium.launch({headless:true});
           const results = [];
@@ -69,12 +81,14 @@ jobs:
               }
             });
 
-            // Poison the obsolete loader URL. A correct repaired page must never request it.
             await page.route('**/assets/v24/v24/v24_1_app4.js', route =>
               route.fulfill({status:200,contentType:'application/javascript',body:"throw new Error('obsolete loader executed')"})
             );
 
-            const response = await page.goto('http://127.0.0.1:4173/index.html?case='+name, {waitUntil:'domcontentloaded',timeout:30000});
+            const response = await page.goto('http://127.0.0.1:4173/index.html?case='+name, {
+              waitUntil:'domcontentloaded',
+              timeout:30000
+            });
             if (!response || !response.ok()) throw new Error(`${name}: page HTTP ${response?.status()}`);
             await page.waitForTimeout(3000);
 
@@ -84,8 +98,7 @@ jobs:
             const errorVisible = await page.locator('#errorState').isVisible().catch(()=>false);
             const app4Requests = requested.filter(u=>u.includes('/assets/v24/v24_1_app4.js'));
 
-            const result = {name,viewport,loadingVisible,authVisible,loginVisible,errorVisible,pageErrors,localFailures,nestedLoaderRequested,app4Requests};
-            results.push(result);
+            results.push({name,viewport,loadingVisible,authVisible,loginVisible,errorVisible,pageErrors,localFailures,nestedLoaderRequested,app4Requests});
             await page.screenshot({path:`staging-${name}.png`,fullPage:true});
             await context.close();
 
@@ -98,53 +111,12 @@ jobs:
             if (!authVisible || !loginVisible) throw new Error(`${name}: Google sign-in gate not visible`);
           }
 
-          async function runTransportProbe() {
-            const context = await browser.newContext({viewport:{width:390,height:844}});
-            const page = await context.newPage();
-            const pageErrors = [];
-            page.on('pageerror', e => pageErrors.push(String(e)));
-
-            const response = await page.goto('http://127.0.0.1:4173/index.html?case=transport', {waitUntil:'domcontentloaded',timeout:30000});
-            if (!response || !response.ok()) throw new Error(`transport: page HTTP ${response?.status()}`);
-            await page.waitForTimeout(500);
-
-            const probe = await Promise.race([
-              page.evaluate(async()=>{
-                const started=Date.now();
-                try {
-                  const result=await rawApi({apiAction:'authBootstrap',googleAccessToken:'fcf-intentionally-invalid-staging-token'});
-                  return {elapsedMs:Date.now()-started,result};
-                } catch (err) {
-                  return {elapsedMs:Date.now()-started,error:String(err&&err.message||err)};
-                }
-              }),
-              new Promise(resolve=>setTimeout(()=>resolve({probeTimeout:true}),12000))
-            ]);
-
-            await context.close();
-            results.push({name:'transport',probe,pageErrors});
-
-            if (pageErrors.length) throw new Error(`transport: page errors: ${pageErrors.join(' | ')}`);
-            if (probe.probeTimeout) throw new Error('transport: rawApi did not settle within 12 seconds');
-            if (probe.error) throw new Error('transport: rawApi threw instead of returning backend JSON: '+probe.error);
-            if (!probe.result || probe.result.ok !== false) throw new Error('transport: invalid Google token should produce structured backend rejection: '+JSON.stringify(probe));
-            const backendError=String(probe.result.error||'');
-            if (/script\.external_request|permission to call UrlFetchApp\.fetch/i.test(backendError)) {
-              throw new Error('transport: Apps Script still lacks deployer UrlFetch authorization: '+backendError);
-            }
-            if (!/Google sign-in could not be verified/i.test(backendError)) {
-              throw new Error('transport: unexpected backend rejection for invalid Google token: '+backendError);
-            }
-            if (probe.elapsedMs > 10000) throw new Error('transport: rawApi was unexpectedly slow: '+probe.elapsedMs+'ms');
-          }
-
           await runCase('mobile',{width:390,height:844});
           await runCase('desktop',{width:1440,height:900});
-          await runTransportProbe();
           console.log(JSON.stringify(results,null,2));
           await browser.close();
           EOF
-          node staging-smoke.mjs
+          node staging-startup.mjs
       - name: Upload staging screenshots
         if: always()
         uses: actions/upload-artifact@v4

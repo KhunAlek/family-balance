@@ -1,0 +1,37 @@
+name: Fix Slice C salary boundary assertion
+
+on:
+  push:
+    branches: [staging-startup-repair-20260814]
+    paths:
+      - '.github/workflows/slice-c-fix-salary-test.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: staging-startup-repair-20260814
+      - name: Update assertion
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          p=Path('cloudflare/slice-c/test/write-actions.test.mjs')
+          s=p.read_text()
+          old="""  assert.match(plan.statements.at(-1).sql, /UPDATE salary_cycle_state/);\n  assert.equal(plan.statements.at(-1).params[0], '2026-08-31');\n"""
+          new="""  const cycleUpdate = plan.statements.find(item => /UPDATE salary_cycle_state/.test(item.sql));\n  const sourceMembership = plan.statements.find(item => /salary_cycle_sources/.test(item.sql));\n  assert.ok(cycleUpdate);\n  assert.equal(cycleUpdate.params[0], '2026-08-31');\n  assert.ok(sourceMembership);\n  assert.equal(sourceMembership.params[1], '2026-08-31');\n  assert.equal(sourceMembership.params[2], 'Alex Salary');\n"""
+          if old not in s: raise SystemExit('old assertion not found')
+          p.write_text(s.replace(old,new))
+          PY
+          node --check cloudflare/slice-c/test/write-actions.test.mjs
+      - name: Commit test update
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add cloudflare/slice-c/test/write-actions.test.mjs
+          git commit -m 'Assert salary source membership at new cycle boundary'
+          git push origin HEAD:staging-startup-repair-20260814

@@ -54,14 +54,19 @@ function auditStatement(ctx, entityType, entityId, before, after, reason) {
 
 function planBalanceCorrection(ctx, before, values, reason) {
   const businessDate = own(values,'businessDate') ? date(values.businessDate,'Business date') : before.business_date;
-  const alex = own(values,'alexBalance') ? nonNegative(values.alexBalance,'Alex balance') : thb(before.alex_balance_satang);
-  const olga = own(values,'olgaBalance') ? nonNegative(values.olgaBalance,'Olga balance') : thb(before.olga_balance_satang);
+  const correctedBalanceValue = (field, label, beforeSatang) => {
+    if (!own(values, field)) return beforeSatang === null || beforeSatang === undefined ? null : thb(beforeSatang);
+    const submitted = values[field];
+    return submitted === '' || submitted === null || submitted === undefined ? null : nonNegative(submitted, label);
+  };
+  const alex = correctedBalanceValue('alexBalance','Alex balance',before.alex_balance_satang);
+  const olga = correctedBalanceValue('olgaBalance','Olga balance',before.olga_balance_satang);
   const id = correctionIdentity(ctx,1);
   const after = {
     replacementForBalanceRowId: before.balance_row_id,
     business_date: businessDate,
-    alex_balance_satang: toSatang(alex),
-    olga_balance_satang: toSatang(olga),
+    alex_balance_satang: alex === null ? null : toSatang(alex),
+    olga_balance_satang: olga === null ? null : toSatang(olga),
     one_off_payment_name: before.one_off_payment_name ?? null,
     one_off_payment_amount_satang: before.one_off_payment_amount_satang ?? null,
     one_off_payment_account: before.one_off_payment_account ?? null,
@@ -74,7 +79,7 @@ function planBalanceCorrection(ctx, before, values, reason) {
     `INSERT INTO balance_history(household_id,business_date,sheet_order,alex_balance_satang,olga_balance_satang,
       one_off_payment_name,one_off_payment_amount_satang,one_off_payment_account,income_receipt_source,income_receipt_amount_satang,source_sheet,source_row)
      VALUES(?,?,?,?,?,?,?,?,?,?,'Correction',?)`,
-    ctx.householdId,businessDate,id.sheetOrder,toSatang(alex),toSatang(olga),before.one_off_payment_name ?? null,
+    ctx.householdId,businessDate,id.sheetOrder,alex === null ? null : toSatang(alex),olga === null ? null : toSatang(olga),before.one_off_payment_name ?? null,
     before.one_off_payment_amount_satang ?? null,before.one_off_payment_account ?? null,before.income_receipt_source ?? null,
     before.income_receipt_amount_satang ?? null,id.sourceRow
   );
@@ -138,10 +143,14 @@ function planSalaryCycleCorrection(ctx,before,values,reason) {
   const next=own(values,'nextSalaryDate')?(values.nextSalaryDate?date(values.nextSalaryDate,'Next salary date'):null):before.next_salary_date;
   if(next&&compareDates(next,start)<=0)fail('Next salary date must be after current cycle start.');
   const after={...asPlain(before),current_cycle_start:start,next_salary_date:next};
-  return {statements:[
-    statement('UPDATE salary_cycle_state SET current_cycle_start=?,next_salary_date=? WHERE household_id=?',start,next,ctx.householdId),
-    auditStatement(ctx,'salary_cycle',ctx.householdId,asPlain(before),after,reason)
-  ],response:{correction:{entityType:'salaryCycle',entityId:ctx.householdId,before:asPlain(before),after}}};
+  const statements=[statement('UPDATE salary_cycle_state SET current_cycle_start=?,next_salary_date=? WHERE household_id=?',start,next,ctx.householdId)];
+  if(start!==before.current_cycle_start){
+    const activeSources=(ctx.snapshot.salaryCycleSources||[]).filter(item=>item.cycle_start===before.current_cycle_start).map(item=>item.source);
+    statements.push(statement('DELETE FROM salary_cycle_sources WHERE household_id=? AND cycle_start=?',ctx.householdId,before.current_cycle_start));
+    for(const source of activeSources) statements.push(statement('INSERT OR IGNORE INTO salary_cycle_sources(household_id,cycle_start,source) VALUES(?,?,?)',ctx.householdId,start,source));
+  }
+  statements.push(auditStatement(ctx,'salary_cycle',ctx.householdId,asPlain(before),after,reason));
+  return {statements,response:{correction:{entityType:'salaryCycle',entityId:ctx.householdId,before:asPlain(before),after}}};
 }
 
 export async function planCorrection(ctx) {

@@ -16,11 +16,39 @@ function authorized(request, env) {
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, Math.max(Number(ms) || 0, 0)));
 
+async function stateEvidence(db) {
+  const results = await db.batch([
+    db.prepare("SELECT current_revision,last_write_token FROM household_revisions WHERE household_id='family'"),
+    db.prepare('SELECT COUNT(*) AS n FROM financial_write_claims'),
+    db.prepare('SELECT COUNT(*) AS n FROM correction_audit'),
+    db.prepare('SELECT COUNT(*) AS n FROM balance_history'),
+    db.prepare('SELECT COUNT(*) AS n FROM ledger_movements'),
+    db.prepare('SELECT COUNT(*) AS n FROM obligation_payments'),
+    db.prepare("SELECT business_date,alex_balance_satang,olga_balance_satang,one_off_payment_name,source_sheet FROM balance_history WHERE household_id='family' ORDER BY business_date DESC,sheet_order DESC LIMIT 1"),
+    db.prepare("SELECT account,direction,amount_satang,business_date,source_sheet FROM ledger_movements WHERE household_id='family' ORDER BY business_date DESC,sheet_order DESC LIMIT 1"),
+    db.prepare("SELECT payment_id,payment_date,occurrence_due_date,actual_amount_satang FROM obligation_payments WHERE household_id='family' ORDER BY rowid DESC LIMIT 1")
+  ]);
+  const rows = index => results[index]?.results || [];
+  return {
+    revision: Number(rows(0)[0]?.current_revision || 0),
+    lastWriteToken: rows(0)[0]?.last_write_token || null,
+    claims: Number(rows(1)[0]?.n || 0),
+    corrections: Number(rows(2)[0]?.n || 0),
+    balanceRows: Number(rows(3)[0]?.n || 0),
+    ledgerRows: Number(rows(4)[0]?.n || 0),
+    paymentRows: Number(rows(5)[0]?.n || 0),
+    latestBalance: rows(6)[0] || null,
+    latestLedger: rows(7)[0] || null,
+    latestPayment: rows(8)[0] || null
+  };
+}
+
 export default {
   async fetch(request, env) {
     if (!authorized(request, env)) return response({ ok: false, error: 'Forbidden.' }, 403);
     const url = new URL(request.url);
     if (request.method === 'GET' && url.pathname === '/health') return response({ ok: true, service: 'slice-c-remote-test' });
+    if (request.method === 'GET' && url.pathname === '/state') return response({ ok: true, ...(await stateEvidence(env.DB)) });
     if (request.method !== 'POST') return response({ ok: false, error: 'Not found.' }, 404);
 
     let body;

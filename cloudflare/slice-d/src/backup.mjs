@@ -1,4 +1,4 @@
-export const BACKUP_FORMAT = 'family-cash-flow-d1-portable-v1';
+export const BACKUP_FORMAT = 'family-cash-flow-d1-portable-v2';
 
 export const BACKUP_TABLES = Object.freeze([
   'households',
@@ -20,6 +20,17 @@ export const BACKUP_TABLES = Object.freeze([
 ]);
 
 const encoder = new TextEncoder();
+const schemaTableList = BACKUP_TABLES.map(table => `'${table}'`).join(',');
+
+function validSchemaItem(item) {
+  const type = String(item?.type || '').toLowerCase();
+  const name = String(item?.name || '');
+  const table = String(item?.tbl_name || '');
+  const sql = String(item?.sql || '').trim();
+  if (!['table', 'index', 'trigger'].includes(type) || !BACKUP_TABLES.includes(table) || !sql) return false;
+  if (/^(?:sqlite_|_cf_)/i.test(name)) return false;
+  return type !== 'table' || name === table;
+}
 
 function validEnvironment(value) {
   const normalized = String(value || '').trim().toLowerCase();
@@ -50,23 +61,27 @@ export async function buildPortableBackup(db, options = {}) {
   const createdAt = new Date(options.createdAt ?? Date.now()).toISOString();
   const environment = validEnvironment(options.environment);
   const statements = [
-    db.prepare("SELECT type,name,tbl_name,sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY CASE type WHEN 'table' THEN 1 WHEN 'index' THEN 2 WHEN 'trigger' THEN 3 ELSE 4 END,name"),
+    db.prepare(`SELECT type,name,tbl_name,sql FROM sqlite_master WHERE sql IS NOT NULL AND type IN ('table','index','trigger') AND tbl_name IN (${schemaTableList}) AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' ORDER BY CASE type WHEN 'table' THEN 1 WHEN 'index' THEN 2 WHEN 'trigger' THEN 3 ELSE 4 END,name`),
     ...BACKUP_TABLES.map(table => db.prepare(`SELECT * FROM ${table} ORDER BY rowid`)),
   ];
   const results = await db.batch(statements);
   const tables = {};
   BACKUP_TABLES.forEach((table, index) => { tables[table] = rows(results[index + 1]); });
+  const schema = rows(results[0]);
+  if (!schema.every(validSchemaItem)) throw new Error('Database schema contains an unsupported object.');
   const dataJson = JSON.stringify(tables);
+  const payloadJson = JSON.stringify({ schema, tables });
   const backup = {
     format: BACKUP_FORMAT,
     environment,
     createdAt,
     householdId: options.householdId || 'family',
-    schema: rows(results[0]),
+    schema,
     tables,
     integrity: {
       algorithm: 'SHA-256',
       tablesSha256: await sha256Hex(dataJson),
+      payloadSha256: await sha256Hex(payloadJson),
       rowCounts: Object.fromEntries(BACKUP_TABLES.map(table => [table, tables[table].length])),
     },
   };
@@ -125,8 +140,10 @@ export async function runPortableBackup(db, bucket, options = {}) {
 }
 
 export async function verifyPortableBackup(backup) {
-  if (!backup || backup.format !== BACKUP_FORMAT || !backup.tables || !backup.integrity) return false;
+  if (!backup || backup.format !== BACKUP_FORMAT || !Array.isArray(backup.schema) || !backup.tables || !backup.integrity) return false;
+  if (!backup.schema.every(validSchemaItem)) return false;
   for (const table of BACKUP_TABLES) if (!Array.isArray(backup.tables[table])) return false;
-  const expected = await sha256Hex(JSON.stringify(backup.tables));
-  return expected === backup.integrity.tablesSha256;
+  const expectedTables = await sha256Hex(JSON.stringify(backup.tables));
+  const expectedPayload = await sha256Hex(JSON.stringify({ schema: backup.schema, tables: backup.tables }));
+  return expectedTables === backup.integrity.tablesSha256 && expectedPayload === backup.integrity.payloadSha256;
 }

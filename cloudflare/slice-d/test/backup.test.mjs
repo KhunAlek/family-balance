@@ -29,8 +29,12 @@ test('daily backup writes environment-specific portable JSON and prunes expired 
   assert.deepEqual(bucket.deleted, ['staging/2026/06/01/old.json']);
   const stored = JSON.parse(bucket.objects.get(result.key).value);
   assert.equal(await verifyPortableBackup(stored), true);
+  assert.equal(stored.schema.some(item => /^(?:sqlite_|_cf_)/i.test(item.name)), false);
   assert.equal(stored.integrity.rowCounts.households, 1);
   assert.ok(stored.integrity.rowCounts.balance_history > 0);
+  const tamperedSchema = structuredClone(stored);
+  tamperedSchema.schema[0].sql = 'DROP TABLE households';
+  assert.equal(await verifyPortableBackup(tamperedSchema), false);
   const restoreSql = await buildRestoreSql(stored, { includeSchema: true });
   assert.match(restoreSql, /CREATE TABLE households/);
   assert.match(restoreSql, /INSERT INTO "households"/);

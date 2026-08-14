@@ -103,6 +103,11 @@ export function loadLockedSourceSnapshot() {
     status: row.Status
   }));
 
+  const currentCycleStart = configRow['Current salary cycle start'];
+  const salaryCycleSources = incomeDefinitions
+    .filter(item => String(item.pay_day || '').trim() !== 'Variable')
+    .map(item => ({ cycle_start: currentCycleStart, source: item.source }));
+
   return {
     householdId: 'family',
     config: {
@@ -118,10 +123,11 @@ export function loadLockedSourceSnapshot() {
       source_snapshot_extracted_at: metadata.source.extractedAt
     },
     salaryCycle: {
-      current_cycle_start: configRow['Current salary cycle start'],
+      current_cycle_start: currentCycleStart,
       next_salary_date: configRow['Next salary date'],
       salary_receipt_cutover_date: configRow['Salary receipt cutover date']
     },
+    salaryCycleSources,
     balanceHistory,
     incomeDefinitions,
     incomeReceipts,

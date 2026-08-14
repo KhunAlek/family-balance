@@ -54,22 +54,27 @@ jobs:
           await page.route('https://fonts.googleapis.com/**',r=>r.fulfill({status:200,contentType:'text/css',body:''}));
           await page.route('https://fonts.gstatic.com/**',r=>r.fulfill({status:204,body:''}));
 
-          await page.goto('https://khunalek.github.io/family-balance/?fetch-transport=1',{waitUntil:'domcontentloaded'});
+          await page.goto('https://khunalek.github.io/family-balance/?fetch-transport=2',{waitUntil:'domcontentloaded'});
           const result=await page.evaluate(async APPS=>{
-            const tests={};
+            const request={apiAction:'authBootstrap',googleAccessToken:'fcf-invalid-fetch-probe'};
             try{
-              const r=await fetch(APPS,{method:'GET',redirect:'follow'});
-              tests.get={ok:r.ok,status:r.status,url:r.url,type:r.type,text:(await r.text()).slice(0,1000)};
-            }catch(e){tests.get={error:String(e)}}
-            try{
-              const params=new URLSearchParams();
-              params.set('requestJson',JSON.stringify({apiAction:'authBootstrap',googleAccessToken:'fcf-invalid-fetch-probe'}));
-              const r=await fetch(APPS,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:params.toString(),redirect:'follow'});
-              tests.post={ok:r.ok,status:r.status,url:r.url,type:r.type,text:(await r.text()).slice(0,1000)};
-            }catch(e){tests.post={error:String(e)}}
-            return tests;
+              const r=await fetch(APPS,{
+                method:'POST',
+                headers:{'Content-Type':'text/plain;charset=UTF-8'},
+                body:JSON.stringify(request),
+                redirect:'follow'
+              });
+              return {ok:r.ok,status:r.status,url:r.url,type:r.type,text:(await r.text()).slice(0,2000)};
+            }catch(e){return {error:String(e)}}
           },APPS);
           console.log(JSON.stringify({result,events},null,2));
           await browser.close();
+
+          if(result.error) throw new Error('Direct fetch failed: '+result.error);
+          if(result.status!==200 || result.type!=='cors') throw new Error('Unexpected fetch response: '+JSON.stringify(result));
+          let parsed;
+          try{parsed=JSON.parse(result.text)}catch(e){throw new Error('Response was not JSON: '+result.text)}
+          if(parsed.ok!==false) throw new Error('Invalid auth token should be rejected: '+result.text);
+          if(/Invalid JSON request/i.test(parsed.error||'')) throw new Error('Backend did not parse direct JSON transport: '+result.text);
           EOF
           node fetch-transport.mjs

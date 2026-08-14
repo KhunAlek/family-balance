@@ -51,8 +51,13 @@ test('First salary at the explicit next-salary boundary advances the cycle and c
   }, baseSnapshot(), { nowIso: '2026-08-31T12:00:00.000Z' }));
   assert.equal(plan.response.salaryCycleAdvanced, true);
   assert.equal(plan.response.nextSalaryDateRequired, true);
-  assert.match(plan.statements.at(-1).sql, /UPDATE salary_cycle_state/);
-  assert.equal(plan.statements.at(-1).params[0], '2026-08-31');
+  const cycleUpdate = plan.statements.find(item => /UPDATE salary_cycle_state/.test(item.sql));
+  const sourceMembership = plan.statements.find(item => /salary_cycle_sources/.test(item.sql));
+  assert.ok(cycleUpdate);
+  assert.equal(cycleUpdate.params[0], '2026-08-31');
+  assert.ok(sourceMembership);
+  assert.equal(sourceMembership.params[1], '2026-08-31');
+  assert.equal(sourceMembership.params[2], 'Alex Salary');
 });
 
 test('Next salary date must stay strictly after the current cycle start', async () => {

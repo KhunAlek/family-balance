@@ -1,0 +1,182 @@
+name: Slice A deployed Cloudflare test
+
+on:
+  push:
+    branches: [staging-startup-repair-20260814]
+  workflow_dispatch:
+
+jobs:
+  deployed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Wait for the staging Worker and test transport
+        env:
+          WORKER_ORIGIN: https://family-cash-flow-staging-bridge.abystrov66.workers.dev
+          ALLOWED_ORIGIN: https://khunalek.github.io
+        run: |
+          node <<'NODE'
+          const worker = process.env.WORKER_ORIGIN;
+          const allowed = process.env.ALLOWED_ORIGIN;
+          const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+          async function waitForHealth() {
+            let last = '';
+            for (let i = 0; i < 24; i++) {
+              try {
+                const r = await fetch(worker + '/health', {cache:'no-store'});
+                const text = await r.text();
+                last = `HTTP ${r.status}: ${text.slice(0,300)}`;
+                if (r.ok) {
+                  const data = JSON.parse(text);
+                  if (data.ok === true && data.service === 'family-cash-flow-staging-bridge') return data;
+                }
+              } catch (e) {
+                last = String(e && e.message || e);
+              }
+              await sleep(5000);
+            }
+            throw new Error('Worker health did not become ready: ' + last);
+          }
+
+          const health = await waitForHealth();
+          console.log('health', health);
+
+          const invalid = await fetch(worker + '/api/apps-script', {
+            method:'POST',
+            headers:{
+              Origin: allowed,
+              'Content-Type':'text/plain;charset=UTF-8'
+            },
+            body: JSON.stringify({apiAction:'authBootstrap',googleAccessToken:'fcf-intentionally-invalid-staging-token'})
+          });
+          const invalidText = await invalid.text();
+          if (!invalid.ok) throw new Error(`invalid-token request HTTP ${invalid.status}: ${invalidText}`);
+          const invalidData = JSON.parse(invalidText);
+          if (invalidData.ok !== false || invalidData.error !== 'Google sign-in could not be verified.') {
+            throw new Error('unexpected invalid-token response: ' + invalidText);
+          }
+          if (invalid.headers.get('access-control-allow-origin') !== allowed) {
+            throw new Error('allowed-origin CORS header missing or incorrect');
+          }
+          if (invalid.headers.get('cache-control') !== 'no-store') {
+            throw new Error('proxy response is not no-store');
+          }
+          console.log('invalid-token transport', invalidData);
+
+          const preflight = await fetch(worker + '/api/apps-script', {
+            method:'OPTIONS',
+            headers:{Origin:allowed,'Access-Control-Request-Method':'POST','Access-Control-Request-Headers':'content-type'}
+          });
+          if (preflight.status !== 204) throw new Error('OPTIONS expected 204, got '+preflight.status);
+          if (preflight.headers.get('access-control-allow-origin') !== allowed) throw new Error('OPTIONS CORS origin incorrect');
+
+          const denied = await fetch(worker + '/api/apps-script', {
+            method:'POST',
+            headers:{Origin:'https://example.com','Content-Type':'text/plain;charset=UTF-8'},
+            body:'{}'
+          });
+          const deniedText = await denied.text();
+          if (denied.status !== 403) throw new Error(`disallowed origin expected 403, got ${denied.status}: ${deniedText}`);
+          const deniedData = JSON.parse(deniedText);
+          if (deniedData.ok !== false || deniedData.error !== 'Origin is not allowed.') throw new Error('unexpected disallowed-origin response');
+          if (denied.headers.has('access-control-allow-origin')) throw new Error('disallowed origin received ACAO header');
+          console.log('disallowed-origin transport', deniedData);
+          NODE
+      - name: Install Playwright
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.54.2 --no-save
+          npx playwright install --with-deps chromium
+      - name: Browser CORS and startup proof
+        env:
+          WORKER_ORIGIN: https://family-cash-flow-staging-bridge.abystrov66.workers.dev
+        run: |
+          cat > slice-a-browser.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+          import path from 'node:path';
+
+          const worker = process.env.WORKER_ORIGIN;
+          const browser = await chromium.launch({headless:true});
+
+          const probeContext = await browser.newContext({viewport:{width:390,height:844}});
+          const probePage = await probeContext.newPage();
+          await probePage.route('https://khunalek.github.io/family-balance/slice-a-probe', route =>
+            route.fulfill({status:200,contentType:'text/html',body:'<!doctype html><title>probe</title>'})
+          );
+          await probePage.goto('https://khunalek.github.io/family-balance/slice-a-probe');
+          const corsResult = await probePage.evaluate(async worker => {
+            try {
+              const response = await fetch(worker + '/api/apps-script', {
+                method:'POST',
+                headers:{'Content-Type':'text/plain;charset=UTF-8'},
+                body:JSON.stringify({apiAction:'authBootstrap',googleAccessToken:'fcf-intentionally-invalid-staging-token'})
+              });
+              return {status:response.status,data:await response.json()};
+            } catch (e) {
+              return {error:String(e && e.message || e)};
+            }
+          }, worker);
+          if (corsResult.error) throw new Error('Browser CORS transport failed: '+corsResult.error);
+          if (corsResult.status !== 200 || corsResult.data?.ok !== false || corsResult.data?.error !== 'Google sign-in could not be verified.') {
+            throw new Error('Browser transport returned unexpected result: '+JSON.stringify(corsResult));
+          }
+          await probeContext.close();
+
+          const mime = file => {
+            if (file.endsWith('.html')) return 'text/html';
+            if (file.endsWith('.js')) return 'application/javascript';
+            if (file.endsWith('.css')) return 'text/css';
+            if (file.endsWith('.svg')) return 'image/svg+xml';
+            return 'application/octet-stream';
+          };
+
+          async function startupCase(name, viewport) {
+            const context = await browser.newContext({viewport});
+            const page = await context.newPage();
+            const errors = [];
+            page.on('pageerror', e => errors.push(String(e)));
+            await page.route('https://khunalek.github.io/family-balance/**', async route => {
+              const u = new URL(route.request().url());
+              let rel = u.pathname.replace(/^\/family-balance\/?/, '');
+              if (!rel) rel = 'index.html';
+              const local = path.resolve(rel);
+              if (!local.startsWith(process.cwd())) return route.abort();
+              if (!fs.existsSync(local) || fs.statSync(local).isDirectory()) return route.fulfill({status:404,body:'not found'});
+              return route.fulfill({status:200,contentType:mime(local),body:fs.readFileSync(local)});
+            });
+            const response = await page.goto('https://khunalek.github.io/family-balance/?slice-a='+name, {waitUntil:'domcontentloaded',timeout:30000});
+            if (!response || !response.ok()) throw new Error(`${name}: page HTTP ${response?.status()}`);
+            await page.waitForTimeout(3000);
+            const state = {
+              loading:await page.locator('#loadingState').isVisible().catch(()=>false),
+              auth:await page.locator('#authGate').isVisible().catch(()=>false),
+              login:await page.locator('#googleLoginBtn').isVisible().catch(()=>false),
+              error:await page.locator('#errorState').isVisible().catch(()=>false),
+              errors
+            };
+            await page.screenshot({path:`slice-a-${name}.png`,fullPage:true});
+            await context.close();
+            if (state.errors.length) throw new Error(`${name}: page errors: ${state.errors.join(' | ')}`);
+            if (state.loading || state.error || !state.auth || !state.login) throw new Error(`${name}: bad startup state ${JSON.stringify(state)}`);
+            return state;
+          }
+
+          console.log('browser-cors', corsResult);
+          console.log('mobile', await startupCase('mobile',{width:390,height:844}));
+          console.log('desktop', await startupCase('desktop',{width:1440,height:900}));
+          await browser.close();
+          EOF
+          node slice-a-browser.mjs
+      - name: Upload deployed-test screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: slice-a-deployed-browser-screenshots
+          path: slice-a-*.png
+          if-no-files-found: ignore

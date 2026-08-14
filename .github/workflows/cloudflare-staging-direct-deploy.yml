@@ -1,0 +1,23 @@
+name: Cloudflare staging direct deploy
+
+on:
+  push:
+    branches: [staging-startup-repair-20260814]
+    paths:
+      - '.cloudflare-direct-deploy-trigger'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy Slice A staging Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: 6ee48ea46390bcf76f1d924f4a7d88f1

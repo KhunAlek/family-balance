@@ -1,22 +1,123 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="robots" content="noindex, nofollow">
-  <title>Family Cash Flow</title>
-  <meta http-equiv="refresh" content="0; url=https://script.google.com/macros/s/AKfycbzJHbXZPiYPCfYGmG3CYd9dryXk0r8clMYgGsV73T7KzHEwshxBP_z5RjX700EBMOTBAg/exec">
-  <style>
-    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;min-height:100vh;display:grid;place-items:center;background:#f5f7f8;color:#102b3b}
-    main{max-width:560px;padding:32px;text-align:center}
-    a{color:#0b6b78;font-weight:600}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Family Cash Flow</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#102b3b">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/v24/logo.svg">
+<link rel="apple-touch-icon" href="assets/v24/logo.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="assets/v24/v24_1_core.css">
+<link rel="stylesheet" href="assets/v24/v24_1_responsive.css">
 </head>
 <body>
-  <main>
-    <h1>Family Cash Flow</h1>
-    <p>Opening the authenticated Family Cash Flow app…</p>
-    <p>If you are not redirected automatically, <a href="https://script.google.com/macros/s/AKfycbzJHbXZPiYPCfYGmG3CYd9dryXk0r8clMYgGsV73T7KzHEwshxBP_z5RjX700EBMOTBAg/exec">open the app</a>.</p>
+<div id="app" style="display:none">
+  <aside class="sidebar">
+    <div class="brand"><img class="brand-icon" src="assets/v24/logo.svg" alt=""><div class="brand-copy"><div class="brand-name">Family Cash Flow</div><div class="brand-subtitle">Household planning</div></div></div>
+    <nav class="nav" aria-label="Dashboard sections">
+      <button class="active" data-scroll="overview"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm10 7h6V11h-6v9ZM4 20h6v-3H4v3Zm10-13h6V4h-6v3Z"/></svg>Overview</button>
+      <button data-scroll="weekly"><svg viewBox="0 0 24 24"><path d="M4 5h16v15H4zM8 3v4m8-4v4M4 10h16"/></svg>Weekly plan</button>
+      <button data-scroll="fixedObligationsSection"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Zm3 5h6m-6 4h6"/></svg>Obligations</button>
+      <button data-scroll="goalsSection"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="m17 7 4-4m-4 0h4v4"/></svg>Goals</button>
+      <button data-scroll="accountsSection"><svg viewBox="0 0 24 24"><path d="M3 8h18M5 8V6l7-3 7 3v2M5 20h14M7 8v9m5-9v9m5-9v9"/></svg>Accounts</button>
+    </nav>
+    <div class="data-state" id="sidebarDataState"><span class="live-dot"></span><b>Loading data</b><br>Connecting to the planning engine.</div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="greeting"><img class="topbar-icon" src="assets/v24/logo.svg" alt=""><div class="title-block"><h1 class="screen-title">Household dashboard</h1><div class="mobile-app-name">Family Cash Flow</div><p id="asOfLine">Loading current numbers…</p></div></div>
+      <div class="top-actions"><button class="btn" data-open-drawer="payment">One-off payment</button><button class="btn" data-open-drawer="income">Income received</button><button class="btn primary" data-open-drawer="balance">Update balances</button></div>
+    </header>
+
+    <div class="content">
+      <div class="stale-banner" id="staleBanner"></div>
+      <div class="guidance-banner" id="guidanceBanner"><span id="guidanceBannerText"></span><button class="btn warn" data-open-drawer="nextSalary">Set next salary date</button></div>
+
+      <section id="overview">
+        <div class="eyebrow">Today’s position</div>
+        <div class="hero-grid">
+          <article class="hero"><div class="hero-copy"><div class="hero-label">Weekly Variables Available · <span id="heroDateRange"></span></div><div class="hero-value"><span id="heroAmount">—</span><small id="heroCurrency">THB</small></div><p class="hero-note" id="heroNote"></p><div class="hero-stats"><div class="hero-stat"><span>Active Variables plan</span><b id="heroPlanned">—</b></div><div class="hero-stat"><span>Spent this cycle</span><b id="heroSpent">—</b></div><div class="hero-stat"><span>Remaining Variables</span><b id="heroCycleRemaining">—</b></div><div class="hero-stat"><span>Next salary</span><b id="heroNextSalary">—</b></div></div></div></article>
+          <article class="pace-card"><div class="pace-head"><b>Current weekly slice</b><span class="status-pill green" id="paceStatus">Checking</span></div><div class="donut" id="paceDonut"><div class="donut-copy"><b id="pacePercent">—</b><span>of card plan</span></div></div><div class="pace-copy"><h3 id="paceValue">—</h3><p id="paceText">Available through the end of this salary-cycle weekly card.</p></div></article>
+        </div>
+      </section>
+
+      <section id="weekly"><div class="section-head"><h2>Weekly Variables</h2><span>Ordinary planned spending; not the same as one-off payment safety</span></div><div class="week-grid" id="weeklyVarCards"></div></section>
+
+      <section id="allocations"><div class="section-head"><h2>Planning position</h2><span>Different numbers answer different household questions</span></div><div class="allocation-grid">
+        <article class="allocation safety"><div class="allocation-label">One-off Payment Safe from KTB</div><div class="allocation-value" id="paymentSafeAmount">—</div><p>Extra discretionary KTB cash that can leave without consuming protected future Variables or unpaid obligations.</p><div class="allocation-action"><button type="button" class="soft-btn" data-open-drawer="payment">Preview payment →</button></div></article>
+        <article class="allocation ef"><div class="allocation-label">Available for Emergency Fund</div><div class="allocation-value" id="availableEF">—</div><p>Safe EF contribution under the current salary-cycle planning state.</p><div class="allocation-action"><button type="button" class="soft-btn" id="transferEFBtn">Transfer to EF →</button></div></article>
+        <article class="allocation goals"><div class="allocation-label">Available for Goals</div><div class="allocation-value" id="availableGoals">—</div><p>Surplus after higher-priority protected allocations.</p></article>
+        <article class="allocation balance"><div class="allocation-label">Combined KTB balance</div><div class="allocation-value" id="combinedBalance">—</div><p id="combinedBalanceNote">Current saved Alex and Olga balances.</p><div class="allocation-action"><button type="button" class="soft-btn" data-open-drawer="balance">Update balances →</button></div></article>
+      </div></section>
+
+      <section class="dashboard-grid">
+        <div class="stack">
+          <article class="panel" id="efSection"><div class="panel-head"><h3>Emergency Fund</h3><button type="button" id="withdrawEFHeaderBtn" data-open-drawer="efWithdrawal">Withdraw from EF →</button></div><div class="ef-stats"><div class="mini-stat"><span>Current</span><b id="efCurrent">—</b></div><div class="mini-stat"><span>Target</span><b id="efTarget">—</b></div><div class="mini-stat"><span>Remaining</span><b id="efRemaining">—</b></div></div><div class="ef-action-bar"><div class="ef-action-hint" id="efTransferHint">Checking the safe transfer limit…</div><button class="btn secondary" type="button" data-open-drawer="efWithdrawal">Withdraw</button></div><div class="chart-card"><div class="chart-wrap" id="efChartWrap"><canvas id="efHistoryChart"></canvas></div><div class="chart-empty" id="efChartEmpty">No Emergency Fund Ledger history yet.</div></div></article>
+          <article class="panel" id="goalsSection"><div class="panel-head"><h3>Savings goals</h3><button type="button" id="addGoalToggle">+ Add goal</button></div><div class="compact-list" id="goalsList"></div></article>
+        </div>
+        <div class="stack">
+          <article class="panel" id="fixedObligationsSection"><div class="panel-head"><h3>Fixed obligations</h3><span></span></div><div class="compact-list" id="obligationsList"></div></article>
+          <article class="panel" id="accountsSection"><div class="panel-head"><h3>Account balances</h3><button type="button" data-open-drawer="balance">Update balances</button></div><div class="accounts"><div class="account"><span>Alex KTB</span><b id="currentAlexBalance">—</b><small id="alexBalanceDate"></small></div><div class="account"><span>Olga KTB</span><b id="currentOlgaBalance">—</b><small id="olgaBalanceDate"></small></div><div class="account account-wide"><span>Salary cycle</span><b id="salaryCycleText">—</b><small><button class="text-action" type="button" data-open-drawer="nextSalary">Change next salary date</button></small></div></div><div class="freshness" id="reconciliationFreshness"></div></article>
+        </div>
+      </section>
+
+      <section class="action-center"><div class="action-copy"><h3>What would you like to do?</h3><p>Preview is non-writing; money movements are recorded explicitly under your Google account.</p></div><div class="action-grid"><button class="action-tile primary" data-open-drawer="balance">Update balances</button><button class="action-tile" data-open-drawer="payment">Preview / one-off</button><button class="action-tile" data-open-drawer="income">Income received</button><button class="action-tile" id="actionTransferEF">Transfer to EF</button><button class="action-tile" data-open-drawer="efWithdrawal">Withdraw from EF</button><button class="action-tile" data-open-drawer="ktbTransfer">KTB ↔ KTB</button><button class="action-tile" data-open-drawer="nextSalary">Next salary date</button><button class="action-tile" data-scroll="fixedObligationsSection">Record obligation</button></div></section>
+    </div>
   </main>
+</div>
+
+<div class="auth-gate" id="authGate" aria-live="polite">
+  <div class="auth-card">
+    <img src="assets/v24/logo.svg" alt="Family Cash Flow logo">
+    <h1>Family Cash Flow</h1>
+    <p>Sign in with an approved Google account to open the household dashboard.</p>
+    <button type="button" class="btn google-login" id="googleLoginBtn">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" stroke="none" d="M21.6 12.23c0-.71-.06-1.23-.2-1.77H12v3.42h5.52c-.11.85-.71 2.12-2.04 2.98l-.02.11 2.96 2.29.2.02c1.84-1.7 2.98-4.2 2.98-7.05Z"/><path fill="#34A853" stroke="none" d="M12 22c2.69 0 4.95-.89 6.6-2.42l-3.14-2.43c-.84.57-1.97.97-3.46.97-2.64 0-4.88-1.78-5.68-4.24l-.1.01-3.08 2.38-.04.1C4.74 19.65 8.12 22 12 22Z"/><path fill="#FBBC05" stroke="none" d="M6.32 13.88a6.01 6.01 0 0 1 0-3.76l-.01-.11-3.12-2.42-.1.05C2.4 8.83 2 10.36 2 12s.4 3.17 1.1 4.36l3.22-2.48Z"/><path fill="#EA4335" stroke="none" d="M12 5.88c1.87 0 3.13.81 3.85 1.49l2.81-2.74C16.93 3.02 14.69 2 12 2 8.12 2 4.74 4.35 3.1 7.64l3.22 2.48C7.12 7.66 9.36 5.88 12 5.88Z"/></svg>
+      <span>Continue with Google</span>
+    </button>
+    <div class="auth-error" id="authError"></div>
+  </div>
+</div>
+
+<div class="loading-shell" id="loadingState"><div class="loading-card"><img class="loading-logo" src="assets/v24/logo.svg" alt=""><div class="loading-title">Loading Family Cash Flow</div><div class="loading-copy">Retrieving current balances and the latest planning state…  </div><div class="skeleton big"></div><div class="skeleton row"></div></div></div>
+<div class="error-state" id="errorState" style="display:none">Could not load the dashboard.</div>
+
+<nav class="mobile-tabs" aria-label="Mobile navigation">
+  <button class="active" data-scroll="overview"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="7" rx="1"/><rect x="14" y="4" width="6" height="4" rx="1"/><rect x="4" y="15" width="6" height="5" rx="1"/><rect x="14" y="12" width="6" height="8" rx="1"/></svg><span>Overview</span></button>
+  <button data-scroll="weekly"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m5 10V5m5 14v-7m5 7V3"/></svg><span>Weekly</span></button>
+  <button data-scroll="fixedObligationsSection"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10a2 2 0 0 1 2 2v16l-3-2-4 2-4-2-3 2V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>Bills</span></button>
+  <button data-scroll="goalsSection"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="13" r="7"/><circle cx="11" cy="13" r="3"/><path d="m16 8 5-5m-5 0h5v5"/></svg><span>Goals</span></button>
+</nav>
+
+<div class="drawer-backdrop" id="actionDrawer" role="dialog" aria-modal="true" aria-labelledby="actionDrawerTitle"><aside class="drawer"><div class="drawer-head"><div><h2 id="actionDrawerTitle">Action</h2><p id="actionDrawerSubtitle"></p></div><button type="button" class="close" id="actionDrawerClose" aria-label="Close">×</button></div><div class="drawer-body">
+  <div class="drawer-panel" data-drawer="balance" hidden><form id="balanceForm"><div class="form-summary" id="balanceSummary"></div><label for="f-date">Date</label><input type="date" id="f-date" required><div class="row2"><div><label for="f-alex">New Alex KTB balance</label><input type="number" min="0" step="0.01" id="f-alex" inputmode="decimal"></div><div><label for="f-olga">New Olga KTB balance</label><input type="number" min="0" step="0.01" id="f-olga" inputmode="decimal"></div></div><div class="drawer-actions"><button type="button" class="btn secondary drawer-cancel">Cancel</button><button type="submit" class="btn primary" id="submitBtn">Save balances</button></div><div class="form-msg" id="formMsg"></div></form></div>
+
+  <div class="drawer-panel" data-drawer="payment" hidden><form id="paymentForm"><div class="form-summary"><strong>Preview first.</strong> Preview uses the entered payment date, writes nothing. “Weekly Variables Available” is ordinary planned spending; the number below answers a different question: how much extra KTB cash can safely fund this unexpected payment.</div><label for="p-date">Payment date</label><input type="date" id="p-date" required><label for="p-name">Payment name</label><input type="text" id="p-name" placeholder="e.g. Dentist deposit" required><div class="row2"><div><label for="p-alex">Proposed from Alex KTB</label><input type="number" min="0" step="0.01" id="p-alex" placeholder="0"></div><div><label for="p-olga">Proposed from Olga KTB</label><input type="number" min="0" step="0.01" id="p-olga" placeholder="0"></div></div><div class="preview-card" id="paymentPreviewCard"><h4>Payment Preview</h4><div class="preview-grid"><div class="preview-stat"><span>Safe from KTB</span><b id="previewSafeKTB">—</b></div><div class="preview-stat"><span>Required from EF</span><b id="previewEFRequired">—</b></div><div class="preview-stat"><span>Future Variables protected</span><b id="previewVariablesProtected">—</b></div><div class="preview-stat"><span>Unpaid obligations protected</span><b id="previewObligationsProtected">—</b></div></div><div class="preview-explain" id="previewExplain"></div><div id="previewWarnings"></div><div class="preview-actions" id="previewActionButtons"></div></div><div class="drawer-actions three"><button type="button" class="btn secondary drawer-cancel">Cancel</button><button type="button" class="btn" id="previewPaymentBtn">Preview payment</button><button type="submit" class="btn primary" id="paymentBtn" disabled>Record payment</button></div><div class="form-msg" id="paymentMsg"></div></form></div>
+
+  <div class="drawer-panel" data-drawer="income" hidden><form id="incomeForm"><div class="form-summary">Record money only when it has actually arrived. Salary receipt can start a new salary cycle; the app will then ask for the next salary date.</div><label for="i-date">Date</label><input type="date" id="i-date" required><label for="i-source">Source</label><select id="i-source" required><option value="" disabled selected>Select a source</option></select><div class="row2"><div><label for="i-alex">Received into Alex KTB</label><input type="number" min="0" step="0.01" id="i-alex" placeholder="0"></div><div><label for="i-olga">Received into Olga KTB</label><input type="number" min="0" step="0.01" id="i-olga" placeholder="0"></div></div><div class="drawer-actions"><button type="button" class="btn secondary drawer-cancel">Cancel</button><button type="submit" class="btn primary" id="incomeBtn">Save income</button></div><div class="form-msg" id="incomeMsg"></div></form></div>
+
+  <div class="drawer-panel" data-drawer="addGoal" hidden><form id="addGoalForm"><div class="form-summary">Lower rank receives Goal money first.</div><label for="g-name">Goal name</label><input type="text" id="g-name" required><div class="row2"><div><label for="g-amount">Target amount</label><input type="number" min="0.01" step="0.01" id="g-amount" required></div><div><label for="g-rank">Priority rank</label><input type="number" min="1" step="1" id="g-rank" required></div></div><label for="g-date">Target date (optional)</label><input type="date" id="g-date"><div class="drawer-actions"><button type="button" class="btn secondary drawer-cancel">Cancel</button><button type="submit" class="btn primary" id="addGoalBtn">Add goal</button></div><div class="form-msg" id="addGoalMsg"></div></form></div>
+
+  <div class="drawer-panel" data-drawer="nextSalary" hidden><form id="nextSalaryForm"><div class="form-summary" id="nextSalarySummary">The next salary date is explicit and never inferred. Boundary-dependent safe amounts stop if this date becomes stale.</div><label for="next-salary-date">Next salary receipt date</label><input type="date" id="next-salary-date" required><div class="drawer-actions"><button type="button" class="btn secondary drawer-cancel">Cancel</button><button type="submit" class="btn primary" id="nextSalaryBtn">Save next salary date</button></div><div class="form-msg" id="nextSalaryMsg"></div></form></div>
+
+  <div class="drawer-panel" data-drawer="efWithdrawal" hidden><form id="efWithdrawalForm"><div class="form-summary" id="efWithdrawalSummary">Move money from the Emergency Fund to a real KTB account. Record this only after making the actual bank transfer.</div><label for="ew-date">Date</label><input type="date" id="ew-date" required><label for="ew-destination">Destination KTB</label><select id="ew-destination"><option value="Alex">Alex KTB</option><option value="Olga">Olga KTB</option></select><label for="ew-amount">Amount</label><input type="number" min="0.01" step="0.01" id="ew-amount" required><div class="hint" id="efWithdrawalHint"></div><div class="drawer-actions"><button type="button" class="btn secondary drawer-cancel">Cancel</button><button type="submit" class="btn primary" id="efWithdrawalBtn">Record withdrawal</button></div><div class="form-msg" id="efWithdrawalMsg"></div></form></div>
+
+  <div class="drawer-panel" data-drawer="ktbTransfer" hidden><form id="ktbTransferForm"><div class="form-summary" id="ktbTransferSummary">Move existing cash between Alex and Olga KTB. Combined KTB cash does not change.</div><label for="kt-date">Date</label><input type="date" id="kt-date" required><label for="kt-source">From</label><select id="kt-source"><option value="Alex">Alex KTB</option><option value="Olga">Olga KTB</option></select><label for="kt-destination">To</label><select id="kt-destination"><option value="Olga">Olga KTB</option><option value="Alex">Alex KTB</option></select><label for="kt-amount">Amount</label><input type="number" min="0.01" step="0.01" id="kt-amount" required><div class="hint" id="ktbTransferHint"></div><div class="drawer-actions"><button type="button" class="btn secondary drawer-cancel">Cancel</button><button type="submit" class="btn primary" id="ktbTransferBtn">Record transfer</button></div><div class="form-msg" id="ktbTransferMsg"></div></form></div>
+</div></aside></div>
+
+
+<div class="modal-backdrop" id="movementModal" role="dialog" aria-modal="true" aria-labelledby="movementTitle"><aside class="modal movement-drawer"><div class="drawer-head"><div><h2 id="movementTitle">Record movement</h2><p id="movementDescription"></p></div><button type="button" class="close" id="movementCancel" aria-label="Close">×</button></div><form id="movementForm"><div class="movement-summary" id="movementSummary"></div><label for="movementDate">Date</label><input type="date" id="movementDate" required><label for="movementSource">Paid from</label><select id="movementSource" required><option value="Alex">Alex KTB</option><option value="Olga">Olga KTB</option></select><div class="movement-balance" id="movementSourceBalance"></div><label for="movementAmount">Amount</label><input type="number" min="0.01" step="0.01" id="movementAmount" required><div class="hint" id="movementAmountHint"></div><div id="movementPaymentStatusWrap" style="display:none"><label for="movementPaymentStatus">Payment type</label><select id="movementPaymentStatus"><option value="Final">Final payment — Close this bill</option><option value="Partial">Partial payment — keep it open</option></select><div class="hint">Variable bills default to final payment.</div></div><div id="movementNoteWrap" style="display:none"><label for="movementNote">Note (optional)</label><textarea id="movementNote"></textarea></div><div class="form-msg" id="movementMsg"></div><div class="modal-actions"><button type="button" class="btn secondary" id="movementCancelBottom">Cancel</button><button type="submit" class="btn primary" id="movementSubmit">Save</button></div></form></aside></div>
+
+<script src="assets/v24/v24_1_app1.js"></script>
+<script src="assets/v24/v24_1_app2.js"></script>
+<script src="assets/v24/v24_1_app3.js"></script>
+<script src="assets/v24/v24/v24_1_app4.js"></script>
 </body>
 </html>

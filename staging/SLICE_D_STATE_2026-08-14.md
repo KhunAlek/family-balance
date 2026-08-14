@@ -1,4 +1,4 @@
-# Slice D State — AUTOMATED STAGING GATES PASSED; USER ACCEPTANCE PENDING — 2026-08-14
+# Slice D State — ACCEPTED — 2026-08-14
 
 ## Protected production boundary
 
@@ -55,15 +55,39 @@ The real disposable proof recorded all of the following in one run:
 9. exact reconciliation of key source and restored counts/revision;
 10. successful deletion of all disposable Worker, R2 and D1 resources.
 
-## Outstanding acceptance gate
+## Human authenticated acceptance — PASS
 
-Automated Slice D staging gates are complete. The remaining acceptance work requires an approved real Google account in an interactive browser:
+The staging Worker origin was registered on the existing Google OAuth web client. The account owner then completed all real-user checks against `https://family-cash-flow-staging-bridge.abystrov66.workers.dev`:
 
-1. confirm Google sign-in at `https://family-cash-flow-staging-bridge.abystrov66.workers.dev`;
-2. confirm session refresh and sign-out;
-3. exercise the approved controlled staging read/write/correction workflows on mobile and desktop;
-4. record user acceptance or any defects.
+1. approved Google account sign-in opened the populated household dashboard;
+2. a balance update was submitted using the unchanged current Alex and Olga values;
+3. the new balance record received an audited correction with both values unchanged and reason `Slice D acceptance test`;
+4. sign-out returned to the Google authentication gate;
+5. signing in again reopened the dashboard;
+6. the dashboard loaded on the account owner's phone and the action buttons were usable.
 
-If Google reports an unauthorized origin, add the staging Worker origin to the existing Google OAuth web client before repeating the sign-in test.
+No money changed during acceptance.
 
-Production `main` is still `5df6a84f47e904e6909870b438313f5b10c62e22`. Production cutover remains a separate explicit authorization after real-user acceptance passes.
+## Post-acceptance D1 verification — PASS
+
+[Authenticated acceptance verification run `31820656287`](https://github.com/KhunAlek/family-balance/actions/runs/31820656287) passed against the real staging D1 database:
+
+- household revision: **4**;
+- financial write claims: **4**;
+- balance history rows: **73**;
+- correction audit rows: **2**;
+- latest correction actor: `abystrov66@gmail.com`;
+- latest correction reason: `Slice D acceptance test`;
+- correction base revision: **3**;
+- the final revision token matches the correction audit token;
+- the original balance record remains preserved;
+- exactly one higher-precedence `Correction` replacement exists;
+- Alex balance, Olga balance and business date are identical before and after the correction.
+
+[Final post-acceptance mobile/desktop browser run `31820656323`](https://github.com/KhunAlek/family-balance/actions/runs/31820656323) also passed.
+
+## Acceptance conclusion
+
+**Slice D is accepted.** The same-origin Cloudflare runtime, Google authentication/session lifecycle, D1 reads and audited writes, scheduled weekly writer, portable R2 backup/restore, and mobile/desktop behavior have all passed their required staging gates.
+
+Production `main` is still `5df6a84f47e904e6909870b438313f5b10c62e22`. Production cutover remains a separate explicit authorization and has not been performed.

@@ -10,7 +10,8 @@ export async function loadFinancialSnapshot(db, householdId = 'family') {
     db.prepare('SELECT payment_id,obligation_name,period,payment_date,occurrence_due_date,expected_amount_satang,actual_amount_satang,paid_from,balance_adjusted,payment_status,note FROM obligation_payments WHERE household_id=? ORDER BY payment_date,payment_id').bind(householdId),
     db.prepare('SELECT name,target_amount_satang,priority_rank,status,target_date FROM goals WHERE household_id=? ORDER BY priority_rank,name').bind(householdId),
     db.prepare('SELECT ledger_id,business_date,sheet_order,account,direction,amount_satang,source_sheet,source_row FROM ledger_movements WHERE household_id=? ORDER BY business_date,sheet_order').bind(householdId),
-    db.prepare('SELECT week_start,week_end,planned_variables_satang,spent_variables_satang,spent_variables_status,difference_satang,opening_balance_satang,opening_balance_status,closing_balance_satang,status FROM weekly_snapshots WHERE household_id=? ORDER BY week_start').bind(householdId)
+    db.prepare('SELECT week_start,week_end,planned_variables_satang,spent_variables_satang,spent_variables_status,difference_satang,opening_balance_satang,opening_balance_status,closing_balance_satang,status FROM weekly_snapshots WHERE household_id=? ORDER BY week_start').bind(householdId),
+    db.prepare('SELECT cycle_start,source FROM salary_cycle_sources WHERE household_id=? ORDER BY cycle_start,source').bind(householdId)
   ];
   const results = await db.batch(statements);
   const rows = index => results[index]?.results || [];
@@ -32,6 +33,7 @@ export async function loadFinancialSnapshot(db, householdId = 'family') {
     obligationPayments: rows(6),
     goals: rows(7),
     ledger: rows(8),
-    weeklySnapshots: rows(9)
+    weeklySnapshots: rows(9),
+    salaryCycleSources: rows(10)
   };
 }

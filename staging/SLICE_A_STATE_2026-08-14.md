@@ -4,6 +4,12 @@ Branch: `staging-startup-repair-20260814`
 
 Production `main` has not been modified.
 
+## Status
+
+**SLICE A — ACCEPTED / COMPLETE**
+
+Accepted on 2026-08-14 after both required real Google-account tests passed in addition to the full automated transport/browser suite.
+
 ## Deployed bridge
 
 Worker: `family-cash-flow-staging-bridge`
@@ -34,7 +40,7 @@ With the same intentionally invalid Google access token it redirects normally to
 
 `{"ok":false,"error":"Google sign-in could not be verified."}`
 
-Both staging Wrangler configs now use that live deployment as `UPSTREAM_URL`.
+Both staging Wrangler configs use that live deployment as `UPSTREAM_URL`.
 
 ## Frontend wiring
 
@@ -58,7 +64,7 @@ The site is published from `main` / repository root and contains the validated s
 
 A live-host GitHub Actions probe verified that the public staging page is reachable, the published `app1.js` contains the Cloudflare Worker endpoint, `app2.js` calls `fetch(API_ENDPOINT, ...)`, and no direct browser `fetch('https://script.google.com...')` remains.
 
-## Automated acceptance evidence
+## Automated acceptance evidence — PASS
 
 All automatable Slice A deployment tests are green against the real deployed Worker:
 
@@ -76,7 +82,7 @@ Successful deployed A3 run: GitHub Actions run `31802147012`, rerun job `9477253
 
 Browser screenshots artifact from the successful run: `slice-a-deployed-browser-screenshots`, artifact ID `9219729893`.
 
-## Human Google-account acceptance evidence
+## Human Google-account acceptance evidence — PASS
 
 ### Approved account — PASS
 
@@ -89,12 +95,27 @@ The backend source allowlist contains two authorized Google accounts:
 - `abystrov66@gmail.com`
 - `harlyhanz@gmail.com`
 
-### Unauthorized account — PENDING
+### Unauthorized account — PASS
 
-One final mandatory Slice A check remains: a real Google account not equal to either authorized account above must be rejected and must not reach the dashboard.
+On 2026-08-14 the account owner opened the real public staging site in a separate/private browser context and authenticated with a Google account outside the two-account allowlist.
 
-## Remaining Slice A acceptance work
+The application rejected the account with the exact visible message:
 
-Only the unauthorized real-account rejection test remains.
+`This Google account is not authorized for Family Cash Flow.`
 
-No D1 work or Slice B work should start until this final Slice A check is completed and Slice A is accepted.
+The dashboard did not open. Screenshot evidence was supplied in the project chat showing the auth gate and rejection message.
+
+## Slice A acceptance conclusion
+
+All Slice A mandatory criteria are satisfied:
+
+- a real deployed Cloudflare Worker endpoint exists;
+- browser traffic uses the Worker bridge rather than relying on GitHub Pages → Apps Script CORS;
+- no iframe/form transport is used;
+- invalid-token handling settles to structured JSON;
+- no permanent loading state remains on tested mobile/desktop viewports;
+- an approved Google account reaches the dashboard;
+- an unauthorized Google account is rejected;
+- production `main` has not been changed by Slice A.
+
+**Slice B may now begin.**

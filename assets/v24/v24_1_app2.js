@@ -6,7 +6,7 @@ async function rawApi(body){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),30000);
   try{
-    const response=await fetch(APPS_SCRIPT_URL,{
+    const response=await fetch('https://script.google.com/macros/s/AKfycbzJHbXZPiYPCfYGmG3CYd9dryXk0r8clMYgGsV73T7KzHEwshxBP_z5RjX700EBMOTBAg/exec',{
       method:'POST',
       headers:{'Content-Type':'text/plain;charset=UTF-8'},
       body:JSON.stringify(body||{}),

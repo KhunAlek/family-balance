@@ -1,0 +1,139 @@
+name: Staging Apps Script transport test
+
+on:
+  push:
+    branches:
+      - staging-startup-repair-20260814
+    paths:
+      - '.github/workflows/staging-transport-test.yml'
+      - 'index.html'
+      - 'assets/v24/v24_1_app4.js'
+
+permissions:
+  contents: read
+
+jobs:
+  transport:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.54.2 --no-save
+          npx playwright install --with-deps chromium
+
+      - name: Probe live Apps Script iframe transport
+        run: |
+          cat > staging-transport.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+          import path from 'node:path';
+
+          const browser = await chromium.launch({headless:true});
+          const context = await browser.newContext({viewport:{width:390,height:844}});
+          const page = await context.newPage();
+
+          const pageErrors = [];
+          const failedRequests = [];
+          page.on('pageerror', e => pageErrors.push(String(e)));
+          page.on('requestfailed', r => failedRequests.push({url:r.url(), error:r.failure()?.errorText || 'failed'}));
+
+          const root = process.cwd();
+          const mime = file => {
+            if (file.endsWith('.html')) return 'text/html; charset=utf-8';
+            if (file.endsWith('.js')) return 'application/javascript; charset=utf-8';
+            if (file.endsWith('.css')) return 'text/css; charset=utf-8';
+            if (file.endsWith('.svg')) return 'image/svg+xml';
+            if (file.endsWith('.png')) return 'image/png';
+            return 'application/octet-stream';
+          };
+
+          // Keep the real GitHub Pages origin so the Apps Script response's
+          // targetOrigin (https://khunalek.github.io) is exercised exactly.
+          await page.route('https://khunalek.github.io/family-balance/**', async route => {
+            const url = new URL(route.request().url());
+            let rel = decodeURIComponent(url.pathname.replace(/^\/family-balance\/?/, ''));
+            if (!rel) rel = 'index.html';
+            const file = path.resolve(root, rel);
+            if (!file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+              await route.fulfill({status:404, body:'not found'});
+              return;
+            }
+            await route.fulfill({status:200, contentType:mime(file), body:fs.readFileSync(file)});
+          });
+
+          // These third-party libraries are not needed for this transport probe.
+          await page.route('https://accounts.google.com/gsi/client', route =>
+            route.fulfill({status:200, contentType:'application/javascript', body:'window.google=window.google||{};'})
+          );
+          await page.route('https://cdn.jsdelivr.net/**', route =>
+            route.fulfill({status:200, contentType:'application/javascript', body:''})
+          );
+          await page.route('https://fonts.googleapis.com/**', route => route.fulfill({status:200, contentType:'text/css', body:''}));
+          await page.route('https://fonts.gstatic.com/**', route => route.fulfill({status:204, body:''}));
+
+          await page.goto('https://khunalek.github.io/family-balance/?staging-transport-probe=1', {
+            waitUntil:'domcontentloaded', timeout:30000
+          });
+          await page.waitForFunction(() => typeof window.rawApi === 'function', null, {timeout:10000});
+
+          await page.evaluate(() => {
+            window.__fcfProbeMessages = [];
+            window.addEventListener('message', event => {
+              const frames = Array.from(document.querySelectorAll('iframe'));
+              window.__fcfProbeMessages.push({
+                origin: event.origin,
+                sourceMatchesAnyIframe: frames.some(f => event.source === f.contentWindow),
+                dataType: typeof event.data,
+                data: event.data
+              });
+            });
+          });
+
+          const probe = await page.evaluate(async () => {
+            const started = Date.now();
+            try {
+              const result = await rawApi({
+                action:'authBootstrap',
+                accessToken:'fcf-intentionally-invalid-token-for-transport-probe'
+              });
+              return {settled:'resolved', elapsedMs:Date.now()-started, result};
+            } catch (error) {
+              return {settled:'rejected', elapsedMs:Date.now()-started, error:String(error?.message || error)};
+            }
+          });
+
+          const messages = await page.evaluate(() => window.__fcfProbeMessages || []);
+          const output = {probe, messages, pageErrors, failedRequests};
+          console.log(JSON.stringify(output, null, 2));
+
+          await page.screenshot({path:'staging-transport.png', fullPage:true});
+          await browser.close();
+
+          if (probe.settled !== 'resolved') {
+            const detail = JSON.stringify({probe,messages}, null, 2);
+            throw new Error('rawApi transport did not resolve. Diagnostic: '+detail);
+          }
+          if (!probe.result || probe.result.ok !== false) {
+            throw new Error('Expected structured authentication rejection from invalid token, got: '+JSON.stringify(probe.result));
+          }
+          if (probe.elapsedMs >= 29000) {
+            throw new Error('Transport resolved too close to the 30s timeout: '+probe.elapsedMs+'ms');
+          }
+          EOF
+          node staging-transport.mjs
+
+      - name: Upload transport screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-transport-screenshot
+          path: staging-transport.png
+          if-no-files-found: ignore

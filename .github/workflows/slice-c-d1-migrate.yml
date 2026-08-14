@@ -1,0 +1,54 @@
+name: Slice C staging D1 revision migration
+
+on:
+  push:
+    branches: [staging-startup-repair-20260814]
+    paths:
+      - '.github/workflows/slice-c-d1-migrate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 6ee48ea46390bcf76f1d924f4a7d88f1
+      DB_NAME: family-cash-flow-staging-v1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm migration has not already been applied
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.123.0 d1 execute "$DB_NAME" --remote --json --command "SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name='household_revisions';" > /tmp/pre.json
+          node <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/pre.json'));
+          const batch=Array.isArray(x)?x[0]:x;
+          const rows=batch.results||batch.result||[];
+          if (Number(rows[0]?.n||0)!==0) throw new Error('household_revisions already exists; refusing to reapply migration.');
+          NODE
+      - name: Apply revision-state migration
+        run: npx --yes wrangler@4.123.0 d1 execute "$DB_NAME" --remote --file cloudflare/slice-c/migrations/0002_revision_state.sql
+      - name: Verify pristine revision/write state
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.123.0 d1 execute "$DB_NAME" --remote --json --command "SELECT (SELECT current_revision FROM household_revisions WHERE household_id='family') AS revision,(SELECT COUNT(*) FROM financial_write_claims) AS claims,(SELECT COUNT(*) FROM correction_audit) AS corrections;" > /tmp/post.json
+          node <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/post.json'));
+          const batch=Array.isArray(x)?x[0]:x;
+          const row=(batch.results||batch.result||[])[0];
+          if (Number(row?.revision)!==0 || Number(row?.claims)!==0 || Number(row?.corrections)!==0) throw new Error('Staging D1 revision state is not pristine: '+JSON.stringify(row));
+          console.log(JSON.stringify({status:'PASS',...row},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: slice-c-staging-d1-migration-evidence
+          path: |
+            /tmp/pre.json
+            /tmp/post.json
+          if-no-files-found: error

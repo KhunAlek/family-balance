@@ -26,7 +26,11 @@ async function stateEvidence(db) {
     db.prepare('SELECT COUNT(*) AS n FROM obligation_payments'),
     db.prepare("SELECT business_date,alex_balance_satang,olga_balance_satang,one_off_payment_name,source_sheet FROM balance_history WHERE household_id='family' ORDER BY business_date DESC,sheet_order DESC LIMIT 1"),
     db.prepare("SELECT account,direction,amount_satang,business_date,source_sheet FROM ledger_movements WHERE household_id='family' ORDER BY business_date DESC,sheet_order DESC LIMIT 1"),
-    db.prepare("SELECT payment_id,payment_date,occurrence_due_date,actual_amount_satang FROM obligation_payments WHERE household_id='family' ORDER BY rowid DESC LIMIT 1")
+    db.prepare("SELECT payment_id,payment_date,occurrence_due_date,actual_amount_satang FROM obligation_payments WHERE household_id='family' ORDER BY rowid DESC LIMIT 1"),
+    db.prepare('SELECT COUNT(*) AS n FROM weekly_snapshots'),
+    db.prepare("SELECT current_cycle_start,next_salary_date FROM salary_cycle_state WHERE household_id='family'"),
+    db.prepare("SELECT cycle_start,source FROM salary_cycle_sources WHERE household_id='family' ORDER BY cycle_start,source"),
+    db.prepare("SELECT name,target_amount_satang,priority_rank,status,target_date FROM goals WHERE household_id='family' ORDER BY priority_rank,name")
   ]);
   const rows = index => results[index]?.results || [];
   return {
@@ -39,7 +43,11 @@ async function stateEvidence(db) {
     paymentRows: Number(rows(5)[0]?.n || 0),
     latestBalance: rows(6)[0] || null,
     latestLedger: rows(7)[0] || null,
-    latestPayment: rows(8)[0] || null
+    latestPayment: rows(8)[0] || null,
+    weeklyRows: Number(rows(9)[0]?.n || 0),
+    salaryCycle: rows(10)[0] || null,
+    salaryCycleSources: rows(11),
+    goals: rows(12)
   };
 }
 

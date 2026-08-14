@@ -1,0 +1,46 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "family-cash-flow-production",
+  "main": "cloudflare/slice-d/src/index.js",
+  "compatibility_date": "2026-08-14",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "vars": {
+    "GOOGLE_CLIENT_ID": "394909658100-9d73ghog78vr13lgfn0gjch2hd8ljohd.apps.googleusercontent.com",
+    "APPROVED_GOOGLE_EMAILS": "abystrov66@gmail.com,harlyhanz@gmail.com",
+    "BACKUP_ENVIRONMENT": "production",
+    "BACKUP_RETENTION_DAYS": "35"
+  },
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*",
+      "/health"
+    ]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "family-cash-flow-production-v1",
+      "database_id": "d605f4fb-f42a-4610-9805-1c4f8b8329b8"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BACKUPS",
+      "bucket_name": "family-cash-flow-production-backups"
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "0 21 * * SUN",
+      "0 20 * * *"
+    ]
+  }
+}

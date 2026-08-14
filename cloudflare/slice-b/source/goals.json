@@ -1,1 +1,10 @@
-[{"sourceRow":2,"Name":"Olga's laptop","Target amount":25000,"Priority rank":1,"Status":"active","Target date":null}]
+[
+  {
+    "Name": "Olga's laptop",
+    "Target amount": 25000,
+    "Priority rank": 1,
+    "Status": "active",
+    "Target date": null,
+    "sourceRow": 2
+  }
+]

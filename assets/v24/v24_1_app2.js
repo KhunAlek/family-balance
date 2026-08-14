@@ -2,69 +2,28 @@ function getSessionToken(){return sessionStorage.getItem(SESSION_KEY)||''}
 function setSessionToken(token){if(token)sessionStorage.setItem(SESSION_KEY,token);else sessionStorage.removeItem(SESSION_KEY)}
 function showAuthGate(message=''){document.getElementById('loadingState').style.display='none';document.getElementById('app').style.display='none';document.getElementById('authGate').classList.add('show');const e=document.getElementById('authError');e.textContent=message;e.classList.toggle('show',!!message)}
 function hideAuthGate(){document.getElementById('authGate').classList.remove('show');document.getElementById('authError').classList.remove('show')}
-function rawApi(body){
-  return new Promise((resolve,reject)=>{
-    const requestId='fcf_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);
-    const frame=document.createElement('iframe');
-    const form=document.createElement('form');
-    const frameName='fcf_transport_'+requestId;
-    let settled=false;
-    let timer=null;
-
-    frame.name=frameName;
-    frame.setAttribute('aria-hidden','true');
-    frame.tabIndex=-1;
-    frame.style.position='fixed';
-    frame.style.width='1px';
-    frame.style.height='1px';
-    frame.style.border='0';
-    frame.style.opacity='0';
-    frame.style.pointerEvents='none';
-    frame.style.left='-10000px';
-    frame.style.top='-10000px';
-
-    form.method='POST';
-    form.action=APPS_SCRIPT_URL;
-    form.target=frameName;
-    form.acceptCharset='UTF-8';
-    form.style.display='none';
-
-    const addField=(name,value)=>{
-      const input=document.createElement('input');
-      input.type='hidden';
-      input.name=name;
-      input.value=value;
-      form.appendChild(input);
-    };
-    addField('transport','iframe');
-    addField('requestId',requestId);
-    addField('requestJson',JSON.stringify(body||{}));
-
-    const cleanup=()=>{
-      window.removeEventListener('message',onMessage);
-      if(timer)clearTimeout(timer);
-      form.remove();
-      frame.remove();
-    };
-    const finish=(fn,value)=>{
-      if(settled)return;
-      settled=true;
-      cleanup();
-      fn(value);
-    };
-    const onMessage=event=>{
-      if(event.source!==frame.contentWindow)return;
-      const msg=event.data;
-      if(!msg||msg.type!=='fcf-api-response'||String(msg.requestId)!==requestId)return;
-      finish(resolve,msg.result||{ok:false,error:'Empty response.'});
-    };
-
-    window.addEventListener('message',onMessage);
-    document.body.appendChild(frame);
-    document.body.appendChild(form);
-    timer=setTimeout(()=>finish(reject,new Error('Backend request timed out.')),30000);
-    form.submit();
-  });
+async function rawApi(body){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),30000);
+  try{
+    const response=await fetch(APPS_SCRIPT_URL,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=UTF-8'},
+      body:JSON.stringify(body||{}),
+      redirect:'follow',
+      signal:controller.signal
+    });
+    const text=await response.text();
+    if(!response.ok)throw new Error('Backend request failed with HTTP '+response.status+'.');
+    let data;
+    try{data=JSON.parse(text)}catch(err){throw new Error('Backend returned an invalid response.');}
+    return data||{ok:false,error:'Empty response.'};
+  }catch(err){
+    if(err&&err.name==='AbortError')throw new Error('Backend request timed out.');
+    throw err;
+  }finally{
+    clearTimeout(timer);
+  }
 }
 async function apiCall(apiAction,payload){
   const sessionToken=getSessionToken();
@@ -113,5 +72,15 @@ async function initializeApp(){
     AUTHENTICATED_USER=status.identity&&status.identity.email||'';
     hideAuthGate();
     await refreshLiveData();
-  }catch(err){setSessionToken('');showAuthGate('Sign in to continue.')}
+  }catch(err){
+    if(/Authentication required/i.test(err&&err.message||'')){
+      setSessionToken('');
+      showAuthGate('Your session expired. Sign in again.');
+      return;
+    }
+    document.getElementById('loadingState').style.display='none';
+    document.getElementById('app').style.display='none';
+    document.getElementById('errorState').style.display='block';
+    document.getElementById('errorState').textContent='Could not load data: '+(err&&err.message||'Unknown error.');
+  }
 }

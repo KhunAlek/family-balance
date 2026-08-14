@@ -1,0 +1,70 @@
+name: Slice A frontend transport patch
+
+on:
+  push:
+    branches: [staging-startup-repair-20260814]
+    paths:
+      - '.github/workflows/slice-a-frontend-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: staging-startup-repair-20260814
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Patch staging transport only
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const endpoint = 'https://family-cash-flow-staging-bridge.abystrov66.workers.dev/api/apps-script';
+
+          const app1Path = 'assets/v24/v24_1_app1.js';
+          let app1 = fs.readFileSync(app1Path, 'utf8');
+          const app1Before = app1;
+          app1 = app1.replace(/^const APPS_SCRIPT_URL=.*$/m, `const API_ENDPOINT='${endpoint}';`);
+          if (app1 === app1Before) throw new Error('app1 endpoint declaration was not replaced');
+          if (/script\.google\.com\/macros\/s\//.test(app1.split('\n', 1)[0])) throw new Error('app1 still points to Apps Script');
+          fs.writeFileSync(app1Path, app1);
+
+          const app2Path = 'assets/v24/v24_1_app2.js';
+          let app2 = fs.readFileSync(app2Path, 'utf8');
+          const direct = "fetch('https://script.google.com/macros/s/AKfycbzJHbXZPiYPCfYGmG3CYd9dryXk0r8clMYgGsV73T7KzHEwshxBP_z5RjX700EBMOTBAg/exec',{";
+          if (!app2.includes(direct)) throw new Error('expected direct Apps Script fetch was not found in app2');
+          app2 = app2.replace(direct, 'fetch(API_ENDPOINT,{');
+          if (/fetch\('https:\/\/script\.google\.com/.test(app2)) throw new Error('direct Apps Script fetch remains in app2');
+          if (!app2.includes('fetch(API_ENDPOINT,{')) throw new Error('app2 is not using centralized API_ENDPOINT');
+          fs.writeFileSync(app2Path, app2);
+
+          const workflowPath = '.github/workflows/staging-startup-test.yml';
+          let workflow = fs.readFileSync(workflowPath, 'utf8');
+          workflow = workflow.replace(
+            "const BACKEND_URL='https://script.google.com/macros/s/AKfycbzJHbXZPiYPCfYGmG3CYd9dryXk0r8clMYgGsV73T7KzHEwshxBP_z5RjX700EBMOTBAg/exec';",
+            `const API_ENDPOINT='${endpoint}';`
+          );
+          workflow = workflow.replace(
+            "          const app2 = fs.readFileSync('assets/v24/v24_1_app2.js','utf8');\n          if (!app2.includes(`fetch('${BACKEND_URL}'`)) {\n            throw new Error('Direct fetch transport is not pointed at the current Apps Script deployment');\n          }",
+            "          const app1 = fs.readFileSync('assets/v24/v24_1_app1.js','utf8');\n          const app2 = fs.readFileSync('assets/v24/v24_1_app2.js','utf8');\n          if (!app1.includes(`const API_ENDPOINT='${API_ENDPOINT}';`)) {\n            throw new Error('Centralized Cloudflare API endpoint is missing from app1');\n          }\n          if (!app2.includes('fetch(API_ENDPOINT,{')) {\n            throw new Error('Frontend transport is not using centralized API_ENDPOINT');\n          }\n          if (/script\\.google\\.com\\/macros\\/s\\//.test(app2)) {\n            throw new Error('Direct Apps Script browser transport remains in app2');\n          }"
+          );
+          workflow = workflow.replace('          await runTransportProbe();', "          // Real deployed transport is covered by Slice A deployed tests.\n");
+          fs.writeFileSync(workflowPath, workflow);
+          NODE
+      - name: Syntax check patched frontend
+        run: |
+          node --check assets/v24/v24_1_app1.js
+          node --check assets/v24/v24_1_app2.js
+      - name: Commit staging-only patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- assets/v24/v24_1_app1.js assets/v24/v24_1_app2.js .github/workflows/staging-startup-test.yml
+          git diff --cached --quiet && exit 0
+          git commit -m 'Wire staging frontend through Cloudflare bridge'
+          git push origin HEAD:staging-startup-repair-20260814

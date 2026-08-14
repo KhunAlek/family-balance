@@ -1,5 +1,6 @@
 name: Slice A deployed Cloudflare test
 
+# Also serves as the post-deploy transport/browser regression gate for later slices.
 on:
   push:
     branches: [staging-startup-repair-20260814]

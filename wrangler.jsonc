@@ -11,5 +11,12 @@
   "vars": {
     "UPSTREAM_URL": "https://script.google.com/macros/s/AKfycbwtgB7WGkR-XRe19xda5xWmxPg4d_uymyu7wk-Vc0HEQpWdOHTuJ48pj1BIADZ8nOqLUA/exec",
     "ALLOWED_ORIGIN": "https://khunalek.github.io"
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "family-cash-flow-staging-v1",
+      "database_id": "bde37169-c1f5-42bd-b83d-ae7adfbbe4e2"
+    }
+  ]
 }

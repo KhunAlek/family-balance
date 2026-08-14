@@ -1,0 +1,56 @@
+name: Production smoke test
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install browser test runtime
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.54.2 --no-save
+          npx playwright install --with-deps chromium
+      - name: Verify production startup
+        run: |
+          cat > /tmp/smoke.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          const url = 'https://khunalek.github.io/family-balance/?smoke=' + Date.now();
+          const browser = await chromium.launch({ headless: true });
+          const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+          const errors = [];
+          const failed = [];
+          page.on('pageerror', e => errors.push(String(e)));
+          page.on('requestfailed', r => failed.push(`${r.url()} :: ${r.failure()?.errorText || 'failed'}`));
+          const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+          if (!response || !response.ok()) throw new Error(`Page HTTP status ${response?.status()}`);
+          await page.waitForTimeout(3000);
+          const loadingVisible = await page.locator('#loadingState').isVisible().catch(() => false);
+          const authVisible = await page.locator('#authGate').isVisible().catch(() => false);
+          const loginVisible = await page.locator('#googleLoginBtn').isVisible().catch(() => false);
+          const errorVisible = await page.locator('#errorState').isVisible().catch(() => false);
+          const errorText = errorVisible ? await page.locator('#errorState').innerText() : '';
+          console.log(JSON.stringify({url, loadingVisible, authVisible, loginVisible, errorVisible, errorText, errors, failed}, null, 2));
+          await page.screenshot({ path: 'production-smoke.png', fullPage: true });
+          await browser.close();
+          if (errors.length) throw new Error(`JavaScript errors: ${errors.join(' | ')}`);
+          if (errorVisible) throw new Error(`App error state: ${errorText}`);
+          if (loadingVisible) throw new Error('Loading screen is still visible after startup.');
+          if (!authVisible || !loginVisible) throw new Error('Google sign-in gate is not visible.');
+          EOF
+          node /tmp/smoke.mjs
+      - name: Upload smoke screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-smoke
+          path: production-smoke.png
+          if-no-files-found: ignore

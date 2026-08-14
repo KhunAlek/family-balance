@@ -30,6 +30,7 @@ jobs:
           import { chromium } from 'playwright';
           import fs from 'node:fs';
 
+          const BACKEND_URL='https://script.google.com/macros/s/AKfycbzJHbXZPiYPCfYGmG3CYd9dryXk0r8clMYgGsV73T7KzHEwshxBP_z5RjX700EBMOTBAg/exec';
           const html = fs.readFileSync('index.html','utf8');
           if (!html.includes('<script src="assets/v24/v24_1_app4.js"></script>')) {
             throw new Error('Direct app4 reference is missing from index.html');
@@ -39,8 +40,8 @@ jobs:
           }
 
           const app2 = fs.readFileSync('assets/v24/v24_1_app2.js','utf8');
-          if (!app2.includes('fetch(APPS_SCRIPT_URL')) {
-            throw new Error('Direct fetch transport is missing from app2');
+          if (!app2.includes(`fetch('${BACKEND_URL}'`)) {
+            throw new Error('Direct fetch transport is not pointed at the current Apps Script deployment');
           }
           if (app2.includes("document.createElement('iframe')") || app2.includes('form.submit()')) {
             throw new Error('Obsolete iframe/form transport is still present in app2');
@@ -127,6 +128,13 @@ jobs:
             if (probe.probeTimeout) throw new Error('transport: rawApi did not settle within 12 seconds');
             if (probe.error) throw new Error('transport: rawApi threw instead of returning backend JSON: '+probe.error);
             if (!probe.result || probe.result.ok !== false) throw new Error('transport: invalid Google token should produce structured backend rejection: '+JSON.stringify(probe));
+            const backendError=String(probe.result.error||'');
+            if (/script\.external_request|permission to call UrlFetchApp\.fetch/i.test(backendError)) {
+              throw new Error('transport: Apps Script still lacks deployer UrlFetch authorization: '+backendError);
+            }
+            if (!/Google sign-in could not be verified/i.test(backendError)) {
+              throw new Error('transport: unexpected backend rejection for invalid Google token: '+backendError);
+            }
             if (probe.elapsedMs > 10000) throw new Error('transport: rawApi was unexpectedly slow: '+probe.elapsedMs+'ms');
           }
 

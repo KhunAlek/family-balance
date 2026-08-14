@@ -1,0 +1,79 @@
+name: Slice C remote D1 concurrency proof v2
+
+on:
+  push:
+    branches: [staging-startup-repair-20260814]
+    paths:
+      - '.github/workflows/slice-c-remote-concurrency-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  remote-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 6ee48ea46390bcf76f1d924f4a7d88f1
+      DB_NAME: fcf-slice-c-ci-${{ github.run_id }}
+      WORKER_NAME: fcf-slice-c-ci-${{ github.run_id }}
+      CONFIG_PATH: cloudflare/slice-c/remote-test/wrangler.generated.jsonc
+      NOW_ISO: 2026-08-14T12:00:00.000Z
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Create and seed disposable D1 database
+        id: resources
+        run: |
+          set -euo pipefail
+          node cloudflare/slice-b/tools/build-import.mjs /tmp/import.sql /tmp/source-report.json
+          npx --yes wrangler@4.123.0 d1 create "$DB_NAME" --location apac
+          npx --yes wrangler@4.123.0 d1 list --json > /tmp/d1-list.json
+          DB_ID=$(node -e "const x=require('/tmp/d1-list.json');const a=Array.isArray(x)?x:(x.result||[]);const d=a.find(v=>v.name===process.env.DB_NAME);if(!d)process.exit(2);process.stdout.write(d.uuid||d.id)")
+          echo "database_id=$DB_ID" >> "$GITHUB_OUTPUT"
+          npx --yes wrangler@4.123.0 d1 execute "$DB_NAME" --remote --file cloudflare/slice-b/migrations/0001_initial.sql
+          npx --yes wrangler@4.123.0 d1 execute "$DB_NAME" --remote --file /tmp/import.sql
+          npx --yes wrangler@4.123.0 d1 execute "$DB_NAME" --remote --file cloudflare/slice-c/migrations/0002_revision_state.sql
+      - name: Deploy secret-protected disposable test Worker
+        env:
+          DB_ID: ${{ steps.resources.outputs.database_id }}
+        run: |
+          set -euo pipefail
+          export TEST_SECRET=$(openssl rand -hex 32)
+          echo "::add-mask::$TEST_SECRET"
+          echo "TEST_SECRET=$TEST_SECRET" >> "$GITHUB_ENV"
+          node <<'NODE'
+          const fs=require('fs');
+          const config={name:process.env.WORKER_NAME,main:'src/index.js',compatibility_date:'2026-08-14',compatibility_flags:['nodejs_compat'],d1_databases:[{binding:'DB',database_name:process.env.DB_NAME,database_id:process.env.DB_ID}],vars:{TEST_SECRET:process.env.TEST_SECRET}};
+          fs.writeFileSync(process.env.CONFIG_PATH,JSON.stringify(config,null,2));
+          NODE
+          npx --yes wrangler@4.123.0 deploy --config "$CONFIG_PATH"
+          echo "TEST_URL=https://${WORKER_NAME}.abystrov66.workers.dev" >> "$GITHUB_ENV"
+      - name: Wait for disposable Worker
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            if curl -fsS -H "x-slice-c-test-secret: $TEST_SECRET" "$TEST_URL/health" | grep -q 'slice-c-remote-test'; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+      - name: Run real Cloudflare D1 race and failure suite
+        run: node cloudflare/slice-c/remote-test/proof.mjs | tee /tmp/remote-proof.log
+      - name: Upload remote proof evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: slice-c-remote-d1-concurrency-evidence-v2
+          path: |
+            /tmp/source-report.json
+            /tmp/remote-proof.log
+          if-no-files-found: warn
+      - name: Delete disposable Worker and D1 database
+        if: always()
+        run: |
+          npx --yes wrangler@4.123.0 delete --name "$WORKER_NAME" --config "$CONFIG_PATH" || true
+          npx --yes wrangler@4.123.0 d1 delete "$DB_NAME" --skip-confirmation || true

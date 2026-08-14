@@ -48,6 +48,16 @@ Staging frontend uses one centralized endpoint:
 
 Direct browser fetch to Apps Script is removed from the loaded staging transport. No iframe/form transport is used. The repaired direct `assets/v24/v24_1_app4.js` loading path remains.
 
+## Separate live staging host
+
+Repository: `KhunAlek/family-balance-staging`
+
+GitHub Pages URL: `https://khunalek.github.io/family-balance-staging/`
+
+The site is published from `main` / repository root and contains the validated staging `index.html` and `assets/` copied from `KhunAlek/family-balance` branch `staging-startup-repair-20260814`.
+
+A live-host GitHub Actions probe verified that the public staging page is reachable, the published `app1.js` contains the Cloudflare Worker endpoint, `app2.js` calls `fetch(API_ENDPOINT, ...)`, and no direct browser `fetch('https://script.google.com...')` remains.
+
 ## Automated acceptance evidence
 
 All automatable Slice A deployment tests are green against the real deployed Worker:
@@ -66,13 +76,25 @@ Successful deployed A3 run: GitHub Actions run `31802147012`, rerun job `9477253
 
 Browser screenshots artifact from the successful run: `slice-a-deployed-browser-screenshots`, artifact ID `9219729893`.
 
+## Human Google-account acceptance evidence
+
+### Approved account — PASS
+
+On 2026-08-14 the account owner opened the real public staging site at `https://khunalek.github.io/family-balance-staging/`, signed in through Google Identity Services using authorized account `abystrov66@gmail.com`, and the household dashboard loaded successfully with current household data through the staging Cloudflare bridge.
+
+Screenshot evidence was supplied in the project chat showing the fully loaded dashboard (Weekly Variables, Planning position, Emergency Fund, Fixed obligations, Goals, and Account balances all populated).
+
+The backend source allowlist contains two authorized Google accounts:
+
+- `abystrov66@gmail.com`
+- `harlyhanz@gmail.com`
+
+### Unauthorized account — PENDING
+
+One final mandatory Slice A check remains: a real Google account not equal to either authorized account above must be rejected and must not reach the dashboard.
+
 ## Remaining Slice A acceptance work
 
-Two mandatory checks cannot be synthesized because they require real Google Identity Services credentials from human Google accounts:
+Only the unauthorized real-account rejection test remains.
 
-1. An approved account must complete Google sign-in and reach the dashboard through the Worker.
-2. An unauthorized Google account must be rejected.
-
-The current public `https://khunalek.github.io/family-balance/` site is production/main, so it must not be repointed or modified for this test. A separate GitHub Pages staging repository/site under the same `https://khunalek.github.io` origin is required before asking the account owner to perform these two checks.
-
-No D1 work or Slice B work should start until these two Slice A checks are completed and Slice A is accepted.
+No D1 work or Slice B work should start until this final Slice A check is completed and Slice A is accepted.

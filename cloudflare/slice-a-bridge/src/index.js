@@ -184,9 +184,7 @@ async function handleProxy(request, env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname === '/health') {
-      return jsonResponse({ ok: true, service: 'family-cash-flow-staging-bridge', d1ReadModel: !!env.DB });
-    }
+    if (url.pathname === '/health') return jsonResponse({ ok: true, service: 'family-cash-flow-staging-bridge' });
     if (url.pathname === '/api/apps-script') return handleProxy(request, env);
     return jsonResponse({ ok: false, error: 'Not found.' }, 404);
   },

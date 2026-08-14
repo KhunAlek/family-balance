@@ -24,11 +24,42 @@ jobs:
         run: |
           node --check cloudflare/slice-b/src/financial.mjs
           node --check cloudflare/slice-b/test/financial-regression.test.mjs
+          node --check cloudflare/slice-b/tools/build-import.mjs
+          node --check cloudflare/slice-b/tools/verify-import.mjs
       - name: Locked v2.5 financial fixtures
         working-directory: cloudflare/slice-b
         run: npm test
-      - name: Schema smoke check with SQLite
+      - name: Build deterministic live-snapshot import
         run: |
-          sqlite3 /tmp/fcf-slice-b.db < cloudflare/slice-b/migrations/0001_initial.sql
-          sqlite3 /tmp/fcf-slice-b.db ".tables"
-          sqlite3 /tmp/fcf-slice-b.db "PRAGMA foreign_key_check;"
+          node cloudflare/slice-b/tools/build-import.mjs /tmp/import.sql /tmp/source-report.json
+          test -s /tmp/import.sql
+          test -s /tmp/source-report.json
+      - name: Import and reconcile fresh database A
+        run: |
+          rm -f /tmp/fcf-a.db
+          sqlite3 /tmp/fcf-a.db < cloudflare/slice-b/migrations/0001_initial.sql
+          sqlite3 /tmp/fcf-a.db < /tmp/import.sql
+          sqlite3 /tmp/fcf-a.db "PRAGMA foreign_key_check;" | tee /tmp/fk-a.txt
+          test ! -s /tmp/fk-a.txt
+          node cloudflare/slice-b/tools/verify-import.mjs /tmp/fcf-a.db /tmp/source-report.json /tmp/import-report-a.json
+          cat /tmp/import-report-a.json
+      - name: Repeat into independent fresh database B
+        run: |
+          rm -f /tmp/fcf-b.db
+          sqlite3 /tmp/fcf-b.db < cloudflare/slice-b/migrations/0001_initial.sql
+          sqlite3 /tmp/fcf-b.db < /tmp/import.sql
+          sqlite3 /tmp/fcf-b.db "PRAGMA foreign_key_check;" | tee /tmp/fk-b.txt
+          test ! -s /tmp/fk-b.txt
+          node cloudflare/slice-b/tools/verify-import.mjs /tmp/fcf-b.db /tmp/source-report.json /tmp/import-report-b.json
+          diff -u /tmp/import-report-a.json /tmp/import-report-b.json
+      - name: Assert write-state tables remain empty
+        run: |
+          test "$(sqlite3 /tmp/fcf-a.db 'SELECT COUNT(*) FROM financial_write_claims;')" = "0"
+          test "$(sqlite3 /tmp/fcf-a.db 'SELECT COUNT(*) FROM correction_audit;')" = "0"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: slice-b-import-reconciliation
+          path: |
+            /tmp/source-report.json
+            /tmp/import-report-a.json
+          if-no-files-found: error

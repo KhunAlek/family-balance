@@ -24,7 +24,7 @@ async function apiCall(apiAction,payload){
   }
 }
 async function fetchDashboard(){return apiCall('dashboard',{})}
-async function refreshLiveData(){const data=await fetchDashboard();if(data&&data.ok===false)throw new Error(data.error||'Could not load data.');render(data,{stale:false});return data}
+async function refreshLiveData(){const data=await fetchDashboard();if(data&&data.ok===false)throw new Error(data.error||'Could not load data.');render(data,{stale:false});if(typeof refreshNotificationPanel==='function')refreshNotificationPanel().catch(()=>{});return data}
 async function loadData(){try{await refreshLiveData()}catch(err){if(/Authentication required/i.test(err.message||'')){showAuthGate();return}document.getElementById('loadingState').style.display='none';document.getElementById('errorState').style.display='block';document.getElementById('errorState').textContent='Could not load data: '+err.message}}
 async function handleGoogleCredential(response){
   const mount=document.getElementById('googleLoginBtn');

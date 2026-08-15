@@ -4,5 +4,8 @@
   "type": "module",
   "scripts": {
     "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "web-push-neo": "0.1.2"
   }
 }

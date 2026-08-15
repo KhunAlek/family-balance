@@ -12,7 +12,8 @@
     "GOOGLE_CLIENT_ID": "394909658100-9d73ghog78vr13lgfn0gjch2hd8ljohd.apps.googleusercontent.com",
     "APPROVED_GOOGLE_EMAILS": "abystrov66@gmail.com,harlyhanz@gmail.com",
     "BACKUP_ENVIRONMENT": "staging",
-    "BACKUP_RETENTION_DAYS": "35"
+    "BACKUP_RETENTION_DAYS": "35",
+    "VAPID_SUBJECT": "mailto:abystrov66@gmail.com"
   },
   "assets": {
     "directory": ".",
@@ -33,9 +34,6 @@
     }
   ],
   "triggers": {
-    "crons": [
-      "0 21 * * SUN",
-      "0 20 * * *"
-    ]
+    "crons": []
   }
 }

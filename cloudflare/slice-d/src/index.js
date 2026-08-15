@@ -13,6 +13,12 @@ import {
 } from './auth.mjs';
 import { runWeeklySnapshotJob } from './weekly-job.mjs';
 import { runPortableBackup } from './backup.mjs';
+import {
+  DAILY_BALANCE_CRON,
+  WEEKLY_EF_CRON,
+  handleNotificationAction,
+  runNotificationReminder,
+} from './notifications.mjs';
 
 const MAX_REQUEST_BYTES = 64 * 1024;
 const WEEKLY_CRON = '0 21 * * SUN';
@@ -105,8 +111,17 @@ function financialErrorBody(error) {
   return body;
 }
 
-async function handleFinancialAction(payload, identity, env) {
+const NOTIFICATION_ACTIONS = new Set([
+  'notificationStatus',
+  'subscribeNotifications',
+  'unsubscribeNotifications',
+  'testNotification',
+]);
+
+async function handleFinancialAction(payload, identity, env, options = {}) {
   try {
+    const notificationResult = await handleNotificationAction(payload, identity, env, options);
+    if (notificationResult) return jsonResponse(notificationResult);
     if (payload.apiAction === 'dashboard') {
       const snapshot = await loadFinancialSnapshot(env.DB, 'family');
       const model = buildDashboardReadModel(snapshot);
@@ -139,6 +154,15 @@ async function handleFinancialAction(payload, identity, env) {
     throw new ResponseError(404, 'Unknown API action.');
   } catch (error) {
     if (error instanceof ResponseError) throw error;
+    if (NOTIFICATION_ACTIONS.has(String(payload?.apiAction || ''))) {
+      const message = String(error?.message || 'Notification action failed.');
+      console.warn(JSON.stringify({ event: 'notification_action_failure', apiAction: String(payload?.apiAction || ''), message }));
+      const safeClientMessage = /invalid|not subscribed|enable notifications|not configured|could not be delivered/i.test(message)
+        ? message
+        : 'Notification service is unavailable.';
+      const unavailable = /not configured|could not be delivered|service is unavailable/i.test(safeClientMessage);
+      return jsonResponse({ ok: false, error: safeClientMessage }, unavailable ? 503 : 400);
+    }
     if (error instanceof FinancialWriteValidationError || error instanceof StaleFinancialWriterError || error?.validation || error?.staleWriter) {
       return jsonResponse(financialErrorBody(error));
     }
@@ -183,7 +207,7 @@ async function handleApi(request, env) {
   if (url.pathname === '/api/action') {
     const identity = await requireIdentity(request, env);
     const payload = await readBoundedJson(request);
-    return handleFinancialAction(payload, identity, env);
+    return handleFinancialAction(payload, identity, env, { userAgent: request.headers.get('user-agent') || '' });
   }
 
   throw new ResponseError(404, 'Not found.');
@@ -207,6 +231,11 @@ async function handleFetch(request, env) {
   const headers = new Headers(response.headers);
   for (const [name, value] of Object.entries(securityHeaders())) headers.set(name, value);
   if (response.headers.get('content-type')?.includes('text/html')) headers.set('cache-control', 'no-store');
+  if (url.pathname === '/sw.js') {
+    headers.set('cache-control', 'no-cache');
+    headers.set('service-worker-allowed', '/');
+  }
+  if (url.pathname === '/manifest.webmanifest') headers.set('cache-control', 'no-cache');
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
@@ -225,6 +254,16 @@ async function handleScheduled(controller, env) {
     console.log(JSON.stringify({ event: 'portable_backup_completed', ...result }));
     return;
   }
+  if (controller.cron === DAILY_BALANCE_CRON) {
+    const result = await runNotificationReminder(env.DB, env, 'dailyBalance', { scheduledTime: controller.scheduledTime });
+    console.log(JSON.stringify({ event: 'daily_balance_reminder_completed', ...result }));
+    return;
+  }
+  if (controller.cron === WEEKLY_EF_CRON) {
+    const result = await runNotificationReminder(env.DB, env, 'weeklyEf', { scheduledTime: controller.scheduledTime });
+    console.log(JSON.stringify({ event: 'weekly_ef_reminder_completed', ...result }));
+    return;
+  }
   console.warn(JSON.stringify({ event: 'unknown_scheduled_trigger', cron: controller.cron }));
 }
 
@@ -237,4 +276,4 @@ export default {
   },
 };
 
-export { handleFetch, handleScheduled, WEEKLY_CRON, BACKUP_CRON };
+export { handleFetch, handleScheduled, WEEKLY_CRON, BACKUP_CRON, DAILY_BALANCE_CRON, WEEKLY_EF_CRON };

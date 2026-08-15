@@ -2,7 +2,7 @@ name: Cloudflare staging direct deploy
 
 on:
   push:
-    branches: [staging-startup-repair-20260814]
+    branches: [staging-startup-repair-20260814, feature/web-push-notifications-20260815]
     paths:
       - '.cloudflare-direct-deploy-trigger'
       - '.assetsignore'
@@ -24,6 +24,11 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install pinned Web Push dependency
+        run: npm ci --prefix cloudflare/slice-d --ignore-scripts --no-audit --no-fund
       - name: Ensure staging R2 backup bucket exists
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -44,8 +49,67 @@ jobs:
           if ! node -e "const x=require('/tmp/worker-secrets.json'); process.exit(x.some(v=>v.name==='SESSION_SIGNING_KEY')?0:1)"; then
             openssl rand -base64 48 | npx --yes wrangler@4.123.0 secret put SESSION_SIGNING_KEY --name family-cash-flow-staging-bridge
           fi
+      - name: Ensure persistent staging VAPID key pair exists
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 6ee48ea46390bcf76f1d924f4a7d88f1
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.123.0 secret list --name family-cash-flow-staging-bridge --format json > /tmp/staging-secrets.json
+          if ! node -e "const x=require('/tmp/staging-secrets.json'); process.exit(x.some(v=>v.name==='VAPID_PUBLIC_KEY')&&x.some(v=>v.name==='VAPID_PRIVATE_KEY')?0:1)"; then
+            (cd cloudflare/slice-d && node --input-type=module <<'NODE'
+          import { generateVAPIDKeys } from 'web-push-neo';
+          import fs from 'node:fs';
+          const keys = await generateVAPIDKeys();
+          fs.writeFileSync('/tmp/vapid-public', keys.publicKey, { mode: 0o600 });
+          fs.writeFileSync('/tmp/vapid-private', keys.privateKey, { mode: 0o600 });
+          NODE
+            )
+            npx --yes wrangler@4.123.0 secret put VAPID_PUBLIC_KEY --name family-cash-flow-staging-bridge < /tmp/vapid-public
+            npx --yes wrangler@4.123.0 secret put VAPID_PRIVATE_KEY --name family-cash-flow-staging-bridge < /tmp/vapid-private
+            shred -u /tmp/vapid-public /tmp/vapid-private
+          fi
+      - name: Apply idempotent Web Push schema
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 6ee48ea46390bcf76f1d924f4a7d88f1
+        run: npx --yes wrangler@4.123.0 d1 execute family-cash-flow-staging-v1 --remote --config wrangler.jsonc --file cloudflare/slice-d/migrations/0004_web_push_notifications.sql
       - name: Deploy Slice D same-origin staging Worker with Wrangler 4
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: 6ee48ea46390bcf76f1d924f4a7d88f1
         run: npx --yes wrangler@4.123.0 deploy --config wrangler.jsonc
+      - name: Verify staging runtime and notification assets
+        env:
+          WORKER_ORIGIN: https://family-cash-flow-staging-bridge.abystrov66.workers.dev
+        run: |
+          set -euo pipefail
+          health_code=000
+          for attempt in $(seq 1 60); do
+            health_code=$(curl -sS -H 'accept: application/json' -o /tmp/staging-health.json -w '%{http_code}' "$WORKER_ORIGIN/health" || true)
+            if [ "$health_code" = 200 ] && node -e "const x=require('/tmp/staging-health.json'); if(!(x.ok===true&&x.runtime==='slice-d'&&x.appsScriptDependency===false))process.exit(1)"; then
+              break
+            fi
+            sleep 2
+          done
+          test "$health_code" = 200
+          echo "health PASS"
+
+          curl -fsS "$WORKER_ORIGIN/" -o /tmp/staging-root.html
+          grep -Fq 'Enable on this device' /tmp/staging-root.html
+          grep -Fq 'v24_1_notifications.js' /tmp/staging-root.html
+          echo "notification UI PASS"
+
+          curl -fsS "$WORKER_ORIGIN/sw.js" -o /tmp/staging-sw.js
+          grep -Fq "self.addEventListener('push'" /tmp/staging-sw.js
+          grep -Fq "self.addEventListener('notificationclick'" /tmp/staging-sw.js
+          echo "service worker PASS"
+
+          curl -fsS "$WORKER_ORIGIN/manifest.webmanifest" -o /tmp/staging-manifest.json
+          node -e "const x=require('/tmp/staging-manifest.json'); if(!(x.name==='Family Cash Flow'&&x.scope==='/'&&x.display==='standalone'))process.exit(1)"
+          echo "manifest PASS"
+
+          auth_code=$(curl -sS -H 'accept: application/json' -o /tmp/staging-auth.json -w '%{http_code}' "$WORKER_ORIGIN/api/auth/session")
+          test "$auth_code" = 401
+          node -e "const x=require('/tmp/staging-auth.json'); if(!(x.ok===false&&/Authentication required/.test(x.error)))process.exit(1)"
+          echo "authentication boundary PASS"

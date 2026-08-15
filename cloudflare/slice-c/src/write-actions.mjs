@@ -1,6 +1,6 @@
 import { FinancialWriteValidationError, statement } from './write-protocol.mjs';
 import { bangkokBusinessDate, compareDates, isoDate, monthPeriod } from '../../slice-b/src/dates.mjs';
-import { latestUsableBalance, manualReconciliationFreshness } from '../../slice-b/src/balances.mjs';
+import { historyRowOrder, latestUsableBalance, manualReconciliationFreshness } from '../../slice-b/src/balances.mjs';
 import { buildPlanningState } from '../../slice-b/src/planning.mjs';
 import { accountLedgerBalance } from '../../slice-b/src/ef-goals.mjs';
 import { enumerateObligationOccurrences } from '../../slice-b/src/obligations.mjs';
@@ -51,7 +51,7 @@ function recordAtOrBefore(rows, requestedDate) {
     if (!date || date > target) continue;
     if (!finite(row.alex_balance_satang) || !finite(row.olga_balance_satang)) continue;
     if (!selected || date > selected.business_date ||
-        (date === selected.business_date && Number(row.sheet_order || 0) > Number(selected.sheet_order || 0))) selected = row;
+        (date === selected.business_date && historyRowOrder(row) > historyRowOrder(selected))) selected = row;
   }
   return selected;
 }

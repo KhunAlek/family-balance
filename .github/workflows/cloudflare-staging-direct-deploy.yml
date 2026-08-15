@@ -79,3 +79,33 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: 6ee48ea46390bcf76f1d924f4a7d88f1
         run: npx --yes wrangler@4.123.0 deploy --config wrangler.jsonc
+      - name: Verify staging runtime and notification assets
+        env:
+          WORKER_ORIGIN: https://family-cash-flow-staging-bridge.abystrov66.workers.dev
+        run: |
+          set -euo pipefail
+          health_code=000
+          for attempt in $(seq 1 60); do
+            health_code=$(curl -sS -H 'accept: application/json' -o /tmp/staging-health.json -w '%{http_code}' "$WORKER_ORIGIN/health" || true)
+            if [ "$health_code" = 200 ] && node -e "const x=require('/tmp/staging-health.json'); if(!(x.ok===true&&x.runtime==='slice-d'&&x.appsScriptDependency===false))process.exit(1)"; then
+              break
+            fi
+            sleep 2
+          done
+          test "$health_code" = 200
+
+          curl -sS "$WORKER_ORIGIN/" -o /tmp/staging-root.html
+          grep -Fq 'Enable on this device' /tmp/staging-root.html
+          grep -Fq 'v24_1_notifications.js' /tmp/staging-root.html
+
+          curl -sS -D /tmp/staging-sw.headers "$WORKER_ORIGIN/sw.js" -o /tmp/staging-sw.js
+          grep -Fqi 'service-worker-allowed: /' /tmp/staging-sw.headers
+          grep -Fq "self.addEventListener('push'" /tmp/staging-sw.js
+          grep -Fq "self.addEventListener('notificationclick'" /tmp/staging-sw.js
+
+          curl -sS "$WORKER_ORIGIN/manifest.webmanifest" -o /tmp/staging-manifest.json
+          node -e "const x=require('/tmp/staging-manifest.json'); if(!(x.name==='Family Cash Flow'&&x.scope==='/'&&x.display==='standalone'))process.exit(1)"
+
+          auth_code=$(curl -sS -H 'accept: application/json' -o /tmp/staging-auth.json -w '%{http_code}' "$WORKER_ORIGIN/api/auth/session")
+          test "$auth_code" = 401
+          node -e "const x=require('/tmp/staging-auth.json'); if(!(x.ok===false&&/Authentication required/.test(x.error)))process.exit(1)"

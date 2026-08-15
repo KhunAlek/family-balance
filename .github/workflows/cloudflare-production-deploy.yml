@@ -119,8 +119,8 @@ jobs:
           node -e "const x=require('/tmp/auth.json'); if(!(x.ok===false&&/Authentication required/.test(x.error)))process.exit(1)"
 
           npx --yes wrangler@4.123.0 secret list --name "$WORKER_NAME" --format json > /tmp/secrets.json
-          node <<'NODE'
-          const fs=require('fs');
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
           const account=process.env.CLOUDFLARE_ACCOUNT_ID;
           const url=`https://api.cloudflare.com/client/v4/accounts/${account}/workers/scripts/${process.env.WORKER_NAME}/schedules`;
           const response=await fetch(url,{headers:{authorization:`Bearer ${process.env.CLOUDFLARE_API_TOKEN}`}});

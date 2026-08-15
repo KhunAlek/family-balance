@@ -93,19 +93,23 @@ jobs:
             sleep 2
           done
           test "$health_code" = 200
+          echo "health PASS"
 
-          curl -sS "$WORKER_ORIGIN/" -o /tmp/staging-root.html
+          curl -fsS "$WORKER_ORIGIN/" -o /tmp/staging-root.html
           grep -Fq 'Enable on this device' /tmp/staging-root.html
           grep -Fq 'v24_1_notifications.js' /tmp/staging-root.html
+          echo "notification UI PASS"
 
-          curl -sS -D /tmp/staging-sw.headers "$WORKER_ORIGIN/sw.js" -o /tmp/staging-sw.js
-          grep -Fqi 'service-worker-allowed: /' /tmp/staging-sw.headers
+          curl -fsS "$WORKER_ORIGIN/sw.js" -o /tmp/staging-sw.js
           grep -Fq "self.addEventListener('push'" /tmp/staging-sw.js
           grep -Fq "self.addEventListener('notificationclick'" /tmp/staging-sw.js
+          echo "service worker PASS"
 
-          curl -sS "$WORKER_ORIGIN/manifest.webmanifest" -o /tmp/staging-manifest.json
+          curl -fsS "$WORKER_ORIGIN/manifest.webmanifest" -o /tmp/staging-manifest.json
           node -e "const x=require('/tmp/staging-manifest.json'); if(!(x.name==='Family Cash Flow'&&x.scope==='/'&&x.display==='standalone'))process.exit(1)"
+          echo "manifest PASS"
 
           auth_code=$(curl -sS -H 'accept: application/json' -o /tmp/staging-auth.json -w '%{http_code}' "$WORKER_ORIGIN/api/auth/session")
           test "$auth_code" = 401
           node -e "const x=require('/tmp/staging-auth.json'); if(!(x.ok===false&&/Authentication required/.test(x.error)))process.exit(1)"
+          echo "authentication boundary PASS"

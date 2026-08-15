@@ -23,6 +23,7 @@ import {
 const MAX_REQUEST_BYTES = 64 * 1024;
 const WEEKLY_CRON = '0 21 * * SUN';
 const BACKUP_CRON = '0 20 * * *';
+const CONSOLIDATED_CRON = '0 2,13,20,21 * * *';
 
 function securityHeaders() {
   return {
@@ -239,13 +240,26 @@ async function handleFetch(request, env) {
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
+function scheduledJobKinds(controller) {
+  const instant = new Date(controller.scheduledTime);
+  if (!Number.isFinite(instant.getTime()) || instant.getUTCMinutes() !== 0) return [];
+  const hour = instant.getUTCHours();
+  const day = instant.getUTCDay();
+  if (hour === 21 && day === 0) return ['weeklySnapshot'];
+  if (hour === 20) return ['portableBackup'];
+  if (hour === 13) return ['dailyBalance'];
+  if (hour === 2 && day === 1) return ['weeklyEf'];
+  return [];
+}
+
 async function handleScheduled(controller, env) {
-  if (controller.cron === WEEKLY_CRON) {
+  const jobs = scheduledJobKinds(controller);
+  if (jobs.includes('weeklySnapshot')) {
     const result = await runWeeklySnapshotJob(env.DB, { scheduledTime: controller.scheduledTime });
     console.log(JSON.stringify({ event: 'weekly_snapshot_completed', ...result }));
     return;
   }
-  if (controller.cron === BACKUP_CRON) {
+  if (jobs.includes('portableBackup')) {
     const result = await runPortableBackup(env.DB, env.BACKUPS, {
       environment: env.BACKUP_ENVIRONMENT,
       retentionDays: Number(env.BACKUP_RETENTION_DAYS),
@@ -254,12 +268,12 @@ async function handleScheduled(controller, env) {
     console.log(JSON.stringify({ event: 'portable_backup_completed', ...result }));
     return;
   }
-  if (controller.cron === DAILY_BALANCE_CRON) {
+  if (jobs.includes('dailyBalance')) {
     const result = await runNotificationReminder(env.DB, env, 'dailyBalance', { scheduledTime: controller.scheduledTime });
     console.log(JSON.stringify({ event: 'daily_balance_reminder_completed', ...result }));
     return;
   }
-  if (controller.cron === WEEKLY_EF_CRON) {
+  if (jobs.includes('weeklyEf')) {
     const result = await runNotificationReminder(env.DB, env, 'weeklyEf', { scheduledTime: controller.scheduledTime });
     console.log(JSON.stringify({ event: 'weekly_ef_reminder_completed', ...result }));
     return;
@@ -276,4 +290,4 @@ export default {
   },
 };
 
-export { handleFetch, handleScheduled, WEEKLY_CRON, BACKUP_CRON, DAILY_BALANCE_CRON, WEEKLY_EF_CRON };
+export { handleFetch, handleScheduled, scheduledJobKinds, WEEKLY_CRON, BACKUP_CRON, CONSOLIDATED_CRON, DAILY_BALANCE_CRON, WEEKLY_EF_CRON };

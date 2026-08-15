@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { signSession } from '../src/auth.mjs';
-import { DAILY_BALANCE_CRON, WEEKLY_EF_CRON, handleFetch, handleScheduled } from '../src/index.js';
+import { CONSOLIDATED_CRON, DAILY_BALANCE_CRON, WEEKLY_EF_CRON, handleFetch, scheduledJobKinds } from '../src/index.js';
 
 const origin = 'https://family-cash-flow-staging-bridge.example';
 const env = {
@@ -67,4 +67,15 @@ test('notification status remains authenticated and same-origin', async () => {
 test('notification cron constants use 20:00 daily and 09:00 Monday Bangkok UTC conversion', () => {
   assert.equal(DAILY_BALANCE_CRON, '0 13 * * *');
   assert.equal(WEEKLY_EF_CRON, '0 2 * * MON');
+  assert.equal(CONSOLIDATED_CRON, '0 2,13,20,21 * * *');
+});
+
+test('one free-tier cron routes every production job at its reviewed UTC time', () => {
+  const at = value => scheduledJobKinds({ cron: CONSOLIDATED_CRON, scheduledTime: Date.parse(value) });
+  assert.deepEqual(at('2026-08-16T21:00:00Z'), ['weeklySnapshot']);
+  assert.deepEqual(at('2026-08-16T20:00:00Z'), ['portableBackup']);
+  assert.deepEqual(at('2026-08-17T13:00:00Z'), ['dailyBalance']);
+  assert.deepEqual(at('2026-08-17T02:00:00Z'), ['weeklyEf']);
+  assert.deepEqual(at('2026-08-18T02:00:00Z'), []);
+  assert.deepEqual(at('2026-08-18T21:00:00Z'), []);
 });

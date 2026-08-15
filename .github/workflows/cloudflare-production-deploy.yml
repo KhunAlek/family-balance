@@ -85,6 +85,24 @@ jobs:
             shred -u /tmp/vapid-public /tmp/vapid-private
           fi
 
+      - name: Release staging cron capacity for production
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const account=process.env.CLOUDFLARE_ACCOUNT_ID;
+          const base=`https://api.cloudflare.com/client/v4/accounts/${account}/workers/scripts/family-cash-flow-staging-bridge/schedules`;
+          const headers={authorization:`Bearer ${process.env.CLOUDFLARE_API_TOKEN}`};
+          const listResponse=await fetch(base,{headers});
+          const list=await listResponse.json();
+          if(!listResponse.ok||!list.success) throw new Error('Could not list staging cron schedules.');
+          for(const schedule of list.result||[]){
+            const response=await fetch(`${base}/${encodeURIComponent(schedule.id)}`,{method:'DELETE',headers});
+            const result=await response.json();
+            if(!response.ok||!result.success) throw new Error('Could not remove a staging cron schedule.');
+          }
+          console.log(`Released ${(list.result||[]).length} staging cron schedule(s).`);
+          NODE
+
       - name: Bootstrap Worker before secret rotation
         run: |
           set -euo pipefail
@@ -124,12 +142,24 @@ jobs:
           npx --yes wrangler@4.123.0 secret list --name "$WORKER_NAME" --format json > /tmp/secrets.json
           node <<'NODE'
           const fs=require('fs');
+          const account=process.env.CLOUDFLARE_ACCOUNT_ID;
+          const url=`https://api.cloudflare.com/client/v4/accounts/${account}/workers/scripts/${process.env.WORKER_NAME}/schedules`;
+          const response=await fetch(url,{headers:{authorization:`Bearer ${process.env.CLOUDFLARE_API_TOKEN}`}});
+          const result=await response.json();
+          if(!response.ok||!result.success) throw new Error('Could not verify production cron schedules.');
+          fs.writeFileSync('/tmp/production-crons.json',JSON.stringify((result.result||[]).map(x=>x.cron).sort()));
+          NODE
+          node <<'NODE'
+          const fs=require('fs');
           const health=JSON.parse(fs.readFileSync('/tmp/health.json'));
           const secrets=JSON.parse(fs.readFileSync('/tmp/secrets.json'));
           if(!secrets.some(x=>x.name==='SESSION_SIGNING_KEY')) throw new Error('SESSION_SIGNING_KEY is missing');
           if(!secrets.some(x=>x.name==='VAPID_PUBLIC_KEY')) throw new Error('VAPID_PUBLIC_KEY is missing');
           if(!secrets.some(x=>x.name==='VAPID_PRIVATE_KEY')) throw new Error('VAPID_PRIVATE_KEY is missing');
           const config=JSON.parse(fs.readFileSync('wrangler.production.jsonc'));
+          const actualCrons=JSON.parse(fs.readFileSync('/tmp/production-crons.json'));
+          const expectedCrons=[...config.triggers.crons].sort();
+          if(JSON.stringify(actualCrons)!==JSON.stringify(expectedCrons)) throw new Error('Production cron schedules do not match reviewed configuration.');
           const versionPattern=/Current Version ID:\s*([^\s]+)/;
           const bootstrapVersion=fs.readFileSync('/tmp/bootstrap-deploy.log','utf8').match(versionPattern)?.[1] || null;
           const finalVersion=fs.readFileSync('/tmp/final-deploy.log','utf8').match(versionPattern)?.[1] || null;

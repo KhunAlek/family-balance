@@ -1,0 +1,84 @@
+name: Production acceptance state verification
+
+on:
+  push:
+    branches: [production-acceptance-verify-20260815]
+    paths:
+      - '.github/workflows/production-acceptance-verify.yml'
+      - 'production-acceptance-stage.txt'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 6ee48ea46390bcf76f1d924f4a7d88f1
+      D1_NAME: family-cash-flow-production-v1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Capture and verify production acceptance state
+        run: |
+          set -euo pipefail
+          STAGE="$(tr -d '[:space:]' < production-acceptance-stage.txt)"
+          test "$STAGE" = before -o "$STAGE" = after
+          QUERY="SELECT r.current_revision revision,r.last_write_token,(SELECT COUNT(*) FROM financial_write_claims) claim_rows,(SELECT COUNT(*) FROM balance_history) balance_rows,(SELECT COUNT(*) FROM correction_audit) correction_rows,(SELECT business_date FROM balance_history ORDER BY business_date DESC,CASE WHEN source_sheet='Correction' THEN 1 ELSE 0 END DESC,source_row DESC LIMIT 1) latest_date,(SELECT alex_balance_satang FROM balance_history ORDER BY business_date DESC,CASE WHEN source_sheet='Correction' THEN 1 ELSE 0 END DESC,source_row DESC LIMIT 1) latest_alex,(SELECT olga_balance_satang FROM balance_history ORDER BY business_date DESC,CASE WHEN source_sheet='Correction' THEN 1 ELSE 0 END DESC,source_row DESC LIMIT 1) latest_olga FROM household_revisions r WHERE r.household_id='family';"
+          npx --yes wrangler@4.123.0 d1 execute "$D1_NAME" --remote --json --command "$QUERY" > /tmp/state.json
+          if [ "$STAGE" = after ]; then
+            AUDIT_QUERY="SELECT a.correction_id,a.entity_type,a.entity_id,a.before_json,a.after_json,a.reason,a.actor_email,a.base_revision,a.write_token,(SELECT COUNT(*) FROM balance_history b WHERE b.source_sheet='Correction' AND b.source_row=CAST(json_extract(a.after_json,'$.source_row') AS INTEGER) AND b.alex_balance_satang IS json_extract(a.after_json,'$.alex_balance_satang') AND b.olga_balance_satang IS json_extract(a.after_json,'$.olga_balance_satang')) replacement_rows,(SELECT COUNT(*) FROM balance_history b WHERE b.id=a.entity_id) original_rows FROM correction_audit a ORDER BY corrected_at DESC,correction_id DESC LIMIT 1;"
+            npx --yes wrangler@4.123.0 d1 execute "$D1_NAME" --remote --json --command "$AUDIT_QUERY" > /tmp/audit.json
+          else
+            printf '[]\n' > /tmp/audit.json
+          fi
+          STAGE="$STAGE" node <<'NODE'
+          const fs=require('fs');
+          const rowOf=x=>{const b=Array.isArray(x)?x[0]:x;return (b.results||b.result||[])[0]};
+          const state=rowOf(JSON.parse(fs.readFileSync('/tmp/state.json','utf8')));
+          if(!state)throw new Error('Production state row missing');
+          const stage=process.env.STAGE;
+          const expectedBefore={revision:0,claim_rows:0,balance_rows:69,correction_rows:0,latest_date:'2026-08-12',latest_alex:228500,latest_olga:1145500};
+          if(stage==='before'){
+            for(const [k,v] of Object.entries(expectedBefore))if(String(state[k])!==String(v))throw new Error('Before-state mismatch '+k+': '+state[k]);
+          } else {
+            const expectedAfter={revision:2,claim_rows:2,balance_rows:71,correction_rows:1,latest_alex:228500,latest_olga:1145500};
+            for(const [k,v] of Object.entries(expectedAfter))if(String(state[k])!==String(v))throw new Error('After-state mismatch '+k+': '+state[k]);
+            const audit=rowOf(JSON.parse(fs.readFileSync('/tmp/audit.json','utf8')));
+            if(!audit)throw new Error('Acceptance audit missing');
+            const before=JSON.parse(audit.before_json), after=JSON.parse(audit.after_json);
+            const allowed=new Set(['abystrov66@gmail.com','harlyhanz@gmail.com']);
+            const checks={
+              entity:audit.entity_type==='balance_history',
+              reason:audit.reason==='Production cutover acceptance test',
+              actor:allowed.has(String(audit.actor_email||'').toLowerCase()),
+              baseRevision:Number(audit.base_revision)===1,
+              writeToken:audit.write_token===state.last_write_token,
+              replacement:Number(audit.replacement_rows)===1,
+              originalPreserved:Number(audit.original_rows)===1,
+              unchangedAlex:before.alex_balance_satang===after.alex_balance_satang,
+              unchangedOlga:before.olga_balance_satang===after.olga_balance_satang,
+              unchangedDate:before.business_date===after.business_date,
+              replacementFor:String(after.replacementForBalanceRowId)===String(audit.entity_id)
+            };
+            const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([k])=>k);
+            if(failed.length)throw new Error('Acceptance verification failed: '+failed.join(', '));
+          }
+          const evidence={status:'PASS',stage,capturedAt:new Date().toISOString(),state,noMoneyChanged:stage==='after'?true:null};
+          fs.writeFileSync('/tmp/production-acceptance-state.json',JSON.stringify(evidence,null,2)+'\n');
+          console.log(JSON.stringify(evidence));
+          NODE
+
+      - name: Upload sanitized evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-acceptance-state
+          path: |
+            /tmp/production-acceptance-state.json
+            /tmp/audit.json
+          if-no-files-found: error

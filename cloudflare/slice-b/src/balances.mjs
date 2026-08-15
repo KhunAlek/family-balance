@@ -3,12 +3,29 @@ import { addDays, compareDates, isoDate, parseIsoDate } from './dates.mjs';
 const usable = value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
 const fromSatang = value => usable(value) ? Number(value) / 100 : null;
 
+const REVISION_HISTORY_BASE = 1_000_000_000;
+const revisionOrderedSources = new Set(['cloudflare', 'correction']);
+
+// Imported Sheet rows use sheet_order. Cloudflare writes and audited corrections
+// share a revision-derived source_row, which is the only chronology that remains
+// valid across both historical ordering namespaces.
+export function historyRowOrder(row) {
+  const source = String(row?.source_sheet || '').trim().toLowerCase();
+  const rawSourceRow = row?.source_row;
+  const sourceRow = Number(rawSourceRow);
+  if (revisionOrderedSources.has(source) && rawSourceRow !== null && rawSourceRow !== undefined && rawSourceRow !== '' && Number.isFinite(sourceRow)) {
+    return REVISION_HISTORY_BASE + sourceRow;
+  }
+  const sheetOrder = Number(row?.sheet_order || 0);
+  return Number.isFinite(sheetOrder) ? sheetOrder : 0;
+}
+
 export function latestUsableBalance(rows) {
   let selected = null;
   for (const row of rows || []) {
     if (!usable(row.alex_balance_satang) || !usable(row.olga_balance_satang) || !isoDate(row.business_date)) continue;
     if (!selected || compareDates(row.business_date, selected.business_date) > 0 ||
-        (row.business_date === selected.business_date && Number(row.sheet_order || 0) > Number(selected.sheet_order || 0))) {
+        (row.business_date === selected.business_date && historyRowOrder(row) > historyRowOrder(selected))) {
       selected = row;
     }
   }
@@ -29,7 +46,7 @@ export function balanceOnDate(rows, date) {
   let selected = null;
   for (const row of rows || []) {
     if (row.business_date !== requested || !usable(row.alex_balance_satang) || !usable(row.olga_balance_satang)) continue;
-    if (!selected || Number(row.sheet_order || 0) > Number(selected.sheet_order || 0)) selected = row;
+    if (!selected || historyRowOrder(row) > historyRowOrder(selected)) selected = row;
   }
   if (!selected) return null;
   return fromSatang(selected.alex_balance_satang) + fromSatang(selected.olga_balance_satang);
@@ -45,7 +62,7 @@ export function nearestPriorBalance(rows, requestedDate, maxFallbackDays = 14) {
     if (!date || date > target) continue;
     const fallbackDays = Math.floor((target.getTime() - date.getTime()) / 86400000);
     if (fallbackDays > maxFallbackDays) continue;
-    if (!selected || date > selected.date || (date.getTime() === selected.date.getTime() && Number(row.sheet_order || 0) > Number(selected.row.sheet_order || 0))) {
+    if (!selected || date > selected.date || (date.getTime() === selected.date.getTime() && historyRowOrder(row) > historyRowOrder(selected.row))) {
       selected = { date, row, fallbackDays };
     }
   }

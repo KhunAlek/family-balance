@@ -13,7 +13,7 @@ function own(o, key) { return Object.prototype.hasOwnProperty.call(o || {}, key)
 function asPlain(value) { return value ? JSON.parse(JSON.stringify(value)) : null; }
 
 function correctionIdentity(ctx, sequence) {
-  return { sheetOrder: 2_000_000_000 + ctx.nextRevision * 100 + sequence, sourceRow: ctx.nextRevision * 100 + sequence };
+  return { sheetOrder: 1_000_000_000 + ctx.nextRevision * 100 + sequence, sourceRow: ctx.nextRevision * 100 + sequence };
 }
 
 function findRecord(snapshot, entityType, entityId) {

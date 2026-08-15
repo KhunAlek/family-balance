@@ -2,7 +2,7 @@ name: Cloudflare staging direct deploy
 
 on:
   push:
-    branches: [staging-startup-repair-20260814, feature/web-push-notifications-20260815, feature/brand-harmonization-20260815, fix/mobile-auth-centering-20260815]
+    branches: [staging-startup-repair-20260814, feature/web-push-notifications-20260815, feature/brand-harmonization-20260815]
     paths:
       - '.cloudflare-direct-deploy-trigger'
       - '.assetsignore'

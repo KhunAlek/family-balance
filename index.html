@@ -6,6 +6,7 @@
 <title>Family Cash Flow</title>
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#102b3b">
+<link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/v24/logo.svg">
 <link rel="apple-touch-icon" href="assets/v24/logo.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,6 +16,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="assets/v24/v24_1_core.css">
 <link rel="stylesheet" href="assets/v24/v24_1_responsive.css">
+<link rel="stylesheet" href="assets/v24/v24_1_notifications.css">
 </head>
 <body>
 <div id="app" style="display:none">
@@ -26,6 +28,7 @@
       <button data-scroll="fixedObligationsSection"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Zm3 5h6m-6 4h6"/></svg>Obligations</button>
       <button data-scroll="goalsSection"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="m17 7 4-4m-4 0h4v4"/></svg>Goals</button>
       <button data-scroll="accountsSection"><svg viewBox="0 0 24 24"><path d="M3 8h18M5 8V6l7-3 7 3v2M5 20h14M7 8v9m5-9v9m5-9v9"/></svg>Accounts</button>
+      <button data-open-drawer="notifications"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Zm-8 12h4"/></svg>Notifications</button>
     </nav>
     <div class="data-state" id="sidebarDataState"><span class="live-dot"></span><b>Loading data</b><br>Connecting to the planning engine.</div>
   </aside>
@@ -33,7 +36,7 @@
   <main class="main">
     <header class="topbar">
       <div class="greeting"><img class="topbar-icon" src="assets/v24/logo.svg" alt=""><div class="title-block"><h1 class="screen-title">Household dashboard</h1><div class="mobile-app-name">Family Cash Flow</div><p id="asOfLine">Loading current numbers…</p></div></div>
-      <div class="top-actions"><button class="btn" data-open-drawer="payment">One-off payment</button><button class="btn" data-open-drawer="income">Income received</button><button class="btn primary" data-open-drawer="balance">Update balances</button><button class="btn" type="button" id="logoutBtn">Sign out</button></div>
+      <div class="top-actions"><button class="btn" data-open-drawer="payment">One-off payment</button><button class="btn" data-open-drawer="income">Income received</button><button class="btn primary" data-open-drawer="balance">Update balances</button><button class="btn" type="button" data-open-drawer="notifications" id="notificationsBtn">Notifications</button><button class="btn" type="button" id="logoutBtn">Sign out</button></div>
     </header>
 
     <div class="content">
@@ -68,7 +71,7 @@
         </div>
       </section>
 
-      <section class="action-center"><div class="action-copy"><h3>What would you like to do?</h3><p>Preview is non-writing; money movements are recorded explicitly under your Google account.</p></div><div class="action-grid"><button class="action-tile primary" data-open-drawer="balance">Update balances</button><button class="action-tile" data-open-drawer="payment">Preview / one-off</button><button class="action-tile" data-open-drawer="income">Income received</button><button class="action-tile" id="actionTransferEF">Transfer to EF</button><button class="action-tile" data-open-drawer="efWithdrawal">Withdraw from EF</button><button class="action-tile" data-open-drawer="ktbTransfer">KTB ↔ KTB</button><button class="action-tile" data-open-drawer="nextSalary">Next salary date</button><button class="action-tile" data-scroll="fixedObligationsSection">Record obligation</button></div></section>
+      <section class="action-center"><div class="action-copy"><h3>What would you like to do?</h3><p>Preview is non-writing; money movements are recorded explicitly under your Google account.</p></div><div class="action-grid"><button class="action-tile primary" data-open-drawer="balance">Update balances</button><button class="action-tile" data-open-drawer="payment">Preview / one-off</button><button class="action-tile" data-open-drawer="income">Income received</button><button class="action-tile" id="actionTransferEF">Transfer to EF</button><button class="action-tile" data-open-drawer="efWithdrawal">Withdraw from EF</button><button class="action-tile" data-open-drawer="ktbTransfer">KTB ↔ KTB</button><button class="action-tile" data-open-drawer="nextSalary">Next salary date</button><button class="action-tile" data-scroll="fixedObligationsSection">Record obligation</button><button class="action-tile" data-open-drawer="notifications">Notifications</button></div></section>
     </div>
   </main>
 </div>
@@ -107,6 +110,23 @@
   <div class="drawer-panel" data-drawer="efWithdrawal" hidden><form id="efWithdrawalForm"><div class="form-summary" id="efWithdrawalSummary">Move money from the Emergency Fund to a real KTB account. Record this only after making the actual bank transfer.</div><label for="ew-date">Date</label><input type="date" id="ew-date" required><label for="ew-destination">Destination KTB</label><select id="ew-destination"><option value="Alex">Alex KTB</option><option value="Olga">Olga KTB</option></select><label for="ew-amount">Amount</label><input type="number" min="0.01" step="0.01" id="ew-amount" required><div class="hint" id="efWithdrawalHint"></div><div class="drawer-actions"><button type="button" class="btn secondary drawer-cancel">Cancel</button><button type="submit" class="btn primary" id="efWithdrawalBtn">Record withdrawal</button></div><div class="form-msg" id="efWithdrawalMsg"></div></form></div>
 
   <div class="drawer-panel" data-drawer="ktbTransfer" hidden><form id="ktbTransferForm"><div class="form-summary" id="ktbTransferSummary">Move existing cash between Alex and Olga KTB. Combined KTB cash does not change.</div><label for="kt-date">Date</label><input type="date" id="kt-date" required><label for="kt-source">From</label><select id="kt-source"><option value="Alex">Alex KTB</option><option value="Olga">Olga KTB</option></select><label for="kt-destination">To</label><select id="kt-destination"><option value="Olga">Olga KTB</option><option value="Alex">Alex KTB</option></select><label for="kt-amount">Amount</label><input type="number" min="0.01" step="0.01" id="kt-amount" required><div class="hint" id="ktbTransferHint"></div><div class="drawer-actions"><button type="button" class="btn secondary drawer-cancel">Cancel</button><button type="submit" class="btn primary" id="ktbTransferBtn">Record transfer</button></div><div class="form-msg" id="ktbTransferMsg"></div></form></div>
+
+  <div class="drawer-panel" data-drawer="notifications" hidden>
+    <div class="notification-summary">
+      <span class="status-pill" id="notificationStatusPill">Checking</span>
+      <h3 id="notificationStatusTitle">Checking this device…</h3>
+      <p id="notificationStatusText">Notifications are enabled separately on each phone.</p>
+    </div>
+    <div class="notification-actions">
+      <button type="button" class="btn primary" id="enableNotificationsBtn">Enable on this device</button>
+      <button type="button" class="btn secondary" id="testNotificationBtn">Send test</button>
+      <button type="button" class="btn secondary" id="disableNotificationsBtn">Disable</button>
+    </div>
+    <div class="form-msg" id="notificationMsg"></div>
+    <div class="notification-privacy">Lock-screen messages never include balances or transfer amounts.</div>
+    <div class="notification-history-head"><h3>Recent reminders</h3><button type="button" id="refreshNotificationsBtn">Refresh</button></div>
+    <div class="notification-history" id="notificationHistory"><div class="empty-state">No reminders yet.</div></div>
+  </div>
 </div></aside></div>
 
 
@@ -115,6 +135,7 @@
 <script src="assets/v24/v24_1_app1.js"></script>
 <script src="assets/v24/v24_1_app2.js"></script>
 <script src="assets/v24/v24_1_app3.js"></script>
+<script src="assets/v24/v24_1_notifications.js"></script>
 <script src="assets/v24/v24_1_app4.js"></script>
 <script src="assets/v24/v24_1_correction.js"></script>
 </body>

@@ -1,0 +1,16 @@
+.notification-summary{padding:17px;border:1px solid var(--line);border-radius:15px;background:var(--surface-2)}
+.notification-summary h3{margin:12px 0 5px;font-size:17px}
+.notification-summary p,.notification-privacy{margin:0;color:var(--muted);font-size:11.5px;line-height:1.55}
+.notification-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-top:14px}
+.notification-actions .btn{margin:0}
+.notification-privacy{margin:14px 0;padding:11px 12px;border-radius:11px;background:var(--teal-soft);color:var(--teal-dark)}
+.notification-history-head{display:flex;align-items:center;justify-content:space-between;margin:20px 0 9px}
+.notification-history-head h3{font-size:14px;margin:0}
+.notification-history-head button{border:0;background:transparent;color:var(--teal-dark);font-size:10px;font-weight:800}
+.notification-history{display:grid;border:1px solid var(--line);border-radius:13px;overflow:hidden}
+.notification-item{padding:12px 13px;border-bottom:1px solid var(--line);background:#fff}
+.notification-item:last-child{border-bottom:0}
+.notification-item b{display:block;font-size:11.5px}
+.notification-item p{margin:4px 0;color:var(--muted);font-size:10.5px;line-height:1.45}
+.notification-item small{color:var(--muted);font-size:9px}
+@media(max-width:520px){.notification-actions{grid-template-columns:1fr}.notification-actions .btn{width:100%}}

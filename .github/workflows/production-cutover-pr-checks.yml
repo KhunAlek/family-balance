@@ -18,6 +18,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Install pinned Web Push dependency
+        run: npm ci --prefix cloudflare/slice-d --ignore-scripts --no-audit --no-fund
       - name: Assert production isolation
         run: |
           set -euo pipefail
@@ -33,5 +35,7 @@ jobs:
           (cd cloudflare/slice-d && npm test)
           find assets -name '*.js' -type f -print0 | xargs -0 -n1 node --check
           node --check cloudflare/slice-d/src/index.js
+          node --check sw.js
+          node -e "JSON.parse(require('fs').readFileSync('manifest.webmanifest','utf8'))"
       - name: Production deployment dry run
         run: npx --yes wrangler@4.123.0 deploy --config wrangler.production.jsonc --dry-run --outdir /tmp/production-dry-run

@@ -35,6 +35,9 @@ jobs:
         with:
           node-version: '24'
 
+      - name: Install pinned Web Push dependency
+        run: npm ci --prefix cloudflare/slice-d --ignore-scripts --no-audit --no-fund
+
       - name: Assert immutable production configuration
         run: |
           set -euo pipefail
@@ -46,6 +49,8 @@ jobs:
           grep -Fq '"BACKUP_ENVIRONMENT": "production"' wrangler.production.jsonc
           grep -Fq '"0 21 * * SUN"' wrangler.production.jsonc
           grep -Fq '"0 20 * * *"' wrangler.production.jsonc
+          grep -Fq '"0 13 * * *"' wrangler.production.jsonc
+          grep -Fq '"0 2 * * MON"' wrangler.production.jsonc
 
       - name: Run accepted tests and production dry run
         run: |
@@ -55,7 +60,30 @@ jobs:
           (cd cloudflare/slice-d && npm test)
           find assets -name '*.js' -type f -print0 | xargs -0 -n1 node --check
           node --check cloudflare/slice-d/src/index.js
+          node --check sw.js
+          node -e "JSON.parse(require('fs').readFileSync('manifest.webmanifest','utf8'))"
           npx --yes wrangler@4.123.0 deploy --config wrangler.production.jsonc --dry-run --outdir /tmp/production-dry-run
+
+      - name: Apply idempotent Web Push schema
+        run: npx --yes wrangler@4.123.0 d1 execute family-cash-flow-production-v1 --remote --config wrangler.production.jsonc --file cloudflare/slice-d/migrations/0004_web_push_notifications.sql
+
+      - name: Ensure persistent production VAPID key pair exists
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.123.0 secret list --name "$WORKER_NAME" --format json > /tmp/secrets-before-vapid.json
+          if ! node -e "const x=require('/tmp/secrets-before-vapid.json'); process.exit(x.some(v=>v.name==='VAPID_PUBLIC_KEY')&&x.some(v=>v.name==='VAPID_PRIVATE_KEY')?0:1)"; then
+            (cd cloudflare/slice-d && node --input-type=module <<'NODE'
+          import { generateVAPIDKeys } from 'web-push-neo';
+          import fs from 'node:fs';
+          const keys = await generateVAPIDKeys();
+          fs.writeFileSync('/tmp/vapid-public', keys.publicKey, { mode: 0o600 });
+          fs.writeFileSync('/tmp/vapid-private', keys.privateKey, { mode: 0o600 });
+          NODE
+            )
+            npx --yes wrangler@4.123.0 secret put VAPID_PUBLIC_KEY --name "$WORKER_NAME" < /tmp/vapid-public
+            npx --yes wrangler@4.123.0 secret put VAPID_PRIVATE_KEY --name "$WORKER_NAME" < /tmp/vapid-private
+            shred -u /tmp/vapid-public /tmp/vapid-private
+          fi
 
       - name: Bootstrap Worker before secret rotation
         run: |
@@ -99,6 +127,8 @@ jobs:
           const health=JSON.parse(fs.readFileSync('/tmp/health.json'));
           const secrets=JSON.parse(fs.readFileSync('/tmp/secrets.json'));
           if(!secrets.some(x=>x.name==='SESSION_SIGNING_KEY')) throw new Error('SESSION_SIGNING_KEY is missing');
+          if(!secrets.some(x=>x.name==='VAPID_PUBLIC_KEY')) throw new Error('VAPID_PUBLIC_KEY is missing');
+          if(!secrets.some(x=>x.name==='VAPID_PRIVATE_KEY')) throw new Error('VAPID_PRIVATE_KEY is missing');
           const config=JSON.parse(fs.readFileSync('wrangler.production.jsonc'));
           const versionPattern=/Current Version ID:\s*([^\s]+)/;
           const bootstrapVersion=fs.readFileSync('/tmp/bootstrap-deploy.log','utf8').match(versionPattern)?.[1] || null;

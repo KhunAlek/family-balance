@@ -1,4 +1,5 @@
 name: Production health deployment diagnostic
+# Second branch push intentionally triggers this branch-scoped diagnostic.
 
 on:
   push:

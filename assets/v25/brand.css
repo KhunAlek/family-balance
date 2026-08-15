@@ -21,3 +21,22 @@
 .hero:after{border-color:rgba(14,162,154,.16)}
 .allocation.ef{background:var(--gold-soft);border-color:var(--gold-line);color:var(--gold-dark)}
 input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(14,162,154,.13)}
+
+/* Keep the sign-in card centered when Google's personalized button has a wide intrinsic size. */
+.auth-gate{
+  grid-template-columns:minmax(0,1fr);
+  overflow-x:hidden;
+}
+.auth-card{
+  width:390px;
+  max-width:calc(100vw - 40px);
+  min-width:0;
+  justify-self:center;
+  overflow:hidden;
+}
+.auth-card .google-login,
+.auth-card .google-login>div,
+.auth-card .google-login iframe{
+  max-width:100%!important;
+  min-width:0!important;
+}

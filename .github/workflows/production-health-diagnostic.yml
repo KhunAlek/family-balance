@@ -1,0 +1,138 @@
+name: Production health deployment diagnostic
+
+on:
+  push:
+    branches: [production-health-repair-20260815]
+    paths:
+      - '.github/workflows/production-health-diagnostic.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: family-cash-flow-production-health-diagnostic
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 6ee48ea46390bcf76f1d924f4a7d88f1
+      WORKER_NAME: fcf-health-diag-${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Build isolated diagnostic config
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const config = JSON.parse(fs.readFileSync('wrangler.production.jsonc', 'utf8'));
+          config.name = process.env.WORKER_NAME;
+          config.vars = {
+            GOOGLE_CLIENT_ID: 'diagnostic.invalid',
+            APPROVED_GOOGLE_EMAILS: 'diagnostic@example.invalid',
+            BACKUP_ENVIRONMENT: 'diagnostic',
+            BACKUP_RETENTION_DAYS: '1'
+          };
+          delete config.d1_databases;
+          delete config.r2_buckets;
+          delete config.triggers;
+          fs.writeFileSync('wrangler.diagnostic.jsonc', JSON.stringify(config, null, 2) + '\n');
+          NODE
+          test "$(node -p "require('./wrangler.diagnostic.jsonc').name")" = "$WORKER_NAME"
+          ! grep -Fq 'family-cash-flow-production-v1' wrangler.diagnostic.jsonc
+          ! grep -Fq 'family-cash-flow-production-backups' wrangler.diagnostic.jsonc
+
+      - name: Run accepted tests and isolated dry run
+        run: |
+          set -euo pipefail
+          (cd cloudflare/slice-b && npm test)
+          (cd cloudflare/slice-c && npm test)
+          (cd cloudflare/slice-d && npm test)
+          npx --yes wrangler@4.123.0 deploy --config wrangler.diagnostic.jsonc --dry-run --outdir /tmp/diagnostic-dry-run
+
+      - name: First deploy to fresh disposable Worker
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.123.0 deploy --config wrangler.diagnostic.jsonc | tee /tmp/first-deploy.log
+
+      - name: Create session secret and capture first-version behavior
+        run: |
+          set -euo pipefail
+          openssl rand -base64 48 | npx --yes wrangler@4.123.0 secret put SESSION_SIGNING_KEY --name "$WORKER_NAME"
+          origin="https://$WORKER_NAME.abystrov66.workers.dev"
+          : > /tmp/initial-probes.txt
+          for attempt in $(seq 1 15); do
+            code=$(curl -sS -o /tmp/initial-body.txt -w '%{http_code}' "$origin/health" || true)
+            bytes=$(wc -c < /tmp/initial-body.txt | tr -d ' ')
+            printf 'attempt=%s status=%s bytes=%s\n' "$attempt" "$code" "$bytes" >> /tmp/initial-probes.txt
+            if [ "$code" = 200 ]; then break; fi
+            sleep 2
+          done
+
+      - name: Final redeploy after secret creation
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.123.0 deploy --config wrangler.diagnostic.jsonc | tee /tmp/final-deploy.log
+
+      - name: Verify disposable Worker
+        run: |
+          set -euo pipefail
+          origin="https://$WORKER_NAME.abystrov66.workers.dev"
+          for attempt in $(seq 1 30); do
+            health_code=$(curl -sS -H 'accept: application/json' -o /tmp/health.json -w '%{http_code}' "$origin/health" || true)
+            if [ "$health_code" = 200 ] && node -e "const x=require('/tmp/health.json'); if(!(x.ok===true&&x.runtime==='slice-d'&&x.appsScriptDependency===false))process.exit(1)"; then
+              break
+            fi
+            sleep 2
+          done
+          test "$health_code" = 200
+          root_code=$(curl -sS -o /tmp/root.html -w '%{http_code}' "$origin/")
+          test "$root_code" = 200
+          grep -Eiq '<!doctype html|<html' /tmp/root.html
+          auth_code=$(curl -sS -H 'accept: application/json' -o /tmp/auth.json -w '%{http_code}' "$origin/api/auth/session")
+          test "$auth_code" = 401
+          node -e "const x=require('/tmp/auth.json'); if(!(x.ok===false&&/Authentication required/.test(x.error)))process.exit(1)"
+          npx --yes wrangler@4.123.0 secret list --name "$WORKER_NAME" --format json > /tmp/secrets.json
+          node -e "const x=require('/tmp/secrets.json'); if(!x.some(v=>v.name==='SESSION_SIGNING_KEY'))process.exit(1)"
+          node <<'NODE'
+          const fs = require('fs');
+          const evidence = {
+            status: 'PASS',
+            commit: process.env.GITHUB_SHA,
+            runId: process.env.GITHUB_RUN_ID,
+            workerName: process.env.WORKER_NAME,
+            productionResourcesBound: false,
+            firstDeploy: fs.readFileSync('/tmp/first-deploy.log', 'utf8').match(/Current Version ID:\s*([^\s]+)/)?.[1] || null,
+            finalDeploy: fs.readFileSync('/tmp/final-deploy.log', 'utf8').match(/Current Version ID:\s*([^\s]+)/)?.[1] || null,
+            initialProbes: fs.readFileSync('/tmp/initial-probes.txt', 'utf8').trim().split('\n'),
+            finalHealth: JSON.parse(fs.readFileSync('/tmp/health.json', 'utf8')),
+            rootStatus: 200,
+            unauthenticatedSessionStatus: 401,
+            secretNames: JSON.parse(fs.readFileSync('/tmp/secrets.json', 'utf8')).map(x => x.name).sort()
+          };
+          fs.writeFileSync('/tmp/production-health-diagnostic.json', JSON.stringify(evidence, null, 2) + '\n');
+          console.log(JSON.stringify({status:evidence.status,workerName:evidence.workerName,firstDeploy:evidence.firstDeploy,finalDeploy:evidence.finalDeploy,initialProbes:evidence.initialProbes}));
+          NODE
+
+      - name: Upload sanitized diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-health-diagnostic
+          path: |
+            /tmp/production-health-diagnostic.json
+            /tmp/initial-probes.txt
+            /tmp/first-deploy.log
+            /tmp/final-deploy.log
+          if-no-files-found: warn
+
+      - name: Delete disposable Worker
+        if: always()
+        run: npx --yes wrangler@4.123.0 delete --name "$WORKER_NAME" --force

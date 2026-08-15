@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import { createSeededSqliteD1 } from './sqlite-d1.mjs';
 import { executeRevisionClaimWrite, FinancialWriteValidationError } from '../src/write-protocol.mjs';
 import { previewCorrection, planCorrection } from '../src/correction.mjs';
+import { planFinancialWrite } from '../src/write-actions.mjs';
 import { loadFinancialSnapshot } from '../../slice-b/src/d1-repository.mjs';
+import { latestUsableBalance } from '../../slice-b/src/balances.mjs';
 
 const NOW='2026-08-14T12:00:00.000Z';
 const ACTOR='abystrov66@gmail.com';
@@ -51,6 +53,25 @@ test('balance correction preserves original row and adds higher-precedence repla
   assert.equal(audit.write_token,'balance-correction');
   assert.equal(JSON.parse(audit.before_json).balance_row_id,original.balance_row_id);
   assert.equal(JSON.parse(audit.after_json).alex_balance_satang,230000);
+});
+
+test('same-day normal balance update supersedes an earlier correction', async()=>{
+  const {db}=createSeededSqliteD1();
+  const before=await loadFinancialSnapshot(db,'family');
+  const original=latestUsableBalance(before.balanceHistory).row;
+  await correct(db,{
+    entityType:'balance',entityId:String(original.balance_row_id),correctedValues:{olgaBalance:11455},reason:'Acceptance correction'
+  },'preceding-correction');
+  await executeRevisionClaimWrite(db,{
+    householdId:'family',actorEmail:ACTOR,action:'balanceCheck',
+    payload:{date:original.business_date,alexBalance:'',olgaBalance:'10581'},
+    planWrite:planFinancialWrite,nowIso:NOW,writeToken:'later-balance-update'
+  });
+  const after=await loadFinancialSnapshot(db,'family');
+  const latest=latestUsableBalance(after.balanceHistory);
+  assert.equal(latest.olga,10581);
+  assert.equal(latest.row.source_sheet,'Cloudflare');
+  assert.equal(latest.row.source_row,201);
 });
 
 test('ledger correction uses reversal plus replacement instead of deleting history', async()=>{

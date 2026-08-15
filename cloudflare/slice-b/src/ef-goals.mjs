@@ -1,4 +1,5 @@
 import { isoDate, monthPeriod } from './dates.mjs';
+import { historyRowOrder } from './balances.mjs';
 
 const round2 = value => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 const thb = satang => Number(satang || 0) / 100;
@@ -17,7 +18,7 @@ export function accountLedgerBalance(entries, account) {
 export function buildEmergencyFundDashboardData(snapshot) {
   const entries = [...(snapshot.ledger || [])]
     .filter(entry => entry.account === 'EF' && isoDate(entry.business_date))
-    .sort((a, b) => a.business_date.localeCompare(b.business_date) || Number(a.sheet_order || 0) - Number(b.sheet_order || 0));
+    .sort((a, b) => a.business_date.localeCompare(b.business_date) || historyRowOrder(a) - historyRowOrder(b));
   let runningBalance = 0;
   const history = entries.map(entry => {
     const amount = thb(entry.amount_satang);
@@ -33,7 +34,7 @@ export function currentMonthEFState(snapshot, onDate, monthlyTarget = 15000) {
   const period = monthPeriod(onDate);
   const entries = [...(snapshot.ledger || [])]
     .filter(entry => entry.account === 'EF' && monthPeriod(entry.business_date) === period && entry.business_date <= isoDate(onDate))
-    .sort((a, b) => a.business_date.localeCompare(b.business_date) || Number(a.sheet_order || 0) - Number(b.sheet_order || 0));
+    .sort((a, b) => a.business_date.localeCompare(b.business_date) || historyRowOrder(a) - historyRowOrder(b));
   let replenishmentOutstanding = 0;
   let normalContributionRecorded = 0;
   let withdrawals = 0;

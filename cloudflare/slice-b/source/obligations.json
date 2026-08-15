@@ -1,0 +1,82 @@
+[
+  {
+    "Name": "Rent",
+    "Amount (THB)": 15000,
+    "Due type": "Day of month",
+    "Due day": 1,
+    "Category": "Housing",
+    "Paid this month": "Y",
+    "Amount type": "Fixed",
+    "sourceRow": 2
+  },
+  {
+    "Name": "Electricity & Water",
+    "Amount (THB)": 4000,
+    "Due type": "Day of month",
+    "Due day": 1,
+    "Category": "Utilities",
+    "Paid this month": "Y",
+    "Amount type": "Variable",
+    "sourceRow": 3
+  },
+  {
+    "Name": "Mobile Phones",
+    "Amount (THB)": 660,
+    "Due type": "Day of month",
+    "Due day": 1,
+    "Category": "Utilities",
+    "Paid this month": "Y",
+    "Amount type": "Fixed",
+    "sourceRow": 4
+  },
+  {
+    "Name": "Nick School",
+    "Amount (THB)": 3400,
+    "Due type": "Day of month",
+    "Due day": 3,
+    "Category": "Education",
+    "Paid this month": "Y",
+    "Amount type": "Variable",
+    "sourceRow": 5
+  },
+  {
+    "Name": "Google",
+    "Amount (THB)": 350,
+    "Due type": "Day of month",
+    "Due day": 3,
+    "Category": "Subscriptions",
+    "Paid this month": "Y",
+    "Amount type": "Fixed",
+    "sourceRow": 6
+  },
+  {
+    "Name": "Netflix",
+    "Amount (THB)": 99,
+    "Due type": "Day of month",
+    "Due day": 3,
+    "Category": "Subscriptions",
+    "Paid this month": "Y",
+    "Amount type": "Fixed",
+    "sourceRow": 7
+  },
+  {
+    "Name": "Spotify",
+    "Amount (THB)": 249,
+    "Due type": "Day of month",
+    "Due day": 3,
+    "Category": "Subscriptions",
+    "Paid this month": "Y",
+    "Amount type": "Fixed",
+    "sourceRow": 8
+  },
+  {
+    "Name": "Claude",
+    "Amount (THB)": 750,
+    "Due type": "Day of month",
+    "Due day": 3,
+    "Category": "Subscriptions",
+    "Paid this month": "Y",
+    "Amount type": "Fixed",
+    "sourceRow": 9
+  }
+]

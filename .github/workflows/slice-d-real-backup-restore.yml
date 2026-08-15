@@ -1,0 +1,135 @@
+name: Slice D real D1-R2 restore proof
+
+on:
+  push:
+    branches: [staging-startup-repair-20260814]
+    paths:
+      - 'cloudflare/slice-d/**'
+      - '.github/workflows/slice-d-real-backup-restore.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-backup-restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 6ee48ea46390bcf76f1d924f4a7d88f1
+      SOURCE_DB: fcf-slice-d-source-${{ github.run_id }}
+      RESTORE_DB: fcf-slice-d-restore-${{ github.run_id }}
+      R2_BUCKET: fcf-slice-d-${{ github.run_id }}
+      TEST_WORKER: fcf-slice-d-${{ github.run_id }}
+      BACKUP_KEY: integration/2026/08/14/2026-08-14T20-00-00Z.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Create disposable D1 databases and R2 bucket
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.123.0 d1 create "$SOURCE_DB" --location apac
+          npx --yes wrangler@4.123.0 d1 create "$RESTORE_DB" --location apac
+          npx --yes wrangler@4.123.0 r2 bucket create "$R2_BUCKET"
+          npx --yes wrangler@4.123.0 d1 list --json > /tmp/d1-list.json
+          node <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/d1-list.json'));
+          const rows=Array.isArray(x)?x:(x.result||[]);
+          for(const [name,key] of [[process.env.SOURCE_DB,'SOURCE_DB_ID'],[process.env.RESTORE_DB,'RESTORE_DB_ID']]){
+            const found=rows.find(row=>row.name===name);
+            if(!found)throw new Error('D1 not found after creation: '+name);
+            fs.appendFileSync(process.env.GITHUB_ENV,`${key}=${found.uuid||found.id}\n`);
+          }
+          NODE
+      - name: Seed source D1; leave restore D1 completely empty
+        run: |
+          set -euo pipefail
+          node cloudflare/slice-b/tools/build-import.mjs /tmp/import.sql /tmp/source-report.json
+          npx --yes wrangler@4.123.0 d1 execute "$SOURCE_DB" --remote --file cloudflare/slice-b/migrations/0001_initial.sql
+          npx --yes wrangler@4.123.0 d1 execute "$SOURCE_DB" --remote --file /tmp/import.sql
+          npx --yes wrangler@4.123.0 d1 execute "$SOURCE_DB" --remote --file cloudflare/slice-c/migrations/0002_revision_state.sql
+          npx --yes wrangler@4.123.0 d1 execute "$SOURCE_DB" --remote --file cloudflare/slice-c/migrations/0003_salary_cycle_sources.sql
+      - name: Prove D1 Time Travel bookmark availability
+        run: npx --yes wrangler@4.123.0 d1 time-travel info "$SOURCE_DB" --json > /tmp/time-travel.json
+      - name: Deploy disposable real-binding proof Worker
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          fs.writeFileSync('/tmp/slice-d-proof.jsonc',JSON.stringify({
+            name:process.env.TEST_WORKER,
+            main:process.env.GITHUB_WORKSPACE+'/cloudflare/slice-d/remote-test/src/index.js',
+            compatibility_date:'2026-08-14',
+            compatibility_flags:['nodejs_compat'],
+            d1_databases:[{binding:'DB',database_name:process.env.SOURCE_DB,database_id:process.env.SOURCE_DB_ID}],
+            r2_buckets:[{binding:'BACKUPS',bucket_name:process.env.R2_BUCKET}]
+          },null,2));
+          NODE
+          npx --yes wrangler@4.123.0 deploy --config /tmp/slice-d-proof.jsonc
+      - name: Prove real scheduled write and real R2 backup
+        run: |
+          set -euo pipefail
+          ORIGIN="https://${TEST_WORKER}.abystrov66.workers.dev"
+          curl --fail-with-body --retry 90 --retry-all-errors --retry-delay 2 --retry-max-time 240 "$ORIGIN/health"
+          curl --fail-with-body --retry 90 --retry-all-errors --retry-delay 2 --retry-max-time 240 --remove-on-error --output /tmp/weekly.json -X POST "$ORIGIN/weekly"
+          curl --fail-with-body --retry 90 --retry-all-errors --retry-delay 2 --retry-max-time 240 --remove-on-error --output /tmp/backup-result.json -X POST "$ORIGIN/backup"
+          node <<'NODE'
+          const fs=require('fs');
+          const weekly=JSON.parse(fs.readFileSync('/tmp/weekly.json'));
+          const backup=JSON.parse(fs.readFileSync('/tmp/backup-result.json'));
+          if(!weekly.ok||weekly.written!==1||weekly.revision!==1)throw new Error('Weekly proof failed: '+JSON.stringify(weekly));
+          if(!backup.ok||backup.key!==process.env.BACKUP_KEY)throw new Error('Backup proof failed: '+JSON.stringify(backup));
+          console.log(JSON.stringify({weekly,backup},null,2));
+          NODE
+      - name: Download, verify and restore the portable R2 object
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.123.0 r2 object get "$R2_BUCKET/$BACKUP_KEY" --remote --file /tmp/portable-backup.json
+          node cloudflare/slice-d/tools/portable-restore.mjs /tmp/portable-backup.json /tmp/restore.sql
+          npx --yes wrangler@4.123.0 d1 execute "$RESTORE_DB" --remote --file /tmp/restore.sql
+          npx --yes wrangler@4.123.0 d1 execute "$RESTORE_DB" --remote --json --command "PRAGMA foreign_key_check" > /tmp/foreign-keys.json
+          node <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/foreign-keys.json'));
+          const block=Array.isArray(x)?x[0]:x;
+          const rows=block.results||block.result||[];
+          if(rows.length)throw new Error('Restored D1 has foreign-key violations: '+JSON.stringify(rows));
+          NODE
+      - name: Reconcile restored D1 against source D1
+        run: |
+          set -euo pipefail
+          QUERY="SELECT (SELECT COUNT(*) FROM balance_history) balance_rows,(SELECT COUNT(*) FROM ledger_movements) ledger_rows,(SELECT COUNT(*) FROM obligation_payments) payment_rows,(SELECT COUNT(*) FROM weekly_snapshots) weekly_rows,(SELECT COUNT(*) FROM financial_write_claims) claim_rows,(SELECT COUNT(*) FROM correction_audit) correction_rows,(SELECT current_revision FROM household_revisions WHERE household_id='family') revision;"
+          npx --yes wrangler@4.123.0 d1 execute "$SOURCE_DB" --remote --json --command "$QUERY" > /tmp/source-state.json
+          npx --yes wrangler@4.123.0 d1 execute "$RESTORE_DB" --remote --json --command "$QUERY" > /tmp/restore-state.json
+          node <<'NODE'
+          const fs=require('fs');
+          const row=file=>{const x=JSON.parse(fs.readFileSync(file));const b=Array.isArray(x)?x[0]:x;return (b.results||b.result||[])[0]};
+          const source=row('/tmp/source-state.json');
+          const restored=row('/tmp/restore-state.json');
+          if(JSON.stringify(source)!==JSON.stringify(restored))throw new Error('Restore mismatch: '+JSON.stringify({source,restored}));
+          if(Number(restored.revision)!==1||Number(restored.weekly_rows)!==9||Number(restored.claim_rows)!==1)throw new Error('Unexpected restored state: '+JSON.stringify(restored));
+          console.log(JSON.stringify({status:'PASS',source,restored},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: slice-d-real-backup-restore-evidence
+          path: |
+            /tmp/weekly.json
+            /tmp/backup-result.json
+            /tmp/time-travel.json
+            /tmp/foreign-keys.json
+            /tmp/source-state.json
+            /tmp/restore-state.json
+          if-no-files-found: ignore
+      - name: Delete disposable resources
+        if: always()
+        run: |
+          npx --yes wrangler@4.123.0 delete --name "$TEST_WORKER" --force || true
+          npx --yes wrangler@4.123.0 r2 object delete "$R2_BUCKET/$BACKUP_KEY" --remote || true
+          npx --yes wrangler@4.123.0 r2 bucket delete "$R2_BUCKET" || true
+          npx --yes wrangler@4.123.0 d1 delete "$SOURCE_DB" -y || true
+          npx --yes wrangler@4.123.0 d1 delete "$RESTORE_DB" -y || true

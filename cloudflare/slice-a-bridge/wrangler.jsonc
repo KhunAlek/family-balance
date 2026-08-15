@@ -1,0 +1,14 @@
+{
+  "name": "family-cash-flow-staging-bridge",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-14",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "vars": {
+    "UPSTREAM_URL": "https://script.google.com/macros/s/AKfycbwtgB7WGkR-XRe19xda5xWmxPg4d_uymyu7wk-Vc0HEQpWdOHTuJ48pj1BIADZ8nOqLUA/exec",
+    "ALLOWED_ORIGIN": "https://khunalek.github.io"
+  }
+}

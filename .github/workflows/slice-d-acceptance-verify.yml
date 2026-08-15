@@ -1,0 +1,58 @@
+name: Slice D authenticated acceptance verification
+
+on:
+  push:
+    branches: [staging-startup-repair-20260814]
+    paths:
+      - '.github/workflows/slice-d-acceptance-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-accepted-write:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 6ee48ea46390bcf76f1d924f4a7d88f1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify accepted Google-authenticated write and correction in staging D1
+        run: |
+          set -euo pipefail
+          QUERY="SELECT r.current_revision revision,r.last_write_token,(SELECT COUNT(*) FROM financial_write_claims) claim_rows,(SELECT COUNT(*) FROM balance_history) balance_rows,(SELECT COUNT(*) FROM correction_audit) correction_rows,a.entity_type,a.entity_id,a.before_json,a.after_json,a.reason,a.actor_email,a.base_revision,a.write_token,(SELECT COUNT(*) FROM balance_history b WHERE b.source_sheet='Correction' AND b.source_row=CAST(json_extract(a.after_json,'$.source_row') AS INTEGER) AND b.alex_balance_satang IS json_extract(a.after_json,'$.alex_balance_satang') AND b.olga_balance_satang IS json_extract(a.after_json,'$.olga_balance_satang')) replacement_rows FROM household_revisions r JOIN correction_audit a ON a.correction_id=(SELECT correction_id FROM correction_audit ORDER BY corrected_at DESC,correction_id DESC LIMIT 1) WHERE r.household_id='family';"
+          npx --yes wrangler@4.123.0 d1 execute family-cash-flow-staging-v1 --remote --json --command "$QUERY" > /tmp/slice-d-acceptance.json
+          node <<'NODE'
+          const fs=require('fs');
+          const payload=JSON.parse(fs.readFileSync('/tmp/slice-d-acceptance.json','utf8'));
+          const block=Array.isArray(payload)?payload[0]:payload;
+          const row=(block.results||block.result||[])[0];
+          if(!row)throw new Error('Staging acceptance row was not returned.');
+          const before=JSON.parse(row.before_json);
+          const after=JSON.parse(row.after_json);
+          const allowedActors=new Set(['abystrov66@gmail.com','harlyhanz@gmail.com']);
+          const checks={
+            revision:Number(row.revision)===4,
+            claims:Number(row.claim_rows)===4,
+            balanceRows:Number(row.balance_rows)===73,
+            correctionRows:Number(row.correction_rows)===2,
+            entity:row.entity_type==='balance_history',
+            reason:row.reason==='Slice D acceptance test',
+            actor:allowedActors.has(String(row.actor_email||'').toLowerCase()),
+            baseRevision:Number(row.base_revision)===3,
+            writeToken:row.write_token===row.last_write_token,
+            replacement:Number(row.replacement_rows)===1,
+            unchangedAlex:before.alex_balance_satang===after.alex_balance_satang,
+            unchangedOlga:before.olga_balance_satang===after.olga_balance_satang,
+            unchangedDate:before.business_date===after.business_date,
+            replacementFor:String(after.replacementForBalanceRowId)===String(row.entity_id),
+          };
+          const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
+          if(failed.length)throw new Error('Slice D acceptance verification failed: '+failed.join(', '));
+          console.log(JSON.stringify({status:'PASS',revision:row.revision,claims:row.claim_rows,balanceRows:row.balance_rows,correctionRows:row.correction_rows,actor:row.actor_email,reason:row.reason,noMoneyChanged:true},null,2));
+          NODE

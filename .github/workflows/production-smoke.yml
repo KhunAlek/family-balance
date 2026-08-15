@@ -1,12 +1,18 @@
 name: Production smoke test
 
 on:
-  push:
+  workflow_run:
+    workflows: [Cloudflare production deploy]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   smoke:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -23,7 +29,7 @@ jobs:
         run: |
           cat > smoke.mjs <<'EOF'
           import { chromium } from 'playwright';
-          const url = 'https://khunalek.github.io/family-balance/?smoke=' + Date.now();
+          const url = 'https://family-cash-flow-production.abystrov66.workers.dev/?smoke=' + Date.now();
           const browser = await chromium.launch({ headless: true });
           const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
           const errors = [];

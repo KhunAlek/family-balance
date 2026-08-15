@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Family Cash Flow</title>
+  <desc id="desc">A navy and gold protected frame crossed by a rising teal cash-flow line.</desc>
+  <rect width="512" height="512" fill="#F8FAFC"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M96 246V150c0-47 37-84 84-84h166c42 0 74 19 92 53" stroke="#C9A65B" stroke-width="30"/>
+    <path d="M420 269v93c0 47-37 84-84 84H174c-43 0-76-21-93-58" stroke="#C9A65B" stroke-width="30"/>
+    <path d="M158 239v-57c0-34 27-61 61-61h105c32 0 56 15 69 40" stroke="#0B1D3A" stroke-width="27"/>
+    <path d="M390 277v52c0 34-27 61-61 61H220c-31 0-55-14-69-38" stroke="#0B1D3A" stroke-width="27"/>
+    <path d="M63 334h67c35 0 52-15 72-44l15-21c16-23 31-31 59-31h71c34 0 55-12 77-39l38-47" stroke="#0EA29A" stroke-width="31"/>
+  </g>
+  <path d="M443 143h42v42" fill="none" stroke="#0EA29A" stroke-width="31" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

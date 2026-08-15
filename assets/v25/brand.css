@@ -1,0 +1,23 @@
+:root{
+  --nav:#0b1d3a;
+  --nav-hover:#17304f;
+  --teal:#0ea29a;
+  --teal-dark:#087b75;
+  --teal-soft:#ddf6f4;
+  --mint:#e3f7f5;
+  --mint-line:#bfe8e4;
+  --gold:#c9a65b;
+  --gold-dark:#765b20;
+  --gold-soft:#f7f0df;
+  --gold-line:#e3d19f;
+}
+
+.sidebar{background:linear-gradient(180deg,#0b1d3a,#07162c)}
+.nav button.active{box-shadow:inset 3px 0 0 var(--gold)}
+.brand-icon,.topbar-icon,.loading-logo{background:#f8fafc;outline:1px solid rgba(201,166,91,.34)}
+.btn.primary{box-shadow:0 8px 20px rgba(14,162,154,.2)}
+.eyebrow:before{background:var(--gold)}
+.hero{background:linear-gradient(135deg,#0b1d3a,#123a53)}
+.hero:after{border-color:rgba(14,162,154,.16)}
+.allocation.ef{background:var(--gold-soft);border-color:var(--gold-line);color:var(--gold-dark)}
+input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(14,162,154,.13)}

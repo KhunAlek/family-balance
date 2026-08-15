@@ -2,12 +2,14 @@ name: Cloudflare staging direct deploy
 
 on:
   push:
-    branches: [staging-startup-repair-20260814, feature/web-push-notifications-20260815]
+    branches: [staging-startup-repair-20260814, feature/web-push-notifications-20260815, feature/brand-harmonization-20260815]
     paths:
       - '.cloudflare-direct-deploy-trigger'
       - '.assetsignore'
       - 'wrangler.jsonc'
       - 'index.html'
+      - 'manifest.webmanifest'
+      - 'sw.js'
       - 'assets/**'
       - 'cloudflare/slice-b/**'
       - 'cloudflare/slice-c/**'
@@ -106,8 +108,12 @@ jobs:
           echo "service worker PASS"
 
           curl -fsS "$WORKER_ORIGIN/manifest.webmanifest" -o /tmp/staging-manifest.json
-          node -e "const x=require('/tmp/staging-manifest.json'); if(!(x.name==='Family Cash Flow'&&x.scope==='/'&&x.display==='standalone'))process.exit(1)"
-          echo "manifest PASS"
+          node -e "const x=require('/tmp/staging-manifest.json'); if(!(x.name==='Family Cash Flow'&&x.scope==='/'&&x.display==='standalone'&&x.theme_color==='#0B1D3A'&&x.icons.some(i=>i.src==='/assets/v25/icon-192.png'&&i.sizes==='192x192')&&x.icons.some(i=>i.src==='/assets/v25/icon-maskable-512.png'&&i.purpose==='maskable')))process.exit(1)"
+          curl -fsS "$WORKER_ORIGIN/assets/v25/icon-192.png" -o /tmp/staging-icon-192.png
+          curl -fsS "$WORKER_ORIGIN/assets/v25/icon-maskable-512.png" -o /tmp/staging-icon-maskable-512.png
+          test -s /tmp/staging-icon-192.png
+          test -s /tmp/staging-icon-maskable-512.png
+          echo "manifest and icon assets PASS"
 
           auth_code=$(curl -sS -H 'accept: application/json' -o /tmp/staging-auth.json -w '%{http_code}' "$WORKER_ORIGIN/api/auth/session")
           test "$auth_code" = 401

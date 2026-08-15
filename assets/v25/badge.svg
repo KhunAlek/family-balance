@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Family Cash Flow notification badge">
+  <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 47V29c0-9 7-16 16-16h28c8 0 14 4 17 10M77 52v16c0 9-7 16-16 16H34c-8 0-14-4-17-10" stroke-width="8"/>
+    <path d="M9 64h15c8 0 12-4 17-10l5-7c4-6 8-8 16-8h8c8 0 13-3 18-10" stroke-width="9"/>
+    <path d="M79 24h9v9" stroke-width="9"/>
+  </g>
+</svg>

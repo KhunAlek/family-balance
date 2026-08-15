@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Family Cash Flow</title>
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#102b3b">
+<meta name="theme-color" content="#0B1D3A">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/v24/logo.svg">
-<link rel="apple-touch-icon" href="assets/v24/logo.svg">
+<link rel="icon" type="image/svg+xml" sizes="any" href="assets/v25/logo.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/v25/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/v25/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -17,11 +18,12 @@
 <link rel="stylesheet" href="assets/v24/v24_1_core.css">
 <link rel="stylesheet" href="assets/v24/v24_1_responsive.css">
 <link rel="stylesheet" href="assets/v24/v24_1_notifications.css">
+<link rel="stylesheet" href="assets/v25/brand.css">
 </head>
 <body>
 <div id="app" style="display:none">
   <aside class="sidebar">
-    <div class="brand"><img class="brand-icon" src="assets/v24/logo.svg" alt=""><div class="brand-copy"><div class="brand-name">Family Cash Flow</div><div class="brand-subtitle">Household planning</div></div></div>
+    <div class="brand"><img class="brand-icon" src="assets/v25/logo.svg" alt=""><div class="brand-copy"><div class="brand-name">Family Cash Flow</div><div class="brand-subtitle">Household planning</div></div></div>
     <nav class="nav" aria-label="Dashboard sections">
       <button class="active" data-scroll="overview"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm10 7h6V11h-6v9ZM4 20h6v-3H4v3Zm10-13h6V4h-6v3Z"/></svg>Overview</button>
       <button data-scroll="weekly"><svg viewBox="0 0 24 24"><path d="M4 5h16v15H4zM8 3v4m8-4v4M4 10h16"/></svg>Weekly plan</button>
@@ -35,7 +37,7 @@
 
   <main class="main">
     <header class="topbar">
-      <div class="greeting"><img class="topbar-icon" src="assets/v24/logo.svg" alt=""><div class="title-block"><h1 class="screen-title">Household dashboard</h1><div class="mobile-app-name">Family Cash Flow</div><p id="asOfLine">Loading current numbers…</p></div></div>
+      <div class="greeting"><img class="topbar-icon" src="assets/v25/logo.svg" alt=""><div class="title-block"><h1 class="screen-title">Household dashboard</h1><div class="mobile-app-name">Family Cash Flow</div><p id="asOfLine">Loading current numbers…</p></div></div>
       <div class="top-actions"><button class="btn" data-open-drawer="payment">One-off payment</button><button class="btn" data-open-drawer="income">Income received</button><button class="btn primary" data-open-drawer="balance">Update balances</button><button class="btn" type="button" data-open-drawer="notifications" id="notificationsBtn">Notifications</button><button class="btn" type="button" id="logoutBtn">Sign out</button></div>
     </header>
 
@@ -78,7 +80,7 @@
 
 <div class="auth-gate" id="authGate" aria-live="polite">
   <div class="auth-card">
-    <img src="assets/v24/logo.svg" alt="Family Cash Flow logo">
+    <img src="assets/v25/logo.svg" alt="Family Cash Flow logo">
     <h1>Family Cash Flow</h1>
     <p>Sign in with an approved Google account to open the household dashboard.</p>
     <div class="google-login" id="googleLoginBtn" aria-label="Continue with Google"></div>
@@ -86,7 +88,7 @@
   </div>
 </div>
 
-<div class="loading-shell" id="loadingState"><div class="loading-card"><img class="loading-logo" src="assets/v24/logo.svg" alt=""><div class="loading-title">Loading Family Cash Flow</div><div class="loading-copy">Retrieving current balances and the latest planning state…  </div><div class="skeleton big"></div><div class="skeleton row"></div></div></div>
+<div class="loading-shell" id="loadingState"><div class="loading-card"><img class="loading-logo" src="assets/v25/logo.svg" alt=""><div class="loading-title">Loading Family Cash Flow</div><div class="loading-copy">Retrieving current balances and the latest planning state…  </div><div class="skeleton big"></div><div class="skeleton row"></div></div></div>
 <div class="error-state" id="errorState" style="display:none">Could not load the dashboard.</div>
 
 <nav class="mobile-tabs" aria-label="Mobile navigation">

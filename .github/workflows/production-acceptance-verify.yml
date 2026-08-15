@@ -104,7 +104,7 @@ jobs:
             const browser=await chromium.launch({headless:true});
             const results=[];
             for(const viewport of [{name:'mobile',width:390,height:844},{name:'desktop',width:1440,height:900}]){
-              const page=await browser.newPage({viewport:{width:viewport.width,height:viewport.height});
+              const page=await browser.newPage({viewport:{width:viewport.width,height:viewport.height}});
               const errors=[],failed=[];
               page.on('pageerror',e=>errors.push(String(e)));
               page.on('requestfailed',r=>failed.push(r.url()+' :: '+(r.failure()?.errorText||'failed')));

@@ -12,6 +12,13 @@ const V2_TABLES = [
 ];
 
 const sha256 = value => crypto.createHash('sha256').update(value).digest('hex');
+const normalizeSql = value => String(value || '').replace(/\s+/g,' ').trim().toLowerCase();
+const canonicalSchemaMaterial = schema => JSON.stringify([...schema].map(item => ({
+  name: String(item.name),
+  type: String(item.type).toLowerCase(),
+  table: String(item.tbl_name),
+  sql: normalizeSql(item.sql),
+})).sort((a,b) => a.name.localeCompare(b.name)));
 
 function rehashGate1(backup) {
   backup.integrity.schemaObjectCount = backup.schema.length;
@@ -48,6 +55,7 @@ function buildLegacyV2Fixture(raw) {
 test('B004 Gate-1 backup declares the versioned manifest and exact table set', async () => {
   const { db } = createSeededSqliteD1();
   const { backup } = await buildPortableBackup(db, { environment:'staging', createdAt:'2026-08-23T10:30:00Z' });
+  console.log(`GATE1_CANONICAL_SCHEMA_SHA256=${sha256(canonicalSchemaMaterial(backup.schema))}`);
   assert.equal(backup.format, BACKUP_FORMAT);
   assert.equal(backup.schemaManifestVersion, SCHEMA_MANIFEST_VERSION);
   assert.equal(backup.integrity.schemaManifestVersion, SCHEMA_MANIFEST_VERSION);

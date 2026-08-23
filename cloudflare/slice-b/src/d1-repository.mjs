@@ -3,14 +3,23 @@ export async function findUnclassifiedGoalWithdrawals(db, householdId = 'family'
   const statement = db.prepare(`
     SELECT l.ledger_id,l.business_date,l.account AS goal_name,l.amount_satang
     FROM ledger_movements l
-    JOIN goals g
-      ON g.household_id=l.household_id
-     AND g.name=l.account
     LEFT JOIN goal_withdrawal_classifications c
       ON c.ledger_id=l.ledger_id
     WHERE l.household_id=?
       AND l.direction='Withdrawal'
       AND c.ledger_id IS NULL
+      AND (
+        EXISTS (
+          SELECT 1 FROM goals g
+          WHERE g.household_id=l.household_id
+            AND g.name=l.account
+        )
+        OR (
+          l.source_sheet='Ledger'
+          AND l.account<>'EF'
+          AND LENGTH(TRIM(l.account))>0
+        )
+      )
     ORDER BY l.business_date,l.sheet_order,l.ledger_id
   `).bind(householdId);
   if (typeof statement.all === 'function') {
@@ -28,6 +37,44 @@ export async function assertV3MigrationDataSafe(db, householdId = 'family') {
     throw new Error(`V3_MIGRATION_DATA_EXCEPTION_UNCLASSIFIED_GOAL_WITHDRAWAL: ledger_id=${ids}`);
   }
   return { ok: true, unclassifiedGoalWithdrawals: 0 };
+}
+
+export async function findAuthoritativeGoalPurposeWithdrawals(db, householdId = 'family') {
+  if (!db || typeof db.prepare !== 'function') throw new Error('D1 binding is unavailable.');
+  const statement = db.prepare(`
+    SELECT
+      l.ledger_id,
+      l.business_date,
+      l.sheet_order,
+      l.account AS goal_name,
+      l.amount_satang,
+      c.use_classification,
+      c.actor_email,
+      c.created_at,
+      c.base_revision,
+      c.write_token
+    FROM goal_withdrawal_classifications c
+    JOIN ledger_movements l
+      ON l.ledger_id=c.ledger_id
+     AND l.household_id=c.household_id
+     AND l.account=c.goal_name
+     AND l.direction='Withdrawal'
+     AND typeof(l.amount_satang)='integer'
+     AND l.amount_satang>0
+    LEFT JOIN goal_withdrawal_effect_events e
+      ON e.household_id=c.household_id
+     AND e.superseded_ledger_id=c.ledger_id
+    WHERE c.household_id=?
+      AND c.use_classification='goal_purpose'
+      AND e.effect_event_id IS NULL
+    ORDER BY l.business_date,l.sheet_order,l.ledger_id
+  `).bind(householdId);
+  if (typeof statement.all === 'function') {
+    const result = await statement.all();
+    return result?.results || [];
+  }
+  const batch = await db.batch([statement]);
+  return batch[0]?.results || [];
 }
 
 export async function loadFinancialSnapshot(db, householdId = 'family') {
@@ -49,6 +96,7 @@ export async function loadFinancialSnapshot(db, householdId = 'family') {
     db.prepare("SELECT commitment_id,cycle_start,commitment_type,destination_name,committed_amount_satang,lifecycle_status,created_at,updated_at FROM cycle_commitments WHERE household_id=? ORDER BY cycle_start,commitment_type,COALESCE(destination_name,''),commitment_id").bind(householdId),
     db.prepare('SELECT event_id,commitment_id,event_type,old_amount_satang,new_amount_satang,actor_email,created_at,base_revision,write_token FROM commitment_events WHERE household_id=? ORDER BY created_at,event_id').bind(householdId),
     db.prepare('SELECT ledger_id,goal_name,use_classification,actor_email,created_at,base_revision,write_token FROM goal_withdrawal_classifications WHERE household_id=? ORDER BY ledger_id').bind(householdId),
+    db.prepare('SELECT effect_event_id,superseded_ledger_id,authoritative_ledger_id,correction_id,effect_kind,actor_email,created_at,base_revision,write_token FROM goal_withdrawal_effect_events WHERE household_id=? ORDER BY created_at,effect_event_id').bind(householdId),
     db.prepare('SELECT week_start,planning_model_version,created_at FROM weekly_snapshot_model_versions WHERE household_id=? ORDER BY week_start').bind(householdId)
   ];
   const results = await db.batch(statements);
@@ -78,6 +126,7 @@ export async function loadFinancialSnapshot(db, householdId = 'family') {
     cycleCommitments: rows(13),
     commitmentEvents: rows(14),
     goalWithdrawalClassifications: rows(15),
-    weeklySnapshotModelVersions: rows(16)
+    goalWithdrawalEffectEvents: rows(16),
+    weeklySnapshotModelVersions: rows(17)
   };
 }

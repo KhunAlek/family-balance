@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { BACKUP_FORMAT, BACKUP_TABLES, verifyPortableBackup } from '../src/backup.mjs';
+import { backupTablesFor, verifyPortableBackup } from '../src/backup.mjs';
 
-function identifier(value) {
-  if (!BACKUP_TABLES.includes(value)) throw new Error(`Unsupported table ${value}.`);
+function identifier(value, tables) {
+  if (!tables.includes(value)) throw new Error(`Unsupported table ${value}.`);
   return `"${value}"`;
 }
 
@@ -17,9 +17,9 @@ function literal(value) {
   return `'${String(value).replace(/'/g, "''")}'`;
 }
 
-function orderedSchema(schema) {
+function orderedSchema(schema, tables) {
   const typeRank = { table: 0, index: 1, trigger: 2 };
-  const tableRank = new Map(BACKUP_TABLES.map((table, index) => [table, index]));
+  const tableRank = new Map(tables.map((table, index) => [table, index]));
   return [...(schema || [])].sort((a, b) => {
     const at = typeRank[String(a?.type || '').toLowerCase()] ?? 9;
     const bt = typeRank[String(b?.type || '').toLowerCase()] ?? 9;
@@ -32,25 +32,26 @@ function orderedSchema(schema) {
 }
 
 export async function buildRestoreSql(backup, options = {}) {
-  if (backup?.format !== BACKUP_FORMAT || !await verifyPortableBackup(backup)) throw new Error('Portable backup integrity verification failed.');
+  if (!await verifyPortableBackup(backup)) throw new Error('Portable backup integrity verification failed.');
+  const tables = backupTablesFor(backup);
   // Portable restore preserves FK enforcement. Both schema creation and row
   // insertion are explicitly dependency-ordered; no foreign-key bypass is used.
   const lines = [];
   if (options.includeSchema) {
-    for (const item of orderedSchema(backup.schema)) {
+    for (const item of orderedSchema(backup.schema, tables)) {
       const sql = String(item?.sql || '').trim();
       if (sql) lines.push(`${sql.replace(/;+$/g, '')};`);
     }
   } else if (options.clearExisting) {
-    for (const table of [...BACKUP_TABLES].reverse()) lines.push(`DELETE FROM ${identifier(table)};`);
+    for (const table of [...tables].reverse()) lines.push(`DELETE FROM ${identifier(table, tables)};`);
   }
-  for (const table of BACKUP_TABLES) {
+  for (const table of tables) {
     for (const row of backup.tables[table]) {
       const columns = Object.keys(row);
       if (!columns.length) continue;
       const columnSql = columns.map(column => `"${String(column).replace(/"/g, '""')}"`).join(',');
       const values = columns.map(column => literal(row[column])).join(',');
-      lines.push(`INSERT INTO ${identifier(table)}(${columnSql}) VALUES(${values});`);
+      lines.push(`INSERT INTO ${identifier(table, tables)}(${columnSql}) VALUES(${values});`);
     }
   }
   return `${lines.join('\n')}\n`;

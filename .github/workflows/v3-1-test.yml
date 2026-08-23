@@ -88,4 +88,4 @@ jobs:
             cloudflare/slice-d/tools/portable-restore.mjs
           )
           ! grep -R -E "(ef|goal)[_-]?replenishment|replenishment[_-]?(debt|allocation|event|commitment)" "${FILES[@]}"
-          ! grep -R -E "--remote|wrangler\.production|family-cash-flow-production" .github/workflows/v3-1-test.yml
+          ! grep -R -E -e "--remote|wrangler\.production|family-cash-flow-production" .github/workflows/v3-1-test.yml

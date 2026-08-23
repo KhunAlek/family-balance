@@ -54,7 +54,7 @@ test('V3-1 migration succeeds on a fresh database and is safely rerunnable', () 
 });
 
 test('accepted-v2-shaped upgrade is additive, preserves factual rows, and fabricates no classification', async () => {
-  const { db, raw } = createSeededSqliteD1();
+  const { db, raw } = createSeededSqliteD1({ includeV3: false });
   const before = legacyState(raw);
   applyAcceptedUpgrade(raw);
   const after = legacyState(raw);
@@ -68,7 +68,7 @@ test('accepted-v2-shaped upgrade is additive, preserves factual rows, and fabric
 });
 
 test('unexpected historical Goal withdrawal fails with the explicit migration-data exception', () => {
-  const { raw } = createSeededSqliteD1();
+  const { raw } = createSeededSqliteD1({ includeV3: false });
   raw.prepare("INSERT INTO goals(household_id,name,target_amount_satang,priority_rank,status,target_date) VALUES('family','Legacy Goal',100000,99,'active',NULL)").run();
   raw.prepare("INSERT INTO ledger_movements(household_id,business_date,sheet_order,account,direction,amount_satang,source_sheet,source_row) VALUES('family','2026-08-10',999,'Legacy Goal','Withdrawal',5000,'Ledger',999)").run();
   raw.exec(migration('cloudflare/slice-d/migrations/0004_web_push_notifications.sql'));
@@ -76,7 +76,7 @@ test('unexpected historical Goal withdrawal fails with the explicit migration-da
 });
 
 test('plan, commitment, event and classification constraints enforce V3-1 cardinality and integrity', () => {
-  const { raw } = createSeededSqliteD1();
+  const { raw } = createSeededSqliteD1({ includeV3: false });
   applyAcceptedUpgrade(raw);
   raw.prepare("INSERT INTO cycle_plans(household_id,cycle_start,variables_target_satang,created_at,updated_at) VALUES('family','2026-08-31',NULL,'2026-08-31T00:00:00Z','2026-08-31T00:00:00Z')").run();
   expectSqliteFailure(() => raw.prepare("INSERT INTO cycle_plans(household_id,cycle_start,variables_target_satang,created_at,updated_at) VALUES('family','2026-08-31',0,'x','x')").run(), /UNIQUE|constraint/i);
@@ -99,12 +99,13 @@ test('plan, commitment, event and classification constraints enforce V3-1 cardin
   expectSqliteFailure(() => raw.prepare("INSERT INTO goal_withdrawal_classifications(ledger_id,household_id,goal_name,use_classification,actor_email,created_at,base_revision,write_token) VALUES(?,?,?,?,?,?,?,?)").run(ledgerId,'family','Test Goal','non_purpose','a@example.com','x',0,'w4'), /UNIQUE|constraint/i);
   const ledgerId2 = Number(raw.prepare("INSERT INTO ledger_movements(household_id,business_date,sheet_order,account,direction,amount_satang,source_sheet,source_row) VALUES('family','2026-08-20',1001,'Test Goal','Contribution',2500,'Ledger',1001)").run().lastInsertRowid);
   expectSqliteFailure(() => raw.prepare("INSERT INTO goal_withdrawal_classifications(ledger_id,household_id,goal_name,use_classification,actor_email,created_at,base_revision,write_token) VALUES(?,?,?,?,?,?,?,?)").run(ledgerId2,'family','Test Goal','goal_purpose','a@example.com','x',0,'w5'), /positive factual Goal withdrawal/);
-  expectSqliteFailure(() => raw.prepare("INSERT INTO goal_withdrawal_classifications(ledger_id,household_id,goal_name,use_classification,actor_email,created_at,base_revision,write_token) VALUES(?,?,?,?,?,?,?,?)").run(999999,'family','Test Goal','wrong','a@example.com','x',0,'w6'), /CHECK|constraint/i);
+  const ledgerId3 = Number(raw.prepare("INSERT INTO ledger_movements(household_id,business_date,sheet_order,account,direction,amount_satang,source_sheet,source_row) VALUES('family','2026-08-20',1002,'Test Goal','Withdrawal',2500,'Ledger',1002)").run().lastInsertRowid);
+  expectSqliteFailure(() => raw.prepare("INSERT INTO goal_withdrawal_classifications(ledger_id,household_id,goal_name,use_classification,actor_email,created_at,base_revision,write_token) VALUES(?,?,?,?,?,?,?,?)").run(ledgerId3,'family','Test Goal','wrong','a@example.com','x',0,'w6'), /CHECK|constraint/i);
   assert.deepEqual(raw.prepare('PRAGMA foreign_key_check').all(), []);
 });
 
 test('weekly v3 version relation leaves legacy snapshots unchanged and marks only future v3 rows', () => {
-  const { raw } = createSeededSqliteD1();
+  const { raw } = createSeededSqliteD1({ includeV3: false });
   const before = raw.prepare('SELECT * FROM weekly_snapshots ORDER BY week_start').all();
   applyAcceptedUpgrade(raw);
   const after = raw.prepare('SELECT * FROM weekly_snapshots ORDER BY week_start').all();
@@ -117,13 +118,15 @@ test('weekly v3 version relation leaves legacy snapshots unchanged and marks onl
 });
 
 test('new snapshot collections are additive and legacy read fields remain unchanged before v3 initialization', async () => {
-  const { db, raw } = createSeededSqliteD1();
-  const expected = legacyState(raw);
+  const { db, raw } = createSeededSqliteD1({ includeV3: false });
   applyAcceptedUpgrade(raw);
+  const expectedBalances = raw.prepare('SELECT balance_row_id,business_date,sheet_order,alex_balance_satang,olga_balance_satang,one_off_payment_name,one_off_payment_amount_satang,one_off_payment_account,income_receipt_source,income_receipt_amount_satang,source_sheet,source_row FROM balance_history WHERE household_id=? ORDER BY business_date,sheet_order').all('family');
+  const expectedLedger = raw.prepare('SELECT ledger_id,business_date,sheet_order,account,direction,amount_satang,source_sheet,source_row FROM ledger_movements WHERE household_id=? ORDER BY business_date,sheet_order').all('family');
+  const expectedWeekly = raw.prepare('SELECT week_start,week_end,planned_variables_satang,spent_variables_satang,spent_variables_status,difference_satang,opening_balance_satang,opening_balance_status,closing_balance_satang,status FROM weekly_snapshots WHERE household_id=? ORDER BY week_start').all('family');
   const snapshot = await loadFinancialSnapshot(db);
-  assert.deepEqual(snapshot.balanceHistory, expected.balances);
-  assert.deepEqual(snapshot.ledger, expected.ledger);
-  assert.deepEqual(snapshot.weeklySnapshots, expected.weekly);
+  assert.deepEqual(snapshot.balanceHistory, expectedBalances);
+  assert.deepEqual(snapshot.ledger, expectedLedger);
+  assert.deepEqual(snapshot.weeklySnapshots, expectedWeekly);
   assert.deepEqual(snapshot.cyclePlans, []);
   assert.deepEqual(snapshot.cyclePlanEvents, []);
   assert.deepEqual(snapshot.cycleCommitments, []);

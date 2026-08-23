@@ -30,11 +30,12 @@ function authoritativePurposeRows(raw) {
 
 test('B002/B004 backup and restore preserve one authoritative purpose effect without rewriting factual Ledger history', async () => {
   const { db, raw } = createSeededSqliteD1();
-  raw.prepare("INSERT INTO goals(household_id,name,target_amount_satang,priority_rank,status,target_date) VALUES('family','Backup Lifecycle Goal',5000000,88,'active',NULL)").run();
-  const original = addLedger(raw, 'Backup Lifecycle Goal', 5000);
-  classify(raw, original, 'class-original');
-  const replacement = addLedger(raw, 'Backup Lifecycle Goal', 3200);
-  classify(raw, replacement, 'class-replacement');
+  const goalName = 'Backup Lifecycle Goal';
+  raw.prepare("INSERT INTO goals(household_id,name,target_amount_satang,priority_rank,status,target_date) VALUES('family',?,5000000,88,'active',NULL)").run(goalName);
+  const original = addLedger(raw, goalName, 5000);
+  classify(raw, original, goalName, 'class-original');
+  const replacement = addLedger(raw, goalName, 3200);
+  classify(raw, replacement, goalName, 'class-replacement');
 
   raw.exec('BEGIN IMMEDIATE');
   raw.prepare("INSERT INTO goal_withdrawal_effect_events(effect_event_id,household_id,superseded_ledger_id,authoritative_ledger_id,correction_id,effect_kind,actor_email,created_at,base_revision,write_token) VALUES('effect-backup','family',?,?,'corr-backup','replacement','owner@example.com','2026-08-20T00:00:00Z',0,'effect-backup-token')")
@@ -43,20 +44,20 @@ test('B002/B004 backup and restore preserve one authoritative purpose effect wit
     .run(String(original));
   raw.exec('COMMIT');
 
-  assert.deepEqual(authoritativePurposeRows(raw).filter(row => row.account === 'Backup Lifecycle Goal').map(row => [Number(row.ledger_id),Number(row.amount_satang)]), [[replacement,3200]]);
+  assert.deepEqual(authoritativePurposeRows(raw).filter(row => row.account === goalName).map(row => [Number(row.ledger_id),Number(row.amount_satang)]), [[replacement,3200]]);
 
   const { backup } = await buildPortableBackup(db, { environment:'staging', createdAt:'2026-08-23T10:40:00Z' });
-  assert.equal(backup.tables.goal_withdrawal_classifications.filter(row => row.goal_name === 'Backup Lifecycle Goal').length, 2);
+  assert.equal(backup.tables.goal_withdrawal_classifications.filter(row => row.goal_name === goalName).length, 2);
   assert.equal(backup.tables.goal_withdrawal_effect_events.filter(row => row.correction_id === 'corr-backup').length, 1);
-  assert.equal(backup.tables.ledger_movements.filter(row => row.account === 'Backup Lifecycle Goal').length, 2);
+  assert.equal(backup.tables.ledger_movements.filter(row => row.account === goalName).length, 2);
 
   const restoreSql = await buildRestoreSql(backup, { includeSchema:true });
   const restored = new DatabaseSync(':memory:');
   restored.exec('PRAGMA foreign_keys=ON;');
   restored.exec(restoreSql);
   assert.deepEqual(restored.prepare('PRAGMA foreign_key_check').all(), []);
-  assert.equal(restored.prepare("SELECT COUNT(*) AS n FROM ledger_movements WHERE account='Backup Lifecycle Goal'").get().n, 2);
-  assert.equal(restored.prepare("SELECT COUNT(*) AS n FROM goal_withdrawal_classifications WHERE goal_name='Backup Lifecycle Goal'").get().n, 2);
+  assert.equal(restored.prepare("SELECT COUNT(*) AS n FROM ledger_movements WHERE account=?").get(goalName).n, 2);
+  assert.equal(restored.prepare("SELECT COUNT(*) AS n FROM goal_withdrawal_classifications WHERE goal_name=?").get(goalName).n, 2);
   assert.equal(restored.prepare("SELECT COUNT(*) AS n FROM goal_withdrawal_effect_events WHERE correction_id='corr-backup'").get().n, 1);
-  assert.deepEqual(authoritativePurposeRows(restored).filter(row => row.account === 'Backup Lifecycle Goal').map(row => [Number(row.ledger_id),Number(row.amount_satang)]), [[replacement,3200]]);
+  assert.deepEqual(authoritativePurposeRows(restored).filter(row => row.account === goalName).map(row => [Number(row.ledger_id),Number(row.amount_satang)]), [[replacement,3200]]);
 });

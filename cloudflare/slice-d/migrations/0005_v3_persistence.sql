@@ -246,8 +246,23 @@ WHEN
         AND l.amount_satang > 0
     )
   )
+  OR (
+    EXISTS (
+      SELECT 1 FROM correction_audit a
+      WHERE a.correction_id = NEW.correction_id
+    )
+    AND NOT EXISTS (
+      SELECT 1
+      FROM correction_audit a
+      WHERE a.correction_id = NEW.correction_id
+        AND a.household_id = NEW.household_id
+        AND a.entity_type IN ('ledger_movement','ledgerMovement')
+        AND CAST(a.entity_id AS INTEGER) = NEW.superseded_ledger_id
+        AND a.write_token = NEW.write_token
+    )
+  )
 BEGIN
-  SELECT RAISE(ABORT, 'goal withdrawal effect must preserve a valid authoritative factual effect and compatible replacement classification');
+  SELECT RAISE(ABORT, 'goal withdrawal effect must preserve a valid authoritative factual effect, compatible replacement classification, and matching Ledger correction audit');
 END;
 
 CREATE TRIGGER IF NOT EXISTS goal_withdrawal_effect_append_only_update
@@ -310,6 +325,28 @@ WHEN NEW.entity_type IN ('ledger_movement','ledgerMovement')
   )
 BEGIN
   SELECT RAISE(ABORT, 'classified Goal withdrawal correction requires additive authoritative-effect metadata');
+END;
+
+-- Reciprocal binding closes the deferred-FK ordering gap: when an effect row is
+-- inserted first, the audit that later satisfies correction_id must describe
+-- exactly that same classified Ledger correction under the same write claim.
+CREATE TRIGGER IF NOT EXISTS goal_withdrawal_effect_correction_audit_validate_insert
+BEFORE INSERT ON correction_audit
+FOR EACH ROW
+WHEN EXISTS (
+  SELECT 1 FROM goal_withdrawal_effect_events e
+  WHERE e.correction_id = NEW.correction_id
+)
+  AND NOT EXISTS (
+    SELECT 1 FROM goal_withdrawal_effect_events e
+    WHERE e.correction_id = NEW.correction_id
+      AND e.household_id = NEW.household_id
+      AND NEW.entity_type IN ('ledger_movement','ledgerMovement')
+      AND e.superseded_ledger_id = CAST(NEW.entity_id AS INTEGER)
+      AND e.write_token = NEW.write_token
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'goal withdrawal effect correction audit must match household, Ledger entity, correction id, and write token');
 END;
 
 -- Legacy weekly rows remain untouched. A future v3 weekly writer will create a

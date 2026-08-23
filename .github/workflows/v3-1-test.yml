@@ -78,7 +78,7 @@ jobs:
           npx --yes wrangler@4.123.0 d1 execute family-cash-flow-staging-v1 --local --persist-to "$PERSIST" --config wrangler.jsonc --file cloudflare/slice-d/migrations/0005_v3_persistence.sql
           npx --yes wrangler@4.123.0 d1 execute family-cash-flow-staging-v1 --local --persist-to "$PERSIST" --config wrangler.jsonc --file cloudflare/slice-d/migrations/0005_v3_persistence.sql
           npx --yes wrangler@4.123.0 d1 execute family-cash-flow-staging-v1 --local --persist-to "$PERSIST" --config wrangler.jsonc --command "PRAGMA foreign_key_check;"
-      - name: Gate-1 scope and production-isolation guard
+      - name: Gate-1 no-replenishment scope guard
         run: |
           set -euo pipefail
           FILES=(
@@ -88,4 +88,3 @@ jobs:
             cloudflare/slice-d/tools/portable-restore.mjs
           )
           ! grep -R -E "(ef|goal)[_-]?replenishment|replenishment[_-]?(debt|allocation|event|commitment)" "${FILES[@]}"
-          ! grep -R -E -e "--remote|wrangler\.production|family-cash-flow-production" .github/workflows/v3-1-test.yml

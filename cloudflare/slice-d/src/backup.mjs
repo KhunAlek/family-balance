@@ -50,13 +50,19 @@ const GATE1_REQUIRED_SCHEMA = Object.freeze([
   ]),
   objectRequirement('goal_withdrawal_classification_append_only_update','trigger','goal_withdrawal_classifications'),
   objectRequirement('goal_withdrawal_classification_append_only_delete','trigger','goal_withdrawal_classifications'),
-  objectRequirement('goal_withdrawal_effect_validate_insert','trigger','goal_withdrawal_effect_events'),
+  objectRequirement('goal_withdrawal_effect_validate_insert','trigger','goal_withdrawal_effect_events',[
+    "typeof(a.entity_id) = 'text'",'a.entity_id = cast(new.superseded_ledger_id as text)'
+  ]),
   objectRequirement('goal_withdrawal_effect_append_only_update','trigger','goal_withdrawal_effect_events'),
   objectRequirement('goal_withdrawal_effect_append_only_delete','trigger','goal_withdrawal_effect_events'),
   objectRequirement('classified_goal_withdrawal_ledger_protect_update','trigger','ledger_movements'),
   objectRequirement('classified_goal_withdrawal_ledger_protect_delete','trigger','ledger_movements'),
-  objectRequirement('classified_goal_withdrawal_correction_effect_required','trigger','correction_audit'),
-  objectRequirement('goal_withdrawal_effect_correction_audit_validate_insert','trigger','correction_audit'),
+  objectRequirement('classified_goal_withdrawal_correction_effect_required','trigger','correction_audit',[
+    "typeof(new.entity_id) = 'text'",'cast(c.ledger_id as text) = new.entity_id','cast(e.superseded_ledger_id as text) = new.entity_id'
+  ]),
+  objectRequirement('goal_withdrawal_effect_correction_audit_validate_insert','trigger','correction_audit',[
+    "typeof(new.entity_id) = 'text'",'new.entity_id = cast(e.superseded_ledger_id as text)'
+  ]),
 ]);
 
 const MANIFESTS = Object.freeze({
@@ -216,7 +222,7 @@ function validateV3Relations(tables) {
     const correction=corrections.get(String(row.correction_id));
     if (!correction || String(correction.household_id)!==hh || correctionIds.has(`${hh}\u0000${row.correction_id}`)) return false;
     if (!['ledger_movement','ledgerMovement'].includes(String(correction.entity_type))) return false;
-    if (Number(correction.entity_id)!==oldId) return false;
+    if (typeof correction.entity_id !== 'string' || correction.entity_id !== String(oldId)) return false;
     if (String(correction.write_token)!==String(row.write_token)) return false;
     correctionIds.add(`${hh}\u0000${row.correction_id}`);
     if (effectTokens.has(`${hh}\u0000${row.write_token}`)) return false;

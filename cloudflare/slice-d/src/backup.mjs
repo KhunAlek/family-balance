@@ -74,6 +74,8 @@ const GATE1_REQUIRED_SCHEMA = Object.freeze([
   ]),
 ]);
 
+const GATE1_CANONICAL_SCHEMA_SHA256 = '120707a5106f2de9b5af70134b41e7217d54d7757179d4bb5ac0b11f6ead0abb';
+
 const MANIFESTS = Object.freeze({
   'family-cash-flow-d1-portable-v2|v2-legacy': Object.freeze({
     format: 'family-cash-flow-d1-portable-v2',
@@ -82,6 +84,7 @@ const MANIFESTS = Object.freeze({
     requiredSchema: V2_REQUIRED_SCHEMA,
     legacyPayloadHash: true,
     exactSchema: false,
+    canonicalSchemaSha256: null,
   }),
   [`${BACKUP_FORMAT}|${SCHEMA_MANIFEST_VERSION}`]: Object.freeze({
     format: BACKUP_FORMAT,
@@ -90,7 +93,36 @@ const MANIFESTS = Object.freeze({
     requiredSchema: GATE1_REQUIRED_SCHEMA,
     legacyPayloadHash: false,
     exactSchema: true,
+    canonicalSchemaSha256: GATE1_CANONICAL_SCHEMA_SHA256,
   }),
+});
+
+const SATANG_CONTRACT = Object.freeze({
+  configuration: Object.freeze({ value_satang: 'nullable' }),
+  balance_history: Object.freeze({
+    alex_balance_satang: 'nullable',
+    olga_balance_satang: 'nullable',
+    one_off_payment_amount_satang: 'nullable',
+    income_receipt_amount_satang: 'nullable',
+  }),
+  income_definitions: Object.freeze({ expected_amount_satang: 'required' }),
+  income_receipts: Object.freeze({ amount_satang: 'required' }),
+  obligations: Object.freeze({ expected_amount_satang: 'required' }),
+  obligation_occurrences: Object.freeze({ expected_amount_satang: 'required' }),
+  obligation_payments: Object.freeze({ expected_amount_satang: 'required', actual_amount_satang: 'required' }),
+  goals: Object.freeze({ target_amount_satang: 'required' }),
+  ledger_movements: Object.freeze({ amount_satang: 'required' }),
+  weekly_snapshots: Object.freeze({
+    planned_variables_satang: 'nullable',
+    spent_variables_satang: 'nullable',
+    difference_satang: 'nullable',
+    opening_balance_satang: 'nullable',
+    closing_balance_satang: 'nullable',
+  }),
+  cycle_plans: Object.freeze({ variables_target_satang: 'nullable_nonnegative' }),
+  cycle_plan_events: Object.freeze({ old_target_satang: 'nullable_nonnegative', new_target_satang: 'nullable_nonnegative' }),
+  cycle_commitments: Object.freeze({ committed_amount_satang: 'required_nonnegative' }),
+  commitment_events: Object.freeze({ old_amount_satang: 'nullable_nonnegative', new_amount_satang: 'nullable_nonnegative' }),
 });
 
 const encoder = new TextEncoder();
@@ -122,6 +154,15 @@ function validSchemaItem(item, tables) {
 
 function normalizeSql(value) {
   return String(value || '').replace(/\s+/g,' ').trim().toLowerCase();
+}
+
+function canonicalSchemaMaterial(schema) {
+  return JSON.stringify([...schema].map(item => ({
+    name: String(item.name),
+    type: String(item.type).toLowerCase(),
+    table: String(item.tbl_name),
+    sql: normalizeSql(item.sql),
+  })).sort((a,b) => a.name.localeCompare(b.name)));
 }
 
 function hasCompleteSchemaManifest(schema, manifest) {
@@ -168,13 +209,49 @@ async function sha256Hex(value) {
   return Array.from(digest, byte => byte.toString(16).padStart(2,'0')).join('');
 }
 
+async function hasCanonicalSchema(schema, manifest) {
+  if (!manifest.canonicalSchemaSha256) return true;
+  return await sha256Hex(canonicalSchemaMaterial(schema)) === manifest.canonicalSchemaSha256;
+}
+
 function rows(result) { return result?.results || []; }
 function tableKey(row, columns) { return columns.map(column => String(row?.[column] ?? '')).join('\u0000'); }
-function isSafeInteger(value) { return typeof value === 'number' && Number.isSafeInteger(value); }
-function isSafeNonNegativeInteger(value) { return isSafeInteger(value) && value >= 0; }
-function isSafePositiveInteger(value) { return isSafeInteger(value) && value > 0; }
+export function isPortableSafeInteger(value) { return typeof value === 'number' && Number.isSafeInteger(value); }
+function isSafeNonNegativeInteger(value) { return isPortableSafeInteger(value) && value >= 0; }
+function isSafePositiveInteger(value) { return isPortableSafeInteger(value) && value > 0; }
 function isNullableSafeNonNegativeInteger(value) {
   return value === null || (value !== undefined && isSafeNonNegativeInteger(value));
+}
+
+function validateSatangContract(tables) {
+  const knownSatang = new Set();
+  for (const [table, fields] of Object.entries(SATANG_CONTRACT)) {
+    for (const column of Object.keys(fields)) knownSatang.add(`${table}.${column}`);
+  }
+  for (const [table, tableRows] of Object.entries(tables)) {
+    if (!Array.isArray(tableRows)) return false;
+    for (const row of tableRows) {
+      for (const column of Object.keys(row || {})) {
+        if (column.endsWith('_satang') && !knownSatang.has(`${table}.${column}`)) return false;
+      }
+      const fields=SATANG_CONTRACT[table];
+      if (!fields) continue;
+      for (const [column, rule] of Object.entries(fields)) {
+        if (!Object.prototype.hasOwnProperty.call(row,column)) return false;
+        const value=row[column];
+        if (rule==='nullable') {
+          if (value!==null && !isPortableSafeInteger(value)) return false;
+        } else if (rule==='required') {
+          if (!isPortableSafeInteger(value)) return false;
+        } else if (rule==='nullable_nonnegative') {
+          if (value!==null && !isSafeNonNegativeInteger(value)) return false;
+        } else if (rule==='required_nonnegative') {
+          if (!isSafeNonNegativeInteger(value)) return false;
+        } else return false;
+      }
+    }
+  }
+  return true;
 }
 
 function hasExactTables(tables, expectedTables) {
@@ -184,12 +261,13 @@ function hasExactTables(tables, expectedTables) {
 }
 
 function validateV3Relations(tables) {
+  if (!validateSatangContract(tables)) return false;
   if (!tables.goal_withdrawal_effect_events) return true;
   const households = new Set(tables.households.map(row => String(row.household_id)));
   const goals = new Set(tables.goals.map(row => tableKey(row,['household_id','name'])));
   const ledger = new Map();
   for (const row of tables.ledger_movements) {
-    if (!isSafeInteger(row.ledger_id) || ledger.has(row.ledger_id)) return false;
+    if (!isPortableSafeInteger(row.ledger_id) || ledger.has(row.ledger_id)) return false;
     ledger.set(row.ledger_id,row);
   }
   const corrections = new Map();
@@ -227,7 +305,7 @@ function validateV3Relations(tables) {
   }
 
   for (const row of tables.goal_withdrawal_classifications) {
-    if (!isSafeInteger(row.ledger_id)) return false;
+    if (!isPortableSafeInteger(row.ledger_id)) return false;
     const ledgerId=row.ledger_id;
     if (classifications.has(ledgerId)) return false;
     classifications.set(ledgerId,row);
@@ -242,7 +320,7 @@ function validateV3Relations(tables) {
   const superseded=new Set(), authoritative=new Set(), correctionIds=new Set(), effectTokens=new Set();
   const nextByNode=new Map();
   for (const row of tables.goal_withdrawal_effect_events) {
-    if (!isSafeInteger(row.superseded_ledger_id)) return false;
+    if (!isPortableSafeInteger(row.superseded_ledger_id)) return false;
     const hh=String(row.household_id), oldId=row.superseded_ledger_id;
     const oldKey=`${hh}\u0000${oldId}`;
     const oldClass=classifications.get(oldId);
@@ -261,7 +339,7 @@ function validateV3Relations(tables) {
       if (auth !== null) return false;
       nextByNode.set(oldKey,null);
     } else if (row.effect_kind==='replacement') {
-      if (!isSafeInteger(auth)) return false;
+      if (!isPortableSafeInteger(auth)) return false;
       const key=`${hh}\u0000${auth}`;
       if (authoritative.has(key)) return false;
       authoritative.add(key);
@@ -279,9 +357,6 @@ function validateV3Relations(tables) {
     } else return false;
   }
 
-  // The uniqueness checks above make the graph functional and non-merging.
-  // Every replacement chain must also be acyclic so it terminates at exactly
-  // one authoritative factual row or an explicit reversal.
   for (const start of nextByNode.keys()) {
     const seen=new Set();
     let current=start;
@@ -318,8 +393,10 @@ export async function buildPortableBackup(db, options = {}) {
   BACKUP_TABLES.forEach((table,index)=>{ tables[table]=rows(results[index+1]); });
   const schema=rows(results[0]);
   const manifest=MANIFESTS[`${BACKUP_FORMAT}|${SCHEMA_MANIFEST_VERSION}`];
-  if (!hasCompleteSchemaManifest(schema,manifest)) throw new Error('Database schema does not satisfy the Gate-1 backup manifest.');
-  if (!validateV3Relations(tables)) throw new Error('Database contains invalid v3 backup relations.');
+  if (!hasCompleteSchemaManifest(schema,manifest) || !await hasCanonicalSchema(schema,manifest)) {
+    throw new Error('Database schema does not satisfy the exact Gate-1 backup manifest.');
+  }
+  if (!validateV3Relations(tables)) throw new Error('Database contains invalid v3 backup relations or typed values.');
   const backup={
     format: BACKUP_FORMAT,
     schemaManifestVersion: SCHEMA_MANIFEST_VERSION,
@@ -374,6 +451,7 @@ export async function verifyPortableBackup(backup) {
   const manifest=manifestForBackup(backup);
   if (!manifest || !Array.isArray(backup?.schema) || !backup?.tables || !backup?.integrity) return false;
   if (!hasExactTables(backup.tables,manifest.tables) || !hasCompleteSchemaManifest(backup.schema,manifest)) return false;
+  if (!await hasCanonicalSchema(backup.schema,manifest)) return false;
   for (const table of manifest.tables) {
     if (!Array.isArray(backup.tables[table])) return false;
     if (!isSafeNonNegativeInteger(backup.integrity.rowCounts?.[table]) || backup.integrity.rowCounts[table]!==backup.tables[table].length) return false;

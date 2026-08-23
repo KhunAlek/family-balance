@@ -45,16 +45,19 @@ test('Income received credits the selected account and creates a factual receipt
   assert.match(plan.statements[1].sql, /INSERT INTO income_receipts/);
 });
 
-test('First salary at the explicit next-salary boundary advances the cycle and clears next salary', async () => {
+test('Salary at the explicit next-salary boundary advances the cycle, resets v3 planning state, and requires target input', async () => {
   const plan = await planFinancialWrite(context('incomeReceipt', {
     date: '2026-08-31', incomeSource: 'Alex Salary', incomeAlexAmount: 33775, incomeOlgaAmount: 0
   }, baseSnapshot(), { nowIso: '2026-08-31T12:00:00.000Z' }));
   assert.equal(plan.response.salaryCycleAdvanced, true);
   assert.equal(plan.response.nextSalaryDateRequired, true);
-  const cycleUpdate = plan.statements.find(item => /UPDATE salary_cycle_state/.test(item.sql));
+  assert.equal(plan.response.variablesTargetRequired, true);
+  const cycleUpdate = plan.statements.find(item => /UPDATE salary_cycle_state SET current_cycle_start/.test(item.sql));
+  const goalReset = plan.statements.find(item => /UPDATE goals SET cycle_commitment_satang=0/.test(item.sql));
   const sourceMembership = plan.statements.find(item => /salary_cycle_sources/.test(item.sql));
   assert.ok(cycleUpdate);
-  assert.equal(cycleUpdate.params[0], '2026-08-31');
+  assert.deepEqual(cycleUpdate.params.slice(0, 2), ['2026-08-31', 1500000]);
+  assert.ok(goalReset);
   assert.ok(sourceMembership);
   assert.equal(sourceMembership.params[1], '2026-08-31');
   assert.equal(sourceMembership.params[2], 'Alex Salary');
@@ -90,25 +93,26 @@ test('KTB transfer preserves combined KTB and rejects account overdraft', async 
   );
 });
 
-test('Goal creation validates factual target and rank', async () => {
+test('Goal creation validates factual target and rank and starts with zero cycle commitment', async () => {
   const plan = await planFinancialWrite(context('addGoal', { name: 'Test Goal', targetAmount: '5000', priorityRank: '2', targetDate: '2026-12-31' }));
   assert.equal(plan.statements.length, 1);
-  assert.deepEqual(plan.response.goal, { name: 'Test Goal', targetAmount: 5000, priorityRank: 2, status: 'active', targetDate: '2026-12-31' });
+  assert.deepEqual(plan.response.goal, { name: 'Test Goal', targetAmount: 5000, priorityRank: 2, status: 'active', targetDate: '2026-12-31', cycleCommitment: 0 });
+  assert.match(plan.statements[0].sql, /cycle_commitment_satang/);
 });
 
-test('EF transfer revalidates current planning capacity server-side', async () => {
+test('EF transfer revalidates v3 commitment-aware limit and source balance server-side', async () => {
   const plan = await planFinancialWrite(context('dedicatedTransfer', {
     date: '2026-08-14', sourceAccount: 'Alex', amount: 100, destinationType: 'EF', destinationName: 'EF'
   }));
   assert.equal(plan.statements.length, 2);
   assert.equal(plan.response.destination, 'EF');
   await expectValidation(
-    planFinancialWrite(context('dedicatedTransfer', { date: '2026-08-14', sourceAccount: 'Alex', amount: 300, destinationType: 'EF', destinationName: 'EF' })),
-    /above the current safe limit/
+    planFinancialWrite(context('dedicatedTransfer', { date: '2026-08-14', sourceAccount: 'Alex', amount: 2300, destinationType: 'EF', destinationName: 'EF' })),
+    /exceeds Alex KTB balance/
   );
 });
 
-test('Goal movement follows current waterfall when cash exists after higher protections', async () => {
+test('Goal movement uses v3 explicit commitment/Available safety rather than the old Goal waterfall', async () => {
   const snapshot = clone(baseSnapshot());
   snapshot.balanceHistory.push({
     business_date: '2026-08-14', sheet_order: 999,
@@ -134,18 +138,18 @@ test('Obligation payment records the submitted backdated-permitted date and debi
   assert.deepEqual(plan.response.balances, { alex: 2271, olga: 11455 });
 });
 
-test('One-off preview is non-writing and matches the authoritative 14 Aug safe capacity', () => {
+test('One-off preview is non-writing and uses v3 signed Available', () => {
   const preview = buildOneOffPaymentPreview(baseSnapshot(), {
     date: '2026-08-14', oneOffName: 'Preview only', oneOffAlexAmount: 1000, oneOffOlgaAmount: 0
   }, NOW);
   assert.equal(preview.ok, true);
   assert.equal(preview.recordableNow, true);
-  assert.equal(preview.safeDiscretionaryKTB, 1661.48);
+  assert.equal(preview.availableToSpend, 12726);
   assert.equal(preview.safeKTBPortion, 1000);
-  assert.equal(preview.efRequired, 0);
+  assert.equal(preview.fundingNeeded, 0);
 });
 
-test('Final one-off payment recalculates from authoritative state and requires explicit EF first when needed', async () => {
+test('Final one-off payment recalculates v3 Available and requires explicit EF first when needed', async () => {
   const safePlan = await planFinancialWrite(context('oneOffPayment', {
     date: '2026-08-14', oneOffName: 'Safe test', oneOffAlexAmount: 1000, oneOffOlgaAmount: 0
   }));
@@ -153,7 +157,7 @@ test('Final one-off payment recalculates from authoritative state and requires e
   assert.deepEqual(safePlan.response.balances, { alex: 1285, olga: 11455 });
 
   await assert.rejects(
-    planFinancialWrite(context('oneOffPayment', { date: '2026-08-14', oneOffName: 'Needs EF', oneOffAlexAmount: 2000, oneOffOlgaAmount: 0 })),
-    error => error instanceof FinancialWriteValidationError && error.requiresEFWithdrawal === true && error.split.efPortion === 338.52
+    planFinancialWrite(context('oneOffPayment', { date: '2026-08-14', oneOffName: 'Needs EF', oneOffAlexAmount: 2000, oneOffOlgaAmount: 11000 })),
+    error => error instanceof FinancialWriteValidationError && error.requiresEFWithdrawal === true && error.split.efPortion === 274
   );
 });

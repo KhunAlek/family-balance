@@ -31,17 +31,24 @@ function orderedSchema(schema, tables) {
   });
 }
 
+function appendSchemaSql(lines, items) {
+  for (const item of items) {
+    const sql = String(item?.sql || '').trim();
+    if (sql) lines.push(`${sql.replace(/;+$/g, '')};`);
+  }
+}
+
 export async function buildRestoreSql(backup, options = {}) {
   if (!await verifyPortableBackup(backup)) throw new Error('Portable backup integrity verification failed.');
   const tables = backupTablesFor(backup);
-  // Portable restore preserves FK enforcement. Both schema creation and row
-  // insertion are explicitly dependency-ordered; no foreign-key bypass is used.
+  // FK enforcement remains on. Tables and indexes are created first; rows are
+  // restored in dependency order; integrity/protection triggers are created only
+  // after all audited historical rows exist so restore does not replay write-time
+  // guards against already-valid history.
   const lines = [];
+  const schema = options.includeSchema ? orderedSchema(backup.schema, tables) : [];
   if (options.includeSchema) {
-    for (const item of orderedSchema(backup.schema, tables)) {
-      const sql = String(item?.sql || '').trim();
-      if (sql) lines.push(`${sql.replace(/;+$/g, '')};`);
-    }
+    appendSchemaSql(lines, schema.filter(item => String(item?.type || '').toLowerCase() !== 'trigger'));
   } else if (options.clearExisting) {
     for (const table of [...tables].reverse()) lines.push(`DELETE FROM ${identifier(table, tables)};`);
   }
@@ -53,6 +60,9 @@ export async function buildRestoreSql(backup, options = {}) {
       const values = columns.map(column => literal(row[column])).join(',');
       lines.push(`INSERT INTO ${identifier(table, tables)}(${columnSql}) VALUES(${values});`);
     }
+  }
+  if (options.includeSchema) {
+    appendSchemaSql(lines, schema.filter(item => String(item?.type || '').toLowerCase() === 'trigger'));
   }
   return `${lines.join('\n')}\n`;
 }

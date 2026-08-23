@@ -32,7 +32,7 @@ function classify(raw, ledgerId, goalName, use = 'goal_purpose', token = `class-
 function recordEffect(raw, { superseded, authoritative = null, kind, correctionId, token }) {
   raw.exec('BEGIN IMMEDIATE');
   try {
-    raw.prepare("INSERT INTO goal_withdrawal_effect_events(effect_event_id,household_id,superseded_ledger_id,authoritative_ledger_id,correction_id,effect_kind,actor_email,created_at,base_revision,write_token) VALUES(?,'family',?,?,?,?,?,'owner@example.com','2026-08-20T00:00:00Z',0,?)")
+    raw.prepare("INSERT INTO goal_withdrawal_effect_events(effect_event_id,household_id,superseded_ledger_id,authoritative_ledger_id,correction_id,effect_kind,actor_email,created_at,base_revision,write_token) VALUES(?,'family',?,?,?,?,'owner@example.com','2026-08-20T00:00:00Z',0,?)")
       .run(`effect-${correctionId}`, superseded, authoritative, correctionId, kind, token);
     raw.prepare("INSERT INTO correction_audit(correction_id,household_id,entity_type,entity_id,before_json,after_json,reason,actor_email,corrected_at,base_revision,write_token) VALUES(?,'family','ledger_movement',?,'{}',?,'Gate 1 lifecycle test','owner@example.com','2026-08-20T00:00:00Z',0,?)")
       .run(correctionId, String(superseded), JSON.stringify({ authoritativeLedgerId: authoritative }), token);

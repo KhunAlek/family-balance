@@ -11,26 +11,19 @@ const EF_DEFAULT_THB = 15000;
 function parseJson(value) {
   try { return value ? JSON.parse(value) : null; } catch { return null; }
 }
-
 function inWindow(value, start, end) {
   const d = isoDate(value);
   return !!d && !!start && compareDates(d, start) >= 0 && (!end || compareDates(d, end) <= 0);
 }
-
 function ledgerIdentity(row) {
   return `${String(row?.source_sheet || '')}|${String(row?.source_row ?? '')}`;
 }
 
-/**
- * Resolve the logical Ledger rows represented by the production additive
- * correction protocol. Original rows remain physically present; each
- * correction adds a reversal plus a replacement and records the replacement's
- * exact (source_sheet, source_row) identity in correction_audit.after_json.
- *
- * The resolver deliberately does not alter factual raw Ledger arithmetic.
- * It exists only for commitment-completion logic where original+reversal+
- * replacement must be treated as one authoritative logical movement.
- */
+// Production Ledger corrections are additive: the original factual row remains,
+// a reversal row is appended, a replacement row is appended, and correction_audit
+// points at the replacement by (source_sheet='Correction', source_row). This
+// resolver is intentionally read-only and is used only for gross commitment
+// completion; factual balances continue to use raw net Ledger arithmetic.
 export function authoritativeLedgerMovements(snapshot, options = {}) {
   const rows = snapshot.ledger || [];
   const audits = (snapshot.correctionAudits || []).filter(a => String(a.entity_type || '') === 'ledger_movement');
@@ -38,48 +31,45 @@ export function authoritativeLedgerMovements(snapshot, options = {}) {
   const byIdentity = new Map(rows.map(row => [ledgerIdentity(row), row]));
   const superseded = new Set();
   const replacementIdentities = new Set();
-  const replacementCount = new Map();
+  const auditCountByEntity = new Map();
   const ambiguities = [];
   const cycleStart = isoDate(options.cycleStart);
   const throughDate = isoDate(options.throughDate);
 
-  const relevantAccounts = (audit, before, after, replacement) => {
-    const candidates = [before, after, replacement].filter(Boolean);
-    const relevant = candidates.some(item => inWindow(item.business_date, cycleStart, throughDate));
-    if (!relevant) return [];
-    return [...new Set(candidates.map(item => String(item.account || '').trim()).filter(Boolean))];
+  const relevantAccounts = (...candidates) => {
+    const present = candidates.filter(Boolean);
+    if (!present.some(item => inWindow(item.business_date, cycleStart, throughDate))) return [];
+    return [...new Set(present.map(item => String(item.account || '').trim()).filter(Boolean))];
   };
 
   for (const audit of audits) {
     const entityId = String(audit.entity_id ?? '').trim();
     if (!entityId) continue;
     superseded.add(entityId);
+    auditCountByEntity.set(entityId, (auditCountByEntity.get(entityId) || 0) + 1);
+
     const before = parseJson(audit.before_json) || byId.get(entityId) || null;
     const after = parseJson(audit.after_json);
     const sourceRow = after?.source_row;
     const identity = sourceRow === null || sourceRow === undefined ? null : `Correction|${String(sourceRow)}`;
     const replacement = identity ? byIdentity.get(identity) || null : null;
-    replacementCount.set(entityId, (replacementCount.get(entityId) || 0) + 1);
     if (identity) replacementIdentities.add(identity);
     if (!after || !identity || !replacement) {
-      ambiguities.push({ entityId, accounts: relevantAccounts(audit, before, after, replacement), reason: 'replacement_unresolved' });
+      ambiguities.push({ entityId, accounts: relevantAccounts(before, after, replacement), reason: 'replacement_unresolved' });
     }
   }
 
-  for (const [entityId, count] of replacementCount) {
+  for (const [entityId, count] of auditCountByEntity) {
     if (count <= 1) continue;
     const before = byId.get(entityId) || null;
-    const accounts = before && inWindow(before.business_date, cycleStart, throughDate) ? [String(before.account || '').trim()].filter(Boolean) : [];
-    ambiguities.push({ entityId, accounts, reason: 'multiple_replacements' });
+    ambiguities.push({ entityId, accounts: relevantAccounts(before), reason: 'multiple_replacements' });
   }
 
-  const authoritative = [];
-  for (const row of rows) {
-    const id = String(row.ledger_id);
-    if (superseded.has(id)) continue;
-    if (String(row.source_sheet || '') === 'Correction' && !replacementIdentities.has(ledgerIdentity(row))) continue;
-    authoritative.push(row);
-  }
+  const authoritative = rows.filter(row => {
+    if (superseded.has(String(row.ledger_id))) return false;
+    if (String(row.source_sheet || '') !== 'Correction') return true;
+    return replacementIdentities.has(ledgerIdentity(row));
+  });
 
   const affectedAccounts = [...new Set(ambiguities.flatMap(item => item.accounts || []).filter(Boolean))];
   return { rows: authoritative, ambiguities, affectedAccounts };
@@ -92,13 +82,13 @@ export function qualifyingCurrentCycleContributions(snapshot, account, throughDa
   const resolved = authoritativeLedgerMovements(snapshot, { cycleStart, throughDate: end });
   const degraded = resolved.affectedAccounts.includes(account);
   if (degraded) return { grossCompleted: 0, degraded: true, affectedAccounts: resolved.affectedAccounts };
-  const total = resolved.rows.reduce((sum, row) => {
+  const grossCompleted = resolved.rows.reduce((sum, row) => {
     if (String(row.account || '') !== account || String(row.direction || '') !== 'Contribution') return sum;
-    const date = isoDate(row.business_date);
-    if (!date || compareDates(date, cycleStart) < 0 || compareDates(date, end) > 0) return sum;
+    const d = isoDate(row.business_date);
+    if (!d || compareDates(d, cycleStart) < 0 || compareDates(d, end) > 0) return sum;
     return sum + satangToThb(row.amount_satang);
   }, 0);
-  return { grossCompleted: round2(total), degraded: false, affectedAccounts: resolved.affectedAccounts };
+  return { grossCompleted: round2(grossCompleted), degraded: false, affectedAccounts: resolved.affectedAccounts };
 }
 
 export function goalCommitmentState(snapshot, goalName, throughDate, proposedCommitment = undefined) {
@@ -200,23 +190,29 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
   const efCommitment = snapshot.salaryCycle?.ef_cycle_commitment_satang === null || snapshot.salaryCycle?.ef_cycle_commitment_satang === undefined
     ? (satangToThb(snapshot.config?.ef_monthly_claim_cap_satang) || EF_DEFAULT_THB)
     : satangToThb(snapshot.salaryCycle.ef_cycle_commitment_satang);
-  const cash = round2(Math.max(Number(latest.combinedBalance) || 0, 0));
+  const operationalCash = round2(Math.max(Number(latest.combinedBalance) || 0, 0));
 
   if (!cycle.valid) {
     return {
-      asOf: requestedDate, balanceAsOf: latest.date, guidanceAvailable: false, guidanceError: cycle.error,
+      asOf: requestedDate,
+      balanceAsOf: latest.date,
+      guidanceAvailable: false,
+      guidanceError: cycle.error,
       planningState: variablesTarget === null ? 'target_not_set' : 'ready',
       planningReason: !cycle.nextSalaryDate ? 'next_salary_date_required' : 'salary_cycle_invalid',
       affectedPlanningAccounts: [],
       salaryCycle: { valid: false, cycleStart: cycle.cycleStart, nextSalaryDate: cycle.nextSalaryDate, cycleEnd: cycle.cycleEnd },
-      operationalCash: cash, commitments: null, availableToSpend: null,
-      variables: { target: variablesTarget, spent: null, targetRemaining: null, targetExceededBy: null, targetPace: null, runwayPace: null, recommendedPace: null, remainingRunwayDays: null }
+      operationalCash,
+      commitments: null,
+      availableToSpend: null,
+      variables: { target: variablesTarget, spent: null, spentCycleToDate: null, targetRemaining: null, targetExceededBy: null, targetPace: null, runwayPace: null, recommendedPace: null, remainingRunwayDays: null }
     };
   }
 
   const paymentAsOf = options.obligationPaymentsAsOf || latest.date || requestedDate;
   const fixed = remainingFixedObligations(snapshot, requestedDate, paymentAsOf);
   const completionThrough = compareDates(latest.date, requestedDate) < 0 ? latest.date : requestedDate;
+
   const efCompletion = qualifyingCurrentCycleContributions(snapshot, 'EF', completionThrough);
   const efGrossCompleted = efCompletion.degraded ? 0 : efCompletion.grossCompleted;
   const efOutstanding = round2(Math.max(efCommitment - efGrossCompleted, 0));
@@ -227,16 +223,16 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
   const goalsOutstanding = round2(goalStates.reduce((sum, goal) => sum + goal.outstanding, 0));
   const chosenOutstanding = round2(efOutstanding + goalsOutstanding);
   const totalOutstanding = round2(fixed.total + chosenOutstanding);
-  const availableToSpend = round2(cash - totalOutstanding);
+  const availableToSpend = round2(operationalCash - totalOutstanding);
 
-  const spentResult = computeCycleVariablesSpentToDate(snapshot, cycle.cycleStart, completionThrough, cash);
+  const spentResult = computeCycleVariablesSpentToDate(snapshot, cycle.cycleStart, completionThrough, operationalCash);
   const spent = spentResult.spent === 'no data' ? null : round2(Math.max(Number(spentResult.spent) || 0, 0));
   const targetRemainingBase = variablesTarget === null || spent === null ? null : round2(Math.max(variablesTarget - spent, 0));
   const targetExceededByBase = variablesTarget === null || spent === null ? null : round2(Math.max(spent - variablesTarget, 0));
 
   const affectedPlanningAccounts = [...affected];
-  let planningState;
-  let planningReason;
+  let planningState = 'ready';
+  let planningReason = null;
   if (affectedPlanningAccounts.length) {
     planningState = 'degraded_correction_data';
     planningReason = 'current_cycle_ledger_correction_unresolved';
@@ -246,20 +242,16 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
   } else if (variablesTarget === null) {
     planningState = 'target_not_set';
     planningReason = 'variables_target_required';
-  } else {
-    planningState = 'ready';
-    planningReason = null;
   }
 
   let targetRemaining = targetRemainingBase;
-  let targetExceededBy = targetExceededByBase;
+  const targetExceededBy = targetExceededByBase;
   let targetPace = null;
   let runwayPace = null;
   let recommendedPace = null;
   const remainingRunwayDays = cycle.boundaryExpired ? null : cycle.remainingSpendingDays;
   if (cycle.boundaryExpired) {
     targetRemaining = null;
-    targetExceededBy = targetExceededByBase;
   } else if (remainingRunwayDays > 0) {
     runwayPace = round2(availableToSpend / remainingRunwayDays);
     if (variablesTarget !== null && spent !== null) {
@@ -269,8 +261,12 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
   }
 
   const goals = goalStates.map(goal => ({ ...goal }));
-  const maxVoluntaryFromAvailable = Math.max(availableToSpend, 0);
-  const efSafeContribution = round2(efOutstanding + maxVoluntaryFromAvailable);
+  const voluntaryCapacity = round2(Math.max(availableToSpend, 0));
+  const efSafeContribution = round2(efOutstanding + voluntaryCapacity);
+  const goalSafeLimits = Object.fromEntries(goals.map(goal => {
+    if (!goal.valid || goal.degraded) return [goal.name, 0];
+    return [goal.name, round2(Math.min(goal.outstanding + voluntaryCapacity, goal.lifetimeRemaining))];
+  }));
 
   return {
     asOf: requestedDate,
@@ -289,7 +285,7 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
       remainingSpendingDays: remainingRunwayDays,
       boundaryExpired: cycle.boundaryExpired
     },
-    operationalCash: cash,
+    operationalCash,
     commitments: {
       requiredOutstanding: round2(fixed.total),
       ef: { commitment: round2(efCommitment), grossCompleted: round2(efGrossCompleted), outstanding: efOutstanding, degraded: efCompletion.degraded },
@@ -300,7 +296,11 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
     },
     availableToSpend,
     fixedObligations: {
-      items: fixed.items, remainingItems: fixed.remainingItems, remainingTotal: round2(fixed.total), shortfall: round2(Math.max(fixed.total - cash, 0)), fullyCovered: cash >= fixed.total
+      items: fixed.items,
+      remainingItems: fixed.remainingItems,
+      remainingTotal: round2(fixed.total),
+      shortfall: round2(Math.max(fixed.total - operationalCash, 0)),
+      fullyCovered: operationalCash >= fixed.total
     },
     variables: {
       target: variablesTarget,
@@ -321,10 +321,7 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
       maxSafeContribution: efSafeContribution
     },
     goals,
-    transferLimits: {
-      emergencyFund: efSafeContribution,
-      goals: Object.fromEntries(goals.map(goal => [goal.name, goal.valid ? round2(goal.outstanding + maxVoluntaryFromAvailable) : 0]))
-    },
+    transferLimits: { emergencyFund: efSafeContribution, goals: goalSafeLimits },
     paymentSafety: {
       availableToSpend,
       safeKTBPortionForPositivePayment: round2(Math.max(availableToSpend, 0))

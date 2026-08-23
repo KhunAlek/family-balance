@@ -1,3 +1,35 @@
+export async function findUnclassifiedGoalWithdrawals(db, householdId = 'family') {
+  if (!db || typeof db.prepare !== 'function') throw new Error('D1 binding is unavailable.');
+  const statement = db.prepare(`
+    SELECT l.ledger_id,l.business_date,l.account AS goal_name,l.amount_satang
+    FROM ledger_movements l
+    JOIN goals g
+      ON g.household_id=l.household_id
+     AND g.name=l.account
+    LEFT JOIN goal_withdrawal_classifications c
+      ON c.ledger_id=l.ledger_id
+    WHERE l.household_id=?
+      AND l.direction='Withdrawal'
+      AND c.ledger_id IS NULL
+    ORDER BY l.business_date,l.sheet_order,l.ledger_id
+  `).bind(householdId);
+  if (typeof statement.all === 'function') {
+    const result = await statement.all();
+    return result?.results || [];
+  }
+  const batch = await db.batch([statement]);
+  return batch[0]?.results || [];
+}
+
+export async function assertV3MigrationDataSafe(db, householdId = 'family') {
+  const rows = await findUnclassifiedGoalWithdrawals(db, householdId);
+  if (rows.length) {
+    const ids = rows.map(row => row.ledger_id).join(',');
+    throw new Error(`V3_MIGRATION_DATA_EXCEPTION_UNCLASSIFIED_GOAL_WITHDRAWAL: ledger_id=${ids}`);
+  }
+  return { ok: true, unclassifiedGoalWithdrawals: 0 };
+}
+
 export async function loadFinancialSnapshot(db, householdId = 'family') {
   if (!db || typeof db.prepare !== 'function') throw new Error('D1 binding is unavailable.');
   const statements = [
@@ -11,7 +43,13 @@ export async function loadFinancialSnapshot(db, householdId = 'family') {
     db.prepare('SELECT name,target_amount_satang,priority_rank,status,target_date FROM goals WHERE household_id=? ORDER BY priority_rank,name').bind(householdId),
     db.prepare('SELECT ledger_id,business_date,sheet_order,account,direction,amount_satang,source_sheet,source_row FROM ledger_movements WHERE household_id=? ORDER BY business_date,sheet_order').bind(householdId),
     db.prepare('SELECT week_start,week_end,planned_variables_satang,spent_variables_satang,spent_variables_status,difference_satang,opening_balance_satang,opening_balance_status,closing_balance_satang,status FROM weekly_snapshots WHERE household_id=? ORDER BY week_start').bind(householdId),
-    db.prepare('SELECT cycle_start,source FROM salary_cycle_sources WHERE household_id=? ORDER BY cycle_start,source').bind(householdId)
+    db.prepare('SELECT cycle_start,source FROM salary_cycle_sources WHERE household_id=? ORDER BY cycle_start,source').bind(householdId),
+    db.prepare('SELECT cycle_start,variables_target_satang,created_at,updated_at FROM cycle_plans WHERE household_id=? ORDER BY cycle_start').bind(householdId),
+    db.prepare('SELECT event_id,cycle_start,old_target_satang,new_target_satang,actor_email,created_at,base_revision,write_token FROM cycle_plan_events WHERE household_id=? ORDER BY created_at,event_id').bind(householdId),
+    db.prepare("SELECT commitment_id,cycle_start,commitment_type,destination_name,committed_amount_satang,lifecycle_status,created_at,updated_at FROM cycle_commitments WHERE household_id=? ORDER BY cycle_start,commitment_type,COALESCE(destination_name,''),commitment_id").bind(householdId),
+    db.prepare('SELECT event_id,commitment_id,event_type,old_amount_satang,new_amount_satang,actor_email,created_at,base_revision,write_token FROM commitment_events WHERE household_id=? ORDER BY created_at,event_id').bind(householdId),
+    db.prepare('SELECT ledger_id,goal_name,use_classification,actor_email,created_at,base_revision,write_token FROM goal_withdrawal_classifications WHERE household_id=? ORDER BY ledger_id').bind(householdId),
+    db.prepare('SELECT week_start,planning_model_version,created_at FROM weekly_snapshot_model_versions WHERE household_id=? ORDER BY week_start').bind(householdId)
   ];
   const results = await db.batch(statements);
   const rows = index => results[index]?.results || [];
@@ -34,6 +72,12 @@ export async function loadFinancialSnapshot(db, householdId = 'family') {
     goals: rows(7),
     ledger: rows(8),
     weeklySnapshots: rows(9),
-    salaryCycleSources: rows(10)
+    salaryCycleSources: rows(10),
+    cyclePlans: rows(11),
+    cyclePlanEvents: rows(12),
+    cycleCommitments: rows(13),
+    commitmentEvents: rows(14),
+    goalWithdrawalClassifications: rows(15),
+    weeklySnapshotModelVersions: rows(16)
   };
 }

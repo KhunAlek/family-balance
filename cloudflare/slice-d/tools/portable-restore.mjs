@@ -17,14 +17,27 @@ function literal(value) {
   return `'${String(value).replace(/'/g, "''")}'`;
 }
 
+function orderedSchema(schema) {
+  const typeRank = { table: 0, index: 1, trigger: 2 };
+  const tableRank = new Map(BACKUP_TABLES.map((table, index) => [table, index]));
+  return [...(schema || [])].sort((a, b) => {
+    const at = typeRank[String(a?.type || '').toLowerCase()] ?? 9;
+    const bt = typeRank[String(b?.type || '').toLowerCase()] ?? 9;
+    if (at !== bt) return at - bt;
+    const ar = tableRank.get(String(a?.tbl_name || '')) ?? Number.MAX_SAFE_INTEGER;
+    const br = tableRank.get(String(b?.tbl_name || '')) ?? Number.MAX_SAFE_INTEGER;
+    if (ar !== br) return ar - br;
+    return String(a?.name || '').localeCompare(String(b?.name || ''));
+  });
+}
+
 export async function buildRestoreSql(backup, options = {}) {
   if (backup?.format !== BACKUP_FORMAT || !await verifyPortableBackup(backup)) throw new Error('Portable backup integrity verification failed.');
-  // Keep the portable file to DDL/DML. BACKUP_TABLES is dependency-ordered, so
-  // every parent row is restored before its children while D1 keeps foreign-key
-  // enforcement enabled. Platform-specific integrity checks run after import.
+  // Portable restore preserves FK enforcement. Both schema creation and row
+  // insertion are explicitly dependency-ordered; no foreign-key bypass is used.
   const lines = [];
   if (options.includeSchema) {
-    for (const item of backup.schema || []) {
+    for (const item of orderedSchema(backup.schema)) {
       const sql = String(item?.sql || '').trim();
       if (sql) lines.push(`${sql.replace(/;+$/g, '')};`);
     }

@@ -1,0 +1,63 @@
+name: V3-1 persistence and backup validation
+
+on:
+  push:
+    branches: [v3-1-implementation-20260823]
+    paths:
+      - 'cloudflare/slice-b/src/d1-repository.mjs'
+      - 'cloudflare/slice-d/migrations/0005_v3_persistence.sql'
+      - 'cloudflare/slice-d/src/backup.mjs'
+      - 'cloudflare/slice-d/tools/portable-restore.mjs'
+      - 'cloudflare/slice-d/test/backup.test.mjs'
+      - 'cloudflare/slice-d/test/v3-persistence.test.mjs'
+      - '.github/workflows/v3-1-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v3-1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install Slice D dependencies
+        working-directory: cloudflare/slice-d
+        run: npm ci
+      - name: V3-1 migration and portable backup tests
+        run: node --test cloudflare/slice-d/test/v3-persistence.test.mjs cloudflare/slice-d/test/backup.test.mjs
+      - name: Existing accepted financial and write regressions
+        run: |
+          node --test cloudflare/slice-b/test/*.test.mjs
+          node --test cloudflare/slice-c/test/*.test.mjs
+          npm test --prefix cloudflare/slice-d
+      - name: Changed JavaScript syntax
+        run: |
+          node --check cloudflare/slice-b/src/d1-repository.mjs
+          node --check cloudflare/slice-d/src/backup.mjs
+          node --check cloudflare/slice-d/tools/portable-restore.mjs
+          node --check cloudflare/slice-d/test/v3-persistence.test.mjs
+          node --check cloudflare/slice-d/test/backup.test.mjs
+      - name: Fresh disposable Wrangler D1 migration chain
+        run: |
+          set -euo pipefail
+          PERSIST=/tmp/fcf-v31-d1
+          npx --yes wrangler@4.123.0 d1 execute family-cash-flow-staging-v1 --local --persist-to "$PERSIST" --config wrangler.jsonc --file cloudflare/slice-b/migrations/0001_initial.sql
+          npx --yes wrangler@4.123.0 d1 execute family-cash-flow-staging-v1 --local --persist-to "$PERSIST" --config wrangler.jsonc --file cloudflare/slice-c/migrations/0002_revision_state.sql
+          npx --yes wrangler@4.123.0 d1 execute family-cash-flow-staging-v1 --local --persist-to "$PERSIST" --config wrangler.jsonc --file cloudflare/slice-c/migrations/0003_salary_cycle_sources.sql
+          npx --yes wrangler@4.123.0 d1 execute family-cash-flow-staging-v1 --local --persist-to "$PERSIST" --config wrangler.jsonc --file cloudflare/slice-d/migrations/0004_web_push_notifications.sql
+          npx --yes wrangler@4.123.0 d1 execute family-cash-flow-staging-v1 --local --persist-to "$PERSIST" --config wrangler.jsonc --file cloudflare/slice-d/migrations/0005_v3_persistence.sql
+          npx --yes wrangler@4.123.0 d1 execute family-cash-flow-staging-v1 --local --persist-to "$PERSIST" --config wrangler.jsonc --file cloudflare/slice-d/migrations/0005_v3_persistence.sql
+          npx --yes wrangler@4.123.0 d1 execute family-cash-flow-staging-v1 --local --persist-to "$PERSIST" --config wrangler.jsonc --command "PRAGMA foreign_key_check;"
+      - name: V3-1 scope guard
+        run: |
+          set -euo pipefail
+          ! grep -R -E "(ef|goal)[_-]?replenishment|replenishment[_-]?(debt|allocation|event|commitment)" \
+            cloudflare/slice-d/migrations/0005_v3_persistence.sql \
+            cloudflare/slice-b/src/d1-repository.mjs \
+            cloudflare/slice-d/src/backup.mjs \
+            cloudflare/slice-d/tools/portable-restore.mjs

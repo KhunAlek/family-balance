@@ -1,4 +1,4 @@
-export const BACKUP_FORMAT = 'family-cash-flow-d1-portable-v2';
+export const BACKUP_FORMAT = 'family-cash-flow-d1-portable-v3';
 
 export const BACKUP_TABLES = Object.freeze([
   'households',
@@ -17,6 +17,12 @@ export const BACKUP_TABLES = Object.freeze([
   'correction_audit',
   'household_revisions',
   'salary_cycle_sources',
+  'cycle_plans',
+  'cycle_plan_events',
+  'cycle_commitments',
+  'commitment_events',
+  'goal_withdrawal_classifications',
+  'weekly_snapshot_model_versions',
 ]);
 
 const encoder = new TextEncoder();
@@ -56,6 +62,62 @@ function rows(result) {
   return result?.results || [];
 }
 
+function tableKey(row, columns) {
+  return columns.map(column => String(row?.[column] ?? '')).join('\u0000');
+}
+
+function hasExactBackupTables(tables) {
+  const actual = Object.keys(tables || {}).sort();
+  const expected = [...BACKUP_TABLES].sort();
+  return actual.length === expected.length && actual.every((value, index) => value === expected[index]);
+}
+
+function validateV3Relations(tables) {
+  const households = new Set(tables.households.map(row => String(row.household_id)));
+  const goals = new Set(tables.goals.map(row => tableKey(row, ['household_id', 'name'])));
+  const ledger = new Map(tables.ledger_movements.map(row => [Number(row.ledger_id), row]));
+  const weekly = new Set(tables.weekly_snapshots.map(row => tableKey(row, ['household_id', 'week_start'])));
+  const plans = new Set(tables.cycle_plans.map(row => tableKey(row, ['household_id', 'cycle_start'])));
+  const commitments = new Map(tables.cycle_commitments.map(row => [String(row.commitment_id), row]));
+
+  const commitmentIdentities = new Set();
+  for (const row of tables.cycle_commitments) {
+    if (!households.has(String(row.household_id))) return false;
+    if (!plans.has(tableKey(row, ['household_id', 'cycle_start']))) return false;
+    const identity = [row.household_id, row.cycle_start, row.commitment_type, row.destination_name ?? ''].join('\u0000');
+    if (commitmentIdentities.has(identity)) return false;
+    commitmentIdentities.add(identity);
+  }
+  for (const row of tables.cycle_plan_events) {
+    if (!plans.has(tableKey(row, ['household_id', 'cycle_start']))) return false;
+  }
+  for (const row of tables.commitment_events) {
+    const parent = commitments.get(String(row.commitment_id));
+    if (!parent || String(parent.household_id) !== String(row.household_id)) return false;
+  }
+
+  const classifiedLedger = new Set();
+  for (const row of tables.goal_withdrawal_classifications) {
+    const ledgerId = Number(row.ledger_id);
+    if (classifiedLedger.has(ledgerId)) return false;
+    classifiedLedger.add(ledgerId);
+    const movement = ledger.get(ledgerId);
+    if (!movement) return false;
+    if (String(movement.household_id) !== String(row.household_id)) return false;
+    if (String(movement.account) !== String(row.goal_name)) return false;
+    if (String(movement.direction) !== 'Withdrawal') return false;
+    if (!Number.isInteger(Number(movement.amount_satang)) || Number(movement.amount_satang) <= 0) return false;
+    if (!goals.has(tableKey(row, ['household_id', 'goal_name']))) return false;
+    if (!['goal_purpose', 'non_purpose'].includes(String(row.use_classification))) return false;
+  }
+
+  for (const row of tables.weekly_snapshot_model_versions) {
+    if (String(row.planning_model_version) !== 'v3') return false;
+    if (!weekly.has(tableKey(row, ['household_id', 'week_start']))) return false;
+  }
+  return true;
+}
+
 export async function buildPortableBackup(db, options = {}) {
   if (!db || typeof db.prepare !== 'function') throw new Error('D1 binding is unavailable.');
   const createdAt = new Date(options.createdAt ?? Date.now()).toISOString();
@@ -69,6 +131,7 @@ export async function buildPortableBackup(db, options = {}) {
   BACKUP_TABLES.forEach((table, index) => { tables[table] = rows(results[index + 1]); });
   const schema = rows(results[0]);
   if (!schema.every(validSchemaItem)) throw new Error('Database schema contains an unsupported object.');
+  if (!validateV3Relations(tables)) throw new Error('Database contains invalid v3 backup relations.');
   const dataJson = JSON.stringify(tables);
   const payloadJson = JSON.stringify({ schema, tables });
   const backup = {
@@ -141,8 +204,12 @@ export async function runPortableBackup(db, bucket, options = {}) {
 
 export async function verifyPortableBackup(backup) {
   if (!backup || backup.format !== BACKUP_FORMAT || !Array.isArray(backup.schema) || !backup.tables || !backup.integrity) return false;
-  if (!backup.schema.every(validSchemaItem)) return false;
-  for (const table of BACKUP_TABLES) if (!Array.isArray(backup.tables[table])) return false;
+  if (!backup.schema.every(validSchemaItem) || !hasExactBackupTables(backup.tables)) return false;
+  for (const table of BACKUP_TABLES) {
+    if (!Array.isArray(backup.tables[table])) return false;
+    if (Number(backup.integrity.rowCounts?.[table]) !== backup.tables[table].length) return false;
+  }
+  if (!validateV3Relations(backup.tables)) return false;
   const expectedTables = await sha256Hex(JSON.stringify(backup.tables));
   const expectedPayload = await sha256Hex(JSON.stringify({ schema: backup.schema, tables: backup.tables }));
   return expectedTables === backup.integrity.tablesSha256 && expectedPayload === backup.integrity.payloadSha256;

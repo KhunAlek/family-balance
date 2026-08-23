@@ -11,6 +11,16 @@ on:
       - 'cloudflare/slice-d/test/backup.test.mjs'
       - 'cloudflare/slice-d/test/v3-persistence.test.mjs'
       - '.github/workflows/v3-1-test.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cloudflare/slice-b/src/d1-repository.mjs'
+      - 'cloudflare/slice-d/migrations/0005_v3_persistence.sql'
+      - 'cloudflare/slice-d/src/backup.mjs'
+      - 'cloudflare/slice-d/tools/portable-restore.mjs'
+      - 'cloudflare/slice-d/test/backup.test.mjs'
+      - 'cloudflare/slice-d/test/v3-persistence.test.mjs'
+      - '.github/workflows/v3-1-test.yml'
   workflow_dispatch:
 
 permissions:

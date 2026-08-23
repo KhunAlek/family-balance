@@ -56,6 +56,7 @@ const GATE1_REQUIRED_SCHEMA = Object.freeze([
   objectRequirement('classified_goal_withdrawal_ledger_protect_update','trigger','ledger_movements'),
   objectRequirement('classified_goal_withdrawal_ledger_protect_delete','trigger','ledger_movements'),
   objectRequirement('classified_goal_withdrawal_correction_effect_required','trigger','correction_audit'),
+  objectRequirement('goal_withdrawal_effect_correction_audit_validate_insert','trigger','correction_audit'),
 ]);
 
 const MANIFESTS = Object.freeze({
@@ -214,6 +215,9 @@ function validateV3Relations(tables) {
     superseded.add(`${hh}\u0000${oldId}`);
     const correction=corrections.get(String(row.correction_id));
     if (!correction || String(correction.household_id)!==hh || correctionIds.has(`${hh}\u0000${row.correction_id}`)) return false;
+    if (!['ledger_movement','ledgerMovement'].includes(String(correction.entity_type))) return false;
+    if (Number(correction.entity_id)!==oldId) return false;
+    if (String(correction.write_token)!==String(row.write_token)) return false;
     correctionIds.add(`${hh}\u0000${row.correction_id}`);
     if (effectTokens.has(`${hh}\u0000${row.write_token}`)) return false;
     effectTokens.add(`${hh}\u0000${row.write_token}`);

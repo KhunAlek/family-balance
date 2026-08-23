@@ -139,7 +139,7 @@ WHEN NOT EXISTS (
     AND l.amount_satang > 0
 )
 BEGIN
-  SELECT RAISE(ABORT, 'goal withdrawal classification must reference the same-household positive integer-satang factual Goal withdrawal');
+  SELECT RAISE(ABORT, 'goal withdrawal classification must reference the same-household positive factual Goal withdrawal with positive integer-satang amount');
 END;
 
 CREATE TRIGGER IF NOT EXISTS goal_withdrawal_classification_append_only_update

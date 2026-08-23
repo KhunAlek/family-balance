@@ -10,7 +10,7 @@ function identifier(value, tables) {
 function literal(value) {
   if (value === null || value === undefined) return 'NULL';
   if (typeof value === 'number') {
-    if (!Number.isFinite(value)) throw new Error('Backup contains a non-finite number.');
+    if (!Number.isSafeInteger(value)) throw new Error('Backup contains an unsafe or non-integer numeric value.');
     return String(value);
   }
   if (typeof value === 'boolean') return value ? '1' : '0';
@@ -44,7 +44,8 @@ export async function buildRestoreSql(backup, options = {}) {
   // FK enforcement remains on. Tables and indexes are created first; rows are
   // restored in dependency order; integrity/protection triggers are created only
   // after all audited historical rows exist so restore does not replay write-time
-  // guards against already-valid history.
+  // guards against already-valid history. Gate-1 verification has already proved
+  // the exact schema allowlist, canonical identity types and acyclic effect graph.
   const lines = [];
   const schema = options.includeSchema ? orderedSchema(backup.schema, tables) : [];
   if (options.includeSchema) {

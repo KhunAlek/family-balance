@@ -257,7 +257,8 @@ WHEN
       WHERE a.correction_id = NEW.correction_id
         AND a.household_id = NEW.household_id
         AND a.entity_type IN ('ledger_movement','ledgerMovement')
-        AND CAST(a.entity_id AS INTEGER) = NEW.superseded_ledger_id
+        AND typeof(a.entity_id) = 'text'
+        AND a.entity_id = CAST(NEW.superseded_ledger_id AS TEXT)
         AND a.write_token = NEW.write_token
     )
   )
@@ -311,15 +312,16 @@ CREATE TRIGGER IF NOT EXISTS classified_goal_withdrawal_correction_effect_requir
 BEFORE INSERT ON correction_audit
 FOR EACH ROW
 WHEN NEW.entity_type IN ('ledger_movement','ledgerMovement')
+  AND typeof(NEW.entity_id) = 'text'
   AND EXISTS (
     SELECT 1 FROM goal_withdrawal_classifications c
-    WHERE c.ledger_id = CAST(NEW.entity_id AS INTEGER)
+    WHERE CAST(c.ledger_id AS TEXT) = NEW.entity_id
       AND c.household_id = NEW.household_id
   )
   AND NOT EXISTS (
     SELECT 1 FROM goal_withdrawal_effect_events e
     WHERE e.household_id = NEW.household_id
-      AND e.superseded_ledger_id = CAST(NEW.entity_id AS INTEGER)
+      AND CAST(e.superseded_ledger_id AS TEXT) = NEW.entity_id
       AND e.correction_id = NEW.correction_id
       AND e.write_token = NEW.write_token
   )
@@ -342,7 +344,8 @@ WHEN EXISTS (
     WHERE e.correction_id = NEW.correction_id
       AND e.household_id = NEW.household_id
       AND NEW.entity_type IN ('ledger_movement','ledgerMovement')
-      AND e.superseded_ledger_id = CAST(NEW.entity_id AS INTEGER)
+      AND typeof(NEW.entity_id) = 'text'
+      AND NEW.entity_id = CAST(e.superseded_ledger_id AS TEXT)
       AND e.write_token = NEW.write_token
   )
 BEGIN

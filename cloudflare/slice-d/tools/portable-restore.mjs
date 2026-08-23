@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { backupTablesFor, verifyPortableBackup } from '../src/backup.mjs';
+import { backupTablesFor, isPortableSafeInteger, verifyPortableBackup } from '../src/backup.mjs';
 
 function identifier(value, tables) {
   if (!tables.includes(value)) throw new Error(`Unsupported table ${value}.`);
@@ -10,7 +10,7 @@ function identifier(value, tables) {
 function literal(value) {
   if (value === null || value === undefined) return 'NULL';
   if (typeof value === 'number') {
-    if (!Number.isSafeInteger(value)) throw new Error('Backup contains an unsafe or non-integer numeric value.');
+    if (!isPortableSafeInteger(value)) throw new Error('Backup contains an unsafe or non-integer numeric value.');
     return String(value);
   }
   if (typeof value === 'boolean') return value ? '1' : '0';
@@ -45,7 +45,8 @@ export async function buildRestoreSql(backup, options = {}) {
   // restored in dependency order; integrity/protection triggers are created only
   // after all audited historical rows exist so restore does not replay write-time
   // guards against already-valid history. Gate-1 verification has already proved
-  // the exact schema allowlist, canonical identity types and acyclic effect graph.
+  // the canonical reviewed schema fingerprint, exact typed satang boundary,
+  // canonical correction identities and acyclic effect graph.
   const lines = [];
   const schema = options.includeSchema ? orderedSchema(backup.schema, tables) : [];
   if (options.includeSchema) {

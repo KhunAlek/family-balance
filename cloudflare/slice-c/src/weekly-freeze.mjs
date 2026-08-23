@@ -1,11 +1,9 @@
 import { addDays, compareDates, countInclusiveDays, getWeekBounds, isoDate, maxDate, minDate, parseIsoDate } from '../../slice-b/src/dates.mjs';
 import { balanceOnDate, nearestPriorBalance } from '../../slice-b/src/balances.mjs';
 import { sumLedgerFlows, sumScheduledFlows } from '../../slice-b/src/flows.mjs';
-import { buildPlanningState } from '../../slice-b/src/planning.mjs';
 
 const round2 = value => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 const toSatang = value => Math.round((Number(value) + Number.EPSILON) * 100);
-const fromSatang = value => Number(value || 0) / 100;
 
 function latestSnapshotEnd(rows) {
   let latest = null;
@@ -71,19 +69,6 @@ function computeSliceFactual(snapshot, sliceStart, sliceEnd) {
   };
 }
 
-function latestHistoricalBalance(snapshot, throughDate) {
-  const found = nearestPriorBalance(snapshot.balanceHistory || [], throughDate, Number.MAX_SAFE_INTEGER);
-  if (!found) return null;
-  const row = found.row;
-  return {
-    row,
-    date: found.dateIso,
-    alex: fromSatang(row.alex_balance_satang),
-    olga: fromSatang(row.olga_balance_satang),
-    combinedBalance: found.balance
-  };
-}
-
 export function buildMissingClosedWeeklySnapshots(snapshot, cycleStart, nextSalaryDate, closedThrough) {
   const start = isoDate(cycleStart);
   const next = isoDate(nextSalaryDate);
@@ -95,37 +80,26 @@ export function buildMissingClosedWeeklySnapshots(snapshot, cycleStart, nextSala
   if (compareDates(cursor, cycleEnd) > 0 || compareDates(cursor, through) > 0) return [];
 
   const knownStarts = existingStarts(snapshot.weeklySnapshots || []);
-  const oldCycleSnapshot = {
-    ...snapshot,
-    salaryCycle: {
-      ...(snapshot.salaryCycle || {}),
-      current_cycle_start: start,
-      next_salary_date: next
-    }
-  };
-
+  const targetSatang = snapshot.salaryCycle?.variables_target_satang;
+  const target = targetSatang === null || targetSatang === undefined ? null : Number(targetSatang) / 100;
+  const totalDays = countInclusiveDays(start, cycleEnd);
   const rows = [];
+
   for (const card of enumerateCards(start, cycleEnd, cursor, through)) {
     const weekStart = isoDate(card.start);
     const weekEnd = isoDate(card.end);
     if (knownStarts.has(weekStart)) continue;
-    const historicalBalance = latestHistoricalBalance(snapshot, weekEnd);
-    const state = historicalBalance
-      ? buildPlanningState(oldCycleSnapshot, weekEnd, { balanceRecord: historicalBalance, obligationPaymentsAsOf: weekEnd })
-      : null;
-    const activePlan = state?.guidanceAvailable ? Number(state.defaultPlan.activeVariablesPlan) || 22000 : 22000;
-    const totalDays = state?.guidanceAvailable ? Number(state.salaryCycle.totalSpendingDays) || countInclusiveDays(card.start, card.end) : countInclusiveDays(card.start, card.end);
-    const planned = round2(activePlan / totalDays * countInclusiveDays(card.start, card.end));
-    const factual = computeSliceFactual(oldCycleSnapshot, card.start, card.end);
+    const planned = target === null ? null : round2(target / totalDays * countInclusiveDays(card.start, card.end));
+    const factual = computeSliceFactual(snapshot, card.start, card.end);
     const hasFactual = factual.factual !== 'no data';
     rows.push({
       household_id: snapshot.householdId || 'family',
       week_start: weekStart,
       week_end: weekEnd,
-      planned_variables_satang: toSatang(planned),
+      planned_variables_satang: planned === null ? null : toSatang(planned),
       spent_variables_satang: hasFactual ? toSatang(factual.factual) : null,
       spent_variables_status: hasFactual ? null : 'no data',
-      difference_satang: hasFactual ? toSatang(round2(factual.factual - planned)) : 0,
+      difference_satang: hasFactual && planned !== null ? toSatang(round2(factual.factual - planned)) : null,
       opening_balance_satang: typeof factual.openingBalance === 'number' ? toSatang(factual.openingBalance) : null,
       opening_balance_status: typeof factual.openingBalance === 'number' ? null : 'no data',
       closing_balance_satang: typeof factual.closingBalance === 'number' ? toSatang(factual.closingBalance) : null,

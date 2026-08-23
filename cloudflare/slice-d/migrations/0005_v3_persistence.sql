@@ -266,6 +266,30 @@ BEGIN
   SELECT RAISE(ABORT, 'goal withdrawal effect must preserve a valid authoritative factual effect, compatible replacement classification, and matching Ledger correction audit');
 END;
 
+-- Replacement edges form disjoint linear chains. Reject any insertion whose
+-- authoritative target can already reach the row being superseded; UNION is
+-- deliberately distinct so even a hostile pre-existing cycle terminates.
+CREATE TRIGGER IF NOT EXISTS goal_withdrawal_effect_acyclic_insert
+BEFORE INSERT ON goal_withdrawal_effect_events
+FOR EACH ROW
+WHEN NEW.authoritative_ledger_id IS NOT NULL
+  AND EXISTS (
+    WITH RECURSIVE reachable(ledger_id) AS (
+      SELECT NEW.authoritative_ledger_id
+      UNION
+      SELECT e.authoritative_ledger_id
+      FROM goal_withdrawal_effect_events e
+      JOIN reachable r
+        ON e.household_id = NEW.household_id
+       AND e.superseded_ledger_id = r.ledger_id
+      WHERE e.authoritative_ledger_id IS NOT NULL
+    )
+    SELECT 1 FROM reachable WHERE ledger_id = NEW.superseded_ledger_id
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'goal withdrawal correction graph must remain acyclic');
+END;
+
 CREATE TRIGGER IF NOT EXISTS goal_withdrawal_effect_append_only_update
 BEFORE UPDATE ON goal_withdrawal_effect_events
 BEGIN
@@ -350,6 +374,31 @@ WHEN EXISTS (
   )
 BEGIN
   SELECT RAISE(ABORT, 'goal withdrawal effect correction audit must match household, Ledger entity, correction id, and write token');
+END;
+
+-- Once an audit participates in immutable authoritative-effect metadata, the
+-- audit itself is immutable for the lifetime of that effect. This keeps reload,
+-- backup/restore and later reads bound to the same factual correction claim.
+CREATE TRIGGER IF NOT EXISTS goal_withdrawal_effect_correction_audit_append_only_update
+BEFORE UPDATE ON correction_audit
+FOR EACH ROW
+WHEN EXISTS (
+  SELECT 1 FROM goal_withdrawal_effect_events e
+  WHERE e.correction_id = OLD.correction_id
+)
+BEGIN
+  SELECT RAISE(ABORT, 'goal withdrawal effect correction audits are immutable');
+END;
+
+CREATE TRIGGER IF NOT EXISTS goal_withdrawal_effect_correction_audit_append_only_delete
+BEFORE DELETE ON correction_audit
+FOR EACH ROW
+WHEN EXISTS (
+  SELECT 1 FROM goal_withdrawal_effect_events e
+  WHERE e.correction_id = OLD.correction_id
+)
+BEGIN
+  SELECT RAISE(ABORT, 'goal withdrawal effect correction audits are immutable');
 END;
 
 -- Legacy weekly rows remain untouched. A future v3 weekly writer will create a

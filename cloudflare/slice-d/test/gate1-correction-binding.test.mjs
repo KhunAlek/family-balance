@@ -39,18 +39,29 @@ function fixture(name = 'Binding Goal') {
   return { db, raw, ledgerId };
 }
 
-function expectAuditRejected({ entityType = 'ledger_movement', entityIdOffset = 0, auditToken = 'token-binding' }) {
+function expectAuditRejected({ entityType = 'ledger_movement', entityIdForLedger = id => id, auditToken = 'token-binding' }) {
   const { raw, ledgerId } = fixture();
   raw.exec('BEGIN IMMEDIATE');
   try {
     addEffect(raw, { ledgerId });
     assert.throws(
-      () => addAudit(raw, { entityType, entityId: ledgerId + entityIdOffset, token: auditToken }),
+      () => addAudit(raw, { entityType, entityId: entityIdForLedger(ledgerId), token: auditToken }),
       /must match household, Ledger entity, correction id, and write token/i,
     );
   } finally {
     raw.exec('ROLLBACK');
   }
+}
+
+function expectEffectRejectedAfterAudit(entityIdForLedger) {
+  const { raw, ledgerId } = fixture();
+  const correctionId = `audit-first-${sourceRow}`;
+  const token = `audit-first-token-${sourceRow}`;
+  addAudit(raw, { correctionId, entityId: entityIdForLedger(ledgerId), token });
+  assert.throws(
+    () => addEffect(raw, { ledgerId, correctionId, token }),
+    /matching Ledger correction audit/i,
+  );
 }
 
 function sha256(value) {
@@ -86,11 +97,19 @@ test('B002 rejects an effect whose deferred correction id is satisfied by an unr
 });
 
 test('B002 rejects an effect whose correction audit targets the wrong Ledger entity id', () => {
-  expectAuditRejected({ entityIdOffset: 1 });
+  expectAuditRejected({ entityIdForLedger: ledgerId => ledgerId + 1 });
 });
 
 test('B002 rejects an effect whose correction audit uses a different write token', () => {
   expectAuditRejected({ auditToken: 'wrong-token' });
+});
+
+test('B002 effect-first rejects a coercive Ledger entity id with trailing text', () => {
+  expectAuditRejected({ entityIdForLedger: ledgerId => `${ledgerId}junk` });
+});
+
+test('B002 effect-first rejects a non-canonical zero-padded Ledger entity id', () => {
+  expectAuditRejected({ entityIdForLedger: ledgerId => `0${ledgerId}` });
 });
 
 test('B002 rejects an effect inserted after an already-existing unrelated correction audit', () => {
@@ -102,7 +121,15 @@ test('B002 rejects an effect inserted after an already-existing unrelated correc
   );
 });
 
-test('B002 accepts a correctly bound effect and Ledger correction audit', () => {
+test('B002 audit-first rejects a coercive Ledger entity id with trailing text', () => {
+  expectEffectRejectedAfterAudit(ledgerId => `${ledgerId}junk`);
+});
+
+test('B002 audit-first rejects a non-canonical zero-padded Ledger entity id', () => {
+  expectEffectRejectedAfterAudit(ledgerId => `0${ledgerId}`);
+});
+
+test('B002 accepts a correctly bound effect and canonical Ledger correction audit', () => {
   const { raw, ledgerId } = fixture();
   raw.exec('BEGIN IMMEDIATE');
   addEffect(raw, { ledgerId, correctionId: 'valid-corr', token: 'valid-token' });
@@ -127,10 +154,47 @@ test('B004 verifier rejects recomputed-hash backup with wrong Ledger entity id',
   assert.equal(await verifyPortableBackup(tampered), false);
 });
 
+test('B004 verifier rejects recomputed-hash backup with coercive trailing-text Ledger entity id', async () => {
+  const { backup, ledgerId } = await validBackupFixture();
+  const tampered = structuredClone(backup);
+  tampered.tables.correction_audit.find(row => row.correction_id === 'backup-corr').entity_id = `${ledgerId}junk`;
+  resignV3Backup(tampered);
+  assert.equal(await verifyPortableBackup(tampered), false);
+});
+
+test('B004 verifier rejects recomputed-hash backup with non-canonical zero-padded Ledger entity id', async () => {
+  const { backup, ledgerId } = await validBackupFixture();
+  const tampered = structuredClone(backup);
+  tampered.tables.correction_audit.find(row => row.correction_id === 'backup-corr').entity_id = `0${ledgerId}`;
+  resignV3Backup(tampered);
+  assert.equal(await verifyPortableBackup(tampered), false);
+});
+
+test('B004 verifier rejects recomputed-hash backup with non-text Ledger entity id', async () => {
+  const { backup, ledgerId } = await validBackupFixture();
+  const tampered = structuredClone(backup);
+  tampered.tables.correction_audit.find(row => row.correction_id === 'backup-corr').entity_id = ledgerId;
+  resignV3Backup(tampered);
+  assert.equal(await verifyPortableBackup(tampered), false);
+});
+
 test('B004 verifier rejects recomputed-hash backup with wrong write token', async () => {
   const { backup } = await validBackupFixture();
   const tampered = structuredClone(backup);
   tampered.tables.correction_audit.find(row => row.correction_id === 'backup-corr').write_token = 'wrong-token';
+  resignV3Backup(tampered);
+  assert.equal(await verifyPortableBackup(tampered), false);
+});
+
+test('B004 schema manifest rejects a recomputed-hash backup that restores the old coercive entity-id trigger', async () => {
+  const { backup } = await validBackupFixture();
+  const tampered = structuredClone(backup);
+  const trigger = tampered.schema.find(item => item.name === 'goal_withdrawal_effect_correction_audit_validate_insert');
+  assert.ok(trigger);
+  trigger.sql = trigger.sql.replace(
+    'NEW.entity_id = CAST(e.superseded_ledger_id AS TEXT)',
+    'e.superseded_ledger_id = CAST(NEW.entity_id AS INTEGER)',
+  );
   resignV3Backup(tampered);
   assert.equal(await verifyPortableBackup(tampered), false);
 });

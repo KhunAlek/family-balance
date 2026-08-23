@@ -30,7 +30,7 @@ function addEffect(raw, {
   token = 'token-binding',
 }) {
   const kind = authoritativeLedgerId === null ? 'reversal' : 'replacement';
-  raw.prepare("INSERT INTO goal_withdrawal_effect_events(effect_event_id,household_id,superseded_ledger_id,authoritative_ledger_id,correction_id,effect_kind,actor_email,created_at,base_revision,write_token) VALUES(?,'family',?,?,?,?,?,'owner@example.com','2026-08-23T00:00:00Z',0,?)")
+  raw.prepare("INSERT INTO goal_withdrawal_effect_events(effect_event_id,household_id,superseded_ledger_id,authoritative_ledger_id,correction_id,effect_kind,actor_email,created_at,base_revision,write_token) VALUES(?,'family',?,?,?,?,'owner@example.com','2026-08-23T00:00:00Z',0,?)")
     .run(`effect-${correctionId}`, ledgerId, authoritativeLedgerId, correctionId, kind, token);
 }
 

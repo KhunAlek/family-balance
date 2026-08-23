@@ -343,11 +343,27 @@ test('V3-M25 — Salary date before receipt is recorded', () => {
   const p=buildPlanningState(s,'2026-08-31');
   assert.equal(p.planningState,'awaiting_salary_receipt');
   approx(p.commitments.requiredOutstanding,1500);
-  approx(p.availableToSpend,8500);
+  assert.equal(p.guidanceAvailable,false);
+  assert.equal(p.availableToSpend,null);
   assert.equal(p.variables.targetPace,null);
   assert.equal(p.variables.runwayPace,null);
   assert.equal(p.variables.recommendedPace,null);
   assert.equal(p.variables.targetRemaining,null);
+  assert.equal(p.transferLimits.emergencyFund,0);
+  assert.deepEqual(p.transferLimits.goals,{});
+  assert.equal(p.paymentSafety,null);
+});
+
+test('V3-M25 — Expired salary boundary blocks payment and EF/Goal transfer safety', async () => {
+  const s=snapshot({asOf:'2026-08-30',cash:10000,efCommitment:1000,goals:[goal('A',10000,1000)]});
+  const now='2026-08-31T12:00:00.000Z';
+  const preview=buildOneOffPaymentPreview(s,{date:'2026-08-31',oneOffName:'Expired',oneOffAlexAmount:100,oneOffOlgaAmount:0},now);
+  assert.equal(preview.guidanceAvailable,false);
+  assert.equal(preview.planningState,'awaiting_salary_receipt');
+  assert.equal(Object.prototype.hasOwnProperty.call(preview,'availableToSpend'),false);
+  await rejected(planFinancialWrite(writeContext('oneOffPayment',{date:'2026-08-31',oneOffName:'Expired',oneOffAlexAmount:100,oneOffOlgaAmount:0},s,now)),/Next salary date has arrived/);
+  await rejected(planFinancialWrite(writeContext('dedicatedTransfer',{date:'2026-08-31',sourceAccount:'Alex',destinationType:'EF',amount:100},s,now)),/Next salary date has arrived/);
+  await rejected(planFinancialWrite(writeContext('dedicatedTransfer',{date:'2026-08-31',sourceAccount:'Alex',destinationType:'Goal',destinationName:'A',amount:100},s,now)),/Next salary date has arrived/);
 });
 
 function correctedContributionFixture({account='EF',originalDirection='Contribution',replacementDirection='Contribution',replacementAmount=10000,laterWithdrawal=0,reCorrectAmount=null}={}) {

@@ -233,12 +233,12 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
   const affectedPlanningAccounts = [...affected];
   let planningState = 'ready';
   let planningReason = null;
-  if (affectedPlanningAccounts.length) {
-    planningState = 'degraded_correction_data';
-    planningReason = 'current_cycle_ledger_correction_unresolved';
-  } else if (cycle.boundaryExpired) {
+  if (cycle.boundaryExpired) {
     planningState = 'awaiting_salary_receipt';
     planningReason = 'next_salary_boundary_reached_without_cycle_advance';
+  } else if (affectedPlanningAccounts.length) {
+    planningState = 'degraded_correction_data';
+    planningReason = 'current_cycle_ledger_correction_unresolved';
   } else if (variablesTarget === null) {
     planningState = 'target_not_set';
     planningReason = 'variables_target_required';
@@ -261,7 +261,9 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
   }
 
   const goals = goalStates.map(goal => ({ ...goal }));
-  const voluntaryCapacity = round2(Math.max(availableToSpend, 0));
+  const guidanceAvailable = !cycle.boundaryExpired;
+  const authoritativeAvailable = guidanceAvailable ? availableToSpend : null;
+  const voluntaryCapacity = guidanceAvailable ? round2(Math.max(availableToSpend, 0)) : 0;
   const efSafeContribution = round2(efOutstanding + voluntaryCapacity);
   const goalSafeLimits = Object.fromEntries(goals.map(goal => {
     if (!goal.valid || goal.degraded) return [goal.name, 0];
@@ -271,8 +273,8 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
   return {
     asOf: requestedDate,
     balanceAsOf: latest.date,
-    guidanceAvailable: true,
-    guidanceError: null,
+    guidanceAvailable,
+    guidanceError: guidanceAvailable ? null : 'Next salary date has arrived. Record the qualifying salary receipt before using spending or transfer safety guidance.',
     planningState,
     planningReason,
     affectedPlanningAccounts,
@@ -294,7 +296,7 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
       chosenOutstanding,
       totalOutstanding
     },
-    availableToSpend,
+    availableToSpend: authoritativeAvailable,
     fixedObligations: {
       items: fixed.items,
       remainingItems: fixed.remainingItems,
@@ -321,11 +323,11 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
       maxSafeContribution: efSafeContribution
     },
     goals,
-    transferLimits: { emergencyFund: efSafeContribution, goals: goalSafeLimits },
-    paymentSafety: {
-      availableToSpend,
-      safeKTBPortionForPositivePayment: round2(Math.max(availableToSpend, 0))
-    },
+    transferLimits: { emergencyFund: guidanceAvailable ? efSafeContribution : 0, goals: guidanceAvailable ? goalSafeLimits : {} },
+    paymentSafety: guidanceAvailable ? {
+      availableToSpend: authoritativeAvailable,
+      safeKTBPortionForPositivePayment: round2(Math.max(authoritativeAvailable, 0))
+    } : null,
     conservativeSafeMinimum: affectedPlanningAccounts.length > 0
   };
 }

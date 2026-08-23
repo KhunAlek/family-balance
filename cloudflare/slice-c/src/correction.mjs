@@ -1,5 +1,5 @@
 import { FinancialWriteValidationError, statement } from './write-protocol.mjs';
-import { compareDates, isoDate } from '../../slice-b/src/dates.mjs';
+import { bangkokBusinessDate, compareDates, isoDate } from '../../slice-b/src/dates.mjs';
 import { goalCommitmentState } from '../../slice-b/src/planning.mjs';
 
 const round2 = value => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
@@ -136,7 +136,7 @@ function planGoalCorrection(ctx,before,values,reason) {
   // Lifetime-target edits may not make an existing current-cycle commitment
   // impossible. The commitment is current-cycle state and is never silently
   // reduced by a Goal correction or status change.
-  const commitment = goalCommitmentState(ctx.snapshot,before.name,isoDate(ctx.nowIso));
+  const commitment = goalCommitmentState(ctx.snapshot,before.name,bangkokBusinessDate(new Date(ctx.nowIso)));
   if (commitment) {
     const newLifetimeRemaining = round2(Math.max(target - commitment.factualBalance, 0));
     if (commitment.outstanding > newLifetimeRemaining + 0.001) {

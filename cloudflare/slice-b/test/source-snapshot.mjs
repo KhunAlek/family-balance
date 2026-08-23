@@ -56,6 +56,7 @@ export function loadLockedSourceSnapshot() {
     one_off_payment_account: row['One-off payment account'],
     income_receipt_source: row['Income receipt source'],
     income_receipt_amount_satang: toSatang(row['Income receipt amount']),
+    source_sheet: 'Balance Check',
     source_row: row.sourceRow
   }));
 
@@ -80,14 +81,17 @@ export function loadLockedSourceSnapshot() {
     target_amount_satang: toSatang(row['Target amount']),
     priority_rank: Number(row['Priority rank']),
     status: row.Status,
-    target_date: row['Target date']
+    target_date: row['Target date'],
+    cycle_commitment_satang: 0
   }));
   const ledger = ledgerSource.map(row => ({
+    ledger_id: row.sourceRow,
     business_date: row.Date,
     sheet_order: row.sourceRow,
     account: row.Account,
     direction: row.Direction,
     amount_satang: toSatang(row.Amount),
+    source_sheet: 'Ledger',
     source_row: row.sourceRow
   }));
   const weeklySnapshots = weeklySource.map(row => ({
@@ -125,7 +129,9 @@ export function loadLockedSourceSnapshot() {
     salaryCycle: {
       current_cycle_start: currentCycleStart,
       next_salary_date: configRow['Next salary date'],
-      salary_receipt_cutover_date: configRow['Salary receipt cutover date']
+      salary_receipt_cutover_date: configRow['Salary receipt cutover date'],
+      variables_target_satang: null,
+      ef_cycle_commitment_satang: toSatang(configRow['EF monthly claim cap']) ?? 1500000
     },
     salaryCycleSources,
     balanceHistory,
@@ -135,6 +141,7 @@ export function loadLockedSourceSnapshot() {
     obligationPayments,
     goals,
     ledger,
-    weeklySnapshots
+    weeklySnapshots,
+    correctionAudits: []
   };
 }

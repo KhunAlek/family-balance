@@ -53,6 +53,9 @@ const GATE1_REQUIRED_SCHEMA = Object.freeze([
   objectRequirement('goal_withdrawal_effect_validate_insert','trigger','goal_withdrawal_effect_events',[
     "typeof(a.entity_id) = 'text'",'a.entity_id = cast(new.superseded_ledger_id as text)'
   ]),
+  objectRequirement('goal_withdrawal_effect_acyclic_insert','trigger','goal_withdrawal_effect_events',[
+    'with recursive reachable(ledger_id)','select new.authoritative_ledger_id','where ledger_id = new.superseded_ledger_id'
+  ]),
   objectRequirement('goal_withdrawal_effect_append_only_update','trigger','goal_withdrawal_effect_events'),
   objectRequirement('goal_withdrawal_effect_append_only_delete','trigger','goal_withdrawal_effect_events'),
   objectRequirement('classified_goal_withdrawal_ledger_protect_update','trigger','ledger_movements'),
@@ -63,6 +66,12 @@ const GATE1_REQUIRED_SCHEMA = Object.freeze([
   objectRequirement('goal_withdrawal_effect_correction_audit_validate_insert','trigger','correction_audit',[
     "typeof(new.entity_id) = 'text'",'new.entity_id = cast(e.superseded_ledger_id as text)'
   ]),
+  objectRequirement('goal_withdrawal_effect_correction_audit_append_only_update','trigger','correction_audit',[
+    'before update on correction_audit','goal withdrawal effect correction audits are immutable'
+  ]),
+  objectRequirement('goal_withdrawal_effect_correction_audit_append_only_delete','trigger','correction_audit',[
+    'before delete on correction_audit','goal withdrawal effect correction audits are immutable'
+  ]),
 ]);
 
 const MANIFESTS = Object.freeze({
@@ -72,6 +81,7 @@ const MANIFESTS = Object.freeze({
     tables: V2_TABLES,
     requiredSchema: V2_REQUIRED_SCHEMA,
     legacyPayloadHash: true,
+    exactSchema: false,
   }),
   [`${BACKUP_FORMAT}|${SCHEMA_MANIFEST_VERSION}`]: Object.freeze({
     format: BACKUP_FORMAT,
@@ -79,6 +89,7 @@ const MANIFESTS = Object.freeze({
     tables: BACKUP_TABLES,
     requiredSchema: GATE1_REQUIRED_SCHEMA,
     legacyPayloadHash: false,
+    exactSchema: true,
   }),
 });
 
@@ -115,11 +126,14 @@ function normalizeSql(value) {
 
 function hasCompleteSchemaManifest(schema, manifest) {
   if (!Array.isArray(schema)) return false;
+  const requiredNames = new Set(manifest.requiredSchema.map(requirement => requirement.name));
+  if (manifest.exactSchema && schema.length !== requiredNames.size) return false;
   const byName = new Map();
   for (const item of schema) {
     if (!validSchemaItem(item, manifest.tables)) return false;
     const name = String(item.name);
     if (byName.has(name)) return false;
+    if (manifest.exactSchema && !requiredNames.has(name)) return false;
     byName.set(name, item);
   }
   for (const requirement of manifest.requiredSchema) {
@@ -131,7 +145,7 @@ function hasCompleteSchemaManifest(schema, manifest) {
       if (!normalized.includes(normalizeSql(fragment))) return false;
     }
   }
-  return true;
+  return !manifest.exactSchema || byName.size === requiredNames.size;
 }
 
 function validEnvironment(value) {
@@ -156,6 +170,12 @@ async function sha256Hex(value) {
 
 function rows(result) { return result?.results || []; }
 function tableKey(row, columns) { return columns.map(column => String(row?.[column] ?? '')).join('\u0000'); }
+function isSafeInteger(value) { return typeof value === 'number' && Number.isSafeInteger(value); }
+function isSafeNonNegativeInteger(value) { return isSafeInteger(value) && value >= 0; }
+function isSafePositiveInteger(value) { return isSafeInteger(value) && value > 0; }
+function isNullableSafeNonNegativeInteger(value) {
+  return value === null || (value !== undefined && isSafeNonNegativeInteger(value));
+}
 
 function hasExactTables(tables, expectedTables) {
   const actual = Object.keys(tables || {}).sort();
@@ -167,8 +187,16 @@ function validateV3Relations(tables) {
   if (!tables.goal_withdrawal_effect_events) return true;
   const households = new Set(tables.households.map(row => String(row.household_id)));
   const goals = new Set(tables.goals.map(row => tableKey(row,['household_id','name'])));
-  const ledger = new Map(tables.ledger_movements.map(row => [Number(row.ledger_id),row]));
-  const corrections = new Map(tables.correction_audit.map(row => [String(row.correction_id),row]));
+  const ledger = new Map();
+  for (const row of tables.ledger_movements) {
+    if (!isSafeInteger(row.ledger_id) || ledger.has(row.ledger_id)) return false;
+    ledger.set(row.ledger_id,row);
+  }
+  const corrections = new Map();
+  for (const row of tables.correction_audit) {
+    if (typeof row.correction_id !== 'string' || !row.correction_id || corrections.has(row.correction_id)) return false;
+    corrections.set(row.correction_id,row);
+  }
   const weekly = new Set(tables.weekly_snapshots.map(row => tableKey(row,['household_id','week_start'])));
   const plans = new Set(tables.cycle_plans.map(row => tableKey(row,['household_id','cycle_start'])));
   const commitments = new Map(tables.cycle_commitments.map(row => [String(row.commitment_id),row]));
@@ -178,74 +206,90 @@ function validateV3Relations(tables) {
   for (const row of tables.cycle_commitments) {
     if (!households.has(String(row.household_id))) return false;
     if (!plans.has(tableKey(row,['household_id','cycle_start']))) return false;
-    if (!Number.isInteger(Number(row.committed_amount_satang)) || Number(row.committed_amount_satang) < 0) return false;
+    if (!isSafeNonNegativeInteger(row.committed_amount_satang)) return false;
     const identity=[row.household_id,row.cycle_start,row.commitment_type,row.destination_name ?? ''].join('\u0000');
     if (commitmentIdentities.has(identity)) return false;
     commitmentIdentities.add(identity);
   }
   for (const row of tables.cycle_plans) {
-    if (row.variables_target_satang !== null && row.variables_target_satang !== undefined &&
-        (!Number.isInteger(Number(row.variables_target_satang)) || Number(row.variables_target_satang) < 0)) return false;
+    if (!isNullableSafeNonNegativeInteger(row.variables_target_satang)) return false;
   }
   for (const row of tables.cycle_plan_events) {
     if (!plans.has(tableKey(row,['household_id','cycle_start']))) return false;
-    for (const value of [row.old_target_satang,row.new_target_satang]) {
-      if (value !== null && value !== undefined && (!Number.isInteger(Number(value)) || Number(value) < 0)) return false;
-    }
+    if (!isNullableSafeNonNegativeInteger(row.old_target_satang) ||
+        !isNullableSafeNonNegativeInteger(row.new_target_satang)) return false;
   }
   for (const row of tables.commitment_events) {
     const parent=commitments.get(String(row.commitment_id));
     if (!parent || String(parent.household_id)!==String(row.household_id)) return false;
-    for (const value of [row.old_amount_satang,row.new_amount_satang]) {
-      if (value !== null && value !== undefined && (!Number.isInteger(Number(value)) || Number(value) < 0)) return false;
-    }
+    if (!isNullableSafeNonNegativeInteger(row.old_amount_satang) ||
+        !isNullableSafeNonNegativeInteger(row.new_amount_satang)) return false;
   }
 
   for (const row of tables.goal_withdrawal_classifications) {
-    const ledgerId=Number(row.ledger_id);
+    if (!isSafeInteger(row.ledger_id)) return false;
+    const ledgerId=row.ledger_id;
     if (classifications.has(ledgerId)) return false;
     classifications.set(ledgerId,row);
     const movement=ledger.get(ledgerId);
     if (!movement || String(movement.household_id)!==String(row.household_id)) return false;
     if (String(movement.account)!==String(row.goal_name) || String(movement.direction)!=='Withdrawal') return false;
-    if (!Number.isInteger(Number(movement.amount_satang)) || Number(movement.amount_satang)<=0) return false;
+    if (!isSafePositiveInteger(movement.amount_satang)) return false;
     if (!goals.has(tableKey(row,['household_id','goal_name']))) return false;
     if (!['goal_purpose','non_purpose'].includes(String(row.use_classification))) return false;
   }
 
   const superseded=new Set(), authoritative=new Set(), correctionIds=new Set(), effectTokens=new Set();
+  const nextByNode=new Map();
   for (const row of tables.goal_withdrawal_effect_events) {
-    const hh=String(row.household_id), oldId=Number(row.superseded_ledger_id);
+    if (!isSafeInteger(row.superseded_ledger_id)) return false;
+    const hh=String(row.household_id), oldId=row.superseded_ledger_id;
+    const oldKey=`${hh}\u0000${oldId}`;
     const oldClass=classifications.get(oldId);
-    if (!oldClass || String(oldClass.household_id)!==hh || superseded.has(`${hh}\u0000${oldId}`)) return false;
-    superseded.add(`${hh}\u0000${oldId}`);
+    if (!oldClass || String(oldClass.household_id)!==hh || superseded.has(oldKey)) return false;
+    superseded.add(oldKey);
     const correction=corrections.get(String(row.correction_id));
     if (!correction || String(correction.household_id)!==hh || correctionIds.has(`${hh}\u0000${row.correction_id}`)) return false;
     if (!['ledger_movement','ledgerMovement'].includes(String(correction.entity_type))) return false;
     if (typeof correction.entity_id !== 'string' || correction.entity_id !== String(oldId)) return false;
-    if (String(correction.write_token)!==String(row.write_token)) return false;
+    if (typeof row.write_token !== 'string' || typeof correction.write_token !== 'string' || correction.write_token!==row.write_token) return false;
     correctionIds.add(`${hh}\u0000${row.correction_id}`);
     if (effectTokens.has(`${hh}\u0000${row.write_token}`)) return false;
     effectTokens.add(`${hh}\u0000${row.write_token}`);
     const auth=row.authoritative_ledger_id;
-    if (String(row.effect_kind)==='reversal') {
-      if (auth !== null && auth !== undefined) return false;
-    } else if (String(row.effect_kind)==='replacement') {
-      if (auth === null || auth === undefined) return false;
-      const key=`${hh}\u0000${Number(auth)}`;
+    if (row.effect_kind==='reversal') {
+      if (auth !== null) return false;
+      nextByNode.set(oldKey,null);
+    } else if (row.effect_kind==='replacement') {
+      if (!isSafeInteger(auth)) return false;
+      const key=`${hh}\u0000${auth}`;
       if (authoritative.has(key)) return false;
       authoritative.add(key);
-      const movement=ledger.get(Number(auth));
+      const movement=ledger.get(auth);
       if (!movement || String(movement.household_id)!==hh) return false;
       const isGoalDomain=String(movement.direction)==='Withdrawal' && (
         goals.has(tableKey(movement,['household_id','account'])) ||
         (String(movement.source_sheet)==='Ledger' && String(movement.account)!=='EF' && String(movement.account).trim())
       );
       if (isGoalDomain) {
-        const replacementClass=classifications.get(Number(auth));
+        const replacementClass=classifications.get(auth);
         if (!replacementClass || String(replacementClass.household_id)!==hh || String(replacementClass.goal_name)!==String(movement.account)) return false;
       }
+      nextByNode.set(oldKey,key);
     } else return false;
+  }
+
+  // The uniqueness checks above make the graph functional and non-merging.
+  // Every replacement chain must also be acyclic so it terminates at exactly
+  // one authoritative factual row or an explicit reversal.
+  for (const start of nextByNode.keys()) {
+    const seen=new Set();
+    let current=start;
+    while (current !== null && nextByNode.has(current)) {
+      if (seen.has(current)) return false;
+      seen.add(current);
+      current=nextByNode.get(current);
+    }
   }
 
   for (const row of tables.weekly_snapshot_model_versions) {
@@ -332,12 +376,12 @@ export async function verifyPortableBackup(backup) {
   if (!hasExactTables(backup.tables,manifest.tables) || !hasCompleteSchemaManifest(backup.schema,manifest)) return false;
   for (const table of manifest.tables) {
     if (!Array.isArray(backup.tables[table])) return false;
-    if (Number(backup.integrity.rowCounts?.[table])!==backup.tables[table].length) return false;
+    if (!isSafeNonNegativeInteger(backup.integrity.rowCounts?.[table]) || backup.integrity.rowCounts[table]!==backup.tables[table].length) return false;
   }
   if (!manifest.legacyPayloadHash) {
     if (backup.integrity.schemaManifestVersion!==manifest.version) return false;
-    if (Number(backup.integrity.schemaObjectCount)!==backup.schema.length) return false;
-    if (Number(backup.integrity.requiredSchemaObjectCount)!==manifest.requiredSchema.length) return false;
+    if (!isSafeNonNegativeInteger(backup.integrity.schemaObjectCount) || backup.integrity.schemaObjectCount!==backup.schema.length) return false;
+    if (!isSafeNonNegativeInteger(backup.integrity.requiredSchemaObjectCount) || backup.integrity.requiredSchemaObjectCount!==manifest.requiredSchema.length) return false;
     if (!validateV3Relations(backup.tables)) return false;
   }
   const expectedTables=await sha256Hex(JSON.stringify(backup.tables));

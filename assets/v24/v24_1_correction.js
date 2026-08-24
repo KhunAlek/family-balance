@@ -1,13 +1,6 @@
 (()=>{
-  const actionGrid=document.querySelector('.action-center .action-grid');
-  if(!actionGrid||document.getElementById('correctRecordAction'))return;
-
-  const action=document.createElement('button');
-  action.type='button';
-  action.id='correctRecordAction';
-  action.className='action-tile';
-  action.textContent='Correct record';
-  actionGrid.appendChild(action);
+  const action=document.getElementById('recordsCorrectionBtn');
+  if(!action)return;
 
   const modal=document.createElement('div');
   modal.className='modal-backdrop';
@@ -16,7 +9,7 @@
   modal.setAttribute('aria-modal','true');
   modal.setAttribute('aria-labelledby','correctionTitle');
   modal.innerHTML=`<aside class="modal movement-drawer">
-    <div class="drawer-head"><div><h2 id="correctionTitle">Correct a record</h2><p>Corrections are audited. The original history is preserved where possible.</p></div><button type="button" class="close" id="correctionCancel" aria-label="Close">×</button></div>
+    <div class="drawer-head"><div><h2 id="correctionTitle">Correct a record</h2><p>Corrections are audited. The original history is preserved where possible.</p></div><button type="button" class="detail-back" id="correctionCancel">← Back</button></div>
     <form id="correctionForm">
       <div class="form-summary"><strong>Use this only to fix a factual mistake.</strong> Select the existing record, enter the corrected value(s), and explain why. Every correction records before/after values, your signed-in account, time, revision and write token.</div>
       <label for="correctionType">Record type</label><select id="correctionType" required></select>

@@ -6,7 +6,7 @@ function fmt(n){return Math.round(Number(n)||0).toLocaleString('en-US')}
 function fmt2(n){return (Math.round((Number(n)||0)*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function fmtMoney(n,currency,decimals=false){return (decimals?fmt2(n):fmt(n))+' '+currency}
 function fmtDate(iso){if(!iso)return'';const d=new Date(iso+'T00:00:00');return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}
-function escapeHtml(v){return String(v==null?'':v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt',"'":'&#39;','"':'&quot;'}[c]))}
+function escapeHtml(v){return String(v==null?'':v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function todayIso(){const d=new Date(),p=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Bangkok',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d),m={};p.forEach(x=>m[x.type]=x.value);return `${m.year}-${m.month}-${m.day}`}
 function setMsg(id,text,type='err'){const el=document.getElementById(id);if(!el)return;el.textContent=text||'';el.className='form-msg'+(text?' '+type+' show':'')}
 function clearMsg(id){setMsg(id,'')}

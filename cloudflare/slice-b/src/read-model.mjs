@@ -15,31 +15,44 @@ export function buildDashboardReadModel(snapshot, onDate = bangkokBusinessDate()
   const cards = planning.salaryCycle?.cycleStart && planning.salaryCycle?.cycleEnd
     ? computeWeeklyVariablesCards(snapshot, onDate, planning)
     : [];
-  const safeGoals = planning.transferLimits?.goals || {};
+  const commitmentsAvailable = planning.commitments !== null && planning.commitments !== undefined;
+  const safeGoals = planning.transferLimits?.goals || null;
 
   const goalsForDisplay = (snapshot.goals || []).map(goal => {
-    const commitment = (planning.commitments?.goals || []).find(item => item.name === goal.name);
+    const commitment = commitmentsAvailable
+      ? (planning.commitments.goals || []).find(item => item.name === goal.name)
+      : null;
+    const savedSoFar = accountLedgerBalance(snapshot.ledger || [], goal.name);
+    const factualLifetimeRemaining = round2(Math.max(thb(goal.target_amount_satang) - savedSoFar, 0));
+    const safeTransferAvailable = canSpend && safeGoals && Object.prototype.hasOwnProperty.call(safeGoals, goal.name);
     return {
       name: goal.name,
       targetAmount: round2(thb(goal.target_amount_satang)),
-      savedSoFar: accountLedgerBalance(snapshot.ledger || [], goal.name),
+      savedSoFar,
       priorityRank: Number(goal.priority_rank),
       status: goal.status,
       targetDate: goal.target_date,
-      cycleCommitment: round2(thb(goal.cycle_commitment_satang)),
+      cycleCommitment: commitment?.commitment ?? null,
       cycleGrossCompleted: commitment?.grossCompleted ?? null,
       cycleOutstanding: commitment?.outstanding ?? null,
-      lifetimeRemaining: commitment?.lifetimeRemaining ?? round2(Math.max(thb(goal.target_amount_satang) - accountLedgerBalance(snapshot.ledger || [], goal.name), 0)),
-      commitmentValid: commitment?.valid ?? true,
-      planningDegraded: commitment?.degraded ?? false,
-      safeTransferAmount: canSpend ? round2(Number(safeGoals[goal.name]) || 0) : 0
+      lifetimeRemaining: commitment?.lifetimeRemaining ?? factualLifetimeRemaining,
+      commitmentValid: commitment ? !!commitment.valid : null,
+      planningDegraded: commitment ? !!commitment.degraded : null,
+      safeTransferAmount: safeTransferAvailable ? round2(Number(safeGoals[goal.name]) || 0) : null
     };
   });
   const incomeSources = (snapshot.incomeDefinitions || []).map(item => ({
     source: String(item.source || ''), payDay: String(item.pay_day || ''), isSalary: String(item.pay_day || '') !== 'Variable'
   }));
   const emergencyFund = buildEmergencyFundDashboardData(snapshot);
-  const goalOutstandingTotal = round2((planning.commitments?.goals || []).reduce((sum,item)=>sum+Number(item.outstanding||0),0));
+  const goalOutstandingTotal = commitmentsAvailable
+    ? round2((planning.commitments.goals || []).reduce((sum,item)=>sum+Number(item.outstanding||0),0))
+    : null;
+  const transferLimits = canSpend && planning.transferLimits ? {
+    emergencyFund: round2(Number(planning.transferLimits.emergencyFund) || 0),
+    goals: safeGoals || {},
+    goalsTotal: goalOutstandingTotal
+  } : null;
 
   return {
     asOf: isoDate(onDate),
@@ -58,12 +71,8 @@ export function buildDashboardReadModel(snapshot, onDate = bangkokBusinessDate()
     variablesState: planning.variables,
     weeklyVariablesCards: cards,
     emergencyFund,
-    fixedObligations: planning.fixedObligations || { items: [], remainingItems: [], remainingTotal: 0 },
-    transferLimits: {
-      emergencyFund: canSpend ? round2(Number(planning.transferLimits?.emergencyFund) || 0) : 0,
-      goals: canSpend ? safeGoals : {},
-      goalsTotal: canSpend ? goalOutstandingTotal : 0
-    },
+    fixedObligations: planning.fixedObligations ?? null,
+    transferLimits,
     paymentSafety: canSpend ? {
       availableToSpend: planning.availableToSpend,
       fundingNeededForAmount: 'max(paymentAmount - availableToSpend, 0)',

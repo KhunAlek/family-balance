@@ -237,12 +237,12 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
   const affectedPlanningAccounts = [...affected];
   let planningState = 'ready';
   let planningReason = null;
-  if (cycle.boundaryExpired) {
-    planningState = 'awaiting_salary_receipt';
-    planningReason = 'next_salary_boundary_reached_without_cycle_advance';
-  } else if (affectedPlanningAccounts.length) {
+  if (affectedPlanningAccounts.length) {
     planningState = 'degraded_correction_data';
     planningReason = 'current_cycle_ledger_correction_unresolved';
+  } else if (cycle.boundaryExpired) {
+    planningState = 'awaiting_salary_receipt';
+    planningReason = 'next_salary_boundary_reached_without_cycle_advance';
   } else if (variablesTarget === null) {
     planningState = 'target_not_set';
     planningReason = 'variables_target_required';

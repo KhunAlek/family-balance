@@ -11,7 +11,7 @@ export function buildDashboardReadModel(snapshot, onDate = bangkokBusinessDate()
   const latest = latestUsableBalance(snapshot.balanceHistory || []);
   if (!latest) throw new Error('No usable account balance is available.');
   const planning = buildPlanningState(snapshot, onDate);
-  const canPlan = planning.guidanceAvailable && planning.planningState !== 'historical_not_authoritative';
+  const canSpend = planning.spendingAuthorityAvailable && planning.planningState !== 'historical_not_authoritative';
   const cards = planning.salaryCycle?.cycleStart && planning.salaryCycle?.cycleEnd
     ? computeWeeklyVariablesCards(snapshot, onDate, planning)
     : [];
@@ -32,7 +32,7 @@ export function buildDashboardReadModel(snapshot, onDate = bangkokBusinessDate()
       lifetimeRemaining: commitment?.lifetimeRemaining ?? round2(Math.max(thb(goal.target_amount_satang) - accountLedgerBalance(snapshot.ledger || [], goal.name), 0)),
       commitmentValid: commitment?.valid ?? true,
       planningDegraded: commitment?.degraded ?? false,
-      safeTransferAmount: canPlan ? round2(Number(safeGoals[goal.name]) || 0) : 0
+      safeTransferAmount: canSpend ? round2(Number(safeGoals[goal.name]) || 0) : 0
     };
   });
   const incomeSources = (snapshot.incomeDefinitions || []).map(item => ({
@@ -48,6 +48,7 @@ export function buildDashboardReadModel(snapshot, onDate = bangkokBusinessDate()
     affectedPlanningAccounts: planning.affectedPlanningAccounts || [],
     guidanceAvailable: planning.guidanceAvailable,
     guidanceError: planning.guidanceError,
+    spendingAuthorityAvailable: !!planning.spendingAuthorityAvailable,
     operationalCash: planning.operationalCash,
     commitments: planning.commitments,
     availableToSpend: planning.availableToSpend,
@@ -59,11 +60,11 @@ export function buildDashboardReadModel(snapshot, onDate = bangkokBusinessDate()
     emergencyFund,
     fixedObligations: planning.fixedObligations || { items: [], remainingItems: [], remainingTotal: 0 },
     transferLimits: {
-      emergencyFund: canPlan ? round2(Number(planning.transferLimits?.emergencyFund) || 0) : 0,
-      goals: canPlan ? safeGoals : {},
-      goalsTotal: canPlan ? goalOutstandingTotal : 0
+      emergencyFund: canSpend ? round2(Number(planning.transferLimits?.emergencyFund) || 0) : 0,
+      goals: canSpend ? safeGoals : {},
+      goalsTotal: canSpend ? goalOutstandingTotal : 0
     },
-    paymentSafety: canPlan ? {
+    paymentSafety: canSpend ? {
       availableToSpend: planning.availableToSpend,
       fundingNeededForAmount: 'max(paymentAmount - availableToSpend, 0)',
       remainingFixedObligations: planning.commitments?.requiredOutstanding ?? null,

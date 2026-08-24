@@ -15,8 +15,9 @@ test('Monday job freezes missing closed card atomically through the Slice C revi
     writeToken: 'weekly-2026-08-17',
   });
   assert.equal(result.ok, true);
-  assert.equal(result.written, 1);
-  assert.deepEqual(result.weekStarts, ['2026-08-10']);
+  assert.equal(result.written, 2);
+  assert.deepEqual(result.weekStarts, ['2026-07-31','2026-08-10']);
+  assert.equal(raw.prepare("SELECT COUNT(*) AS n FROM weekly_snapshots WHERE week_start='2026-07-31'").get().n, 1);
   assert.equal(raw.prepare("SELECT COUNT(*) AS n FROM weekly_snapshots WHERE week_start='2026-08-10'").get().n, 1);
   assert.equal(raw.prepare('SELECT current_revision AS n FROM household_revisions').get().n, 1);
   assert.equal(raw.prepare("SELECT COUNT(*) AS n FROM financial_write_claims WHERE write_token='weekly-2026-08-17'").get().n, 1);

@@ -196,7 +196,7 @@ function planDedicatedTransfer(ctx) {
   const destinationName=destinationType==='EF'?'EF':String(ctx.payload.destinationName||'').trim();
   if(destinationType==='Goal'&&!(ctx.snapshot.goals||[]).some(goal=>goal.name===destinationName))fail('Goal not found.');
   const movement=validateMovementDate(ctx.payload.date,ctx.snapshot,ctx.nowIso),state=buildPlanningState(ctx.snapshot,movement.date);
-  if(!state.guidanceAvailable||state.availableToSpend===null)fail(state.guidanceError||'Safety guidance is unavailable.');
+  if(!state.spendingAuthorityAvailable||state.availableToSpend===null)fail('Spending authority is unavailable.');
   const safeLimit=destinationType==='EF'?Number(state.transferLimits.emergencyFund)||0:Number(state.transferLimits.goals?.[destinationName])||0;
   if(amount>round2(safeLimit)+0.001)fail(`This transfer is above the current safe limit of ${round2(safeLimit)} THB.`);
   let alex=movement.latest.alex,olga=movement.latest.olga;
@@ -223,7 +223,7 @@ export function buildOneOffPaymentPreview(snapshot,payload,nowIso=new Date().toI
   const today=bangkokBusinessDate(new Date(nowIso));let recordableNow=true,recordabilityError=null;if(date>today){recordableNow=false;recordabilityError='Transaction date cannot be in the future.'}else if(date<latestNow.date){recordableNow=false;recordabilityError='Transaction date cannot be earlier than the latest saved balance.'}
   const previewRow=date<latestNow.date?recordAtOrBefore(snapshot.balanceHistory||[],date):latestNow.row,previewBalance=balanceView(previewRow);if(!previewBalance)fail('No account balance is available on or before the entered payment date.');
   const state=buildPlanningState(snapshot,date,{balanceRecord:previewBalance,obligationPaymentsAsOf:date});
-  if(!state.guidanceAvailable||state.availableToSpend===null)return{ok:true,guidanceAvailable:false,error:state.guidanceError||'Safety guidance is unavailable.',planningState:state.planningState,paymentAmount:total,date,recordableNow,recordabilityError};
+  if(!state.spendingAuthorityAvailable||state.availableToSpend===null)return{ok:true,guidanceAvailable:false,error:'Spending authority is unavailable.',planningState:state.planningState,paymentAmount:total,date,recordableNow,recordabilityError};
   const available=round2(Number(state.availableToSpend)||0),fundingNeeded=round2(Math.max(total-available,0)),safePortion=round2(Math.max(total-fundingNeeded,0));
   const alex=previewBalance.alex,olga=previewBalance.olga,alexShort=Math.max(alexAmount-alex,0),olgaShort=Math.max(olgaAmount-olga,0),combined=alex+olga,efBalance=Number(state.emergencyFund.currentBalance)||0,impossible=fundingNeeded>efBalance+0.001;
   let efToAlex=0,efToOlga=0,efLeft=fundingNeeded;if(efLeft>0){const fillAlex=Math.min(alexShort,efLeft);efToAlex+=fillAlex;efLeft-=fillAlex;const fillOlga=Math.min(olgaShort,efLeft);efToOlga+=fillOlga;efLeft-=fillOlga;if(efLeft>0){if(alexAmount>=olgaAmount&&alexAmount>0)efToAlex+=efLeft;else efToOlga+=efLeft}}
@@ -236,7 +236,7 @@ export function buildOneOffPaymentPreview(snapshot,payload,nowIso=new Date().toI
 function planOneOffPayment(ctx) {
   const alexAmount=nonNegativeAmount(ctx.payload.oneOffAlexAmount||0,'Amounts'),olgaAmount=nonNegativeAmount(ctx.payload.oneOffOlgaAmount||0,'Amounts'),total=round2(alexAmount+olgaAmount);if(total<=0)fail('At least one account amount must be greater than zero.');
   const name=String(ctx.payload.oneOffName||'').trim();if(!name)fail('Payment name is required.');
-  const movement=validateMovementDate(ctx.payload.date,ctx.snapshot,ctx.nowIso),state=buildPlanningState(ctx.snapshot,movement.date);if(!state.guidanceAvailable||state.availableToSpend===null)fail(state.guidanceError||'Safety guidance is unavailable.');
+  const movement=validateMovementDate(ctx.payload.date,ctx.snapshot,ctx.nowIso),state=buildPlanningState(ctx.snapshot,movement.date);if(!state.spendingAuthorityAvailable||state.availableToSpend===null)fail('Spending authority is unavailable.');
   const available=round2(Number(state.availableToSpend)||0),fundingNeeded=round2(Math.max(total-available,0)),safePortion=round2(Math.max(total-fundingNeeded,0));
   if(fundingNeeded>0.001)fail('Record the required EF withdrawal to KTB first, then record the payment.',{requiresEFWithdrawal:true,split:{paymentAmount:total,guidanceAvailable:true,availableToSpend:available,safePortion,efPortion:fundingNeeded,fundingNeeded}});
   if(alexAmount>movement.latest.alex+0.001||olgaAmount>movement.latest.olga+0.001)fail('The selected KTB account does not currently hold enough cash. Record the suggested KTB transfer first or change the payment allocation.',{requiresKTBTransfer:true,preview:buildOneOffPaymentPreview(ctx.snapshot,ctx.payload,ctx.nowIso)});

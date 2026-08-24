@@ -5,16 +5,6 @@ import { sumLedgerFlows, sumScheduledFlows } from '../../slice-b/src/flows.mjs';
 const round2 = value => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 const toSatang = value => Math.round((Number(value) + Number.EPSILON) * 100);
 
-function latestSnapshotEnd(rows) {
-  let latest = null;
-  for (const row of rows || []) {
-    const end = isoDate(row.week_end);
-    if (!end) continue;
-    if (!latest || compareDates(end, latest) > 0) latest = end;
-  }
-  return latest;
-}
-
 function existingStarts(rows) {
   return new Set((rows || []).map(row => isoDate(row.week_start)).filter(Boolean));
 }
@@ -75,8 +65,7 @@ export function buildMissingClosedWeeklySnapshots(snapshot, cycleStart, nextSala
   const through = isoDate(closedThrough || addDays(next, -1));
   if (!start || !next || compareDates(next, start) <= 0 || !through) return [];
   const cycleEnd = isoDate(addDays(next, -1));
-  const latestEnd = latestSnapshotEnd(snapshot.weeklySnapshots || []);
-  const cursor = latestEnd ? isoDate(addDays(latestEnd, 1)) : start;
+  const cursor = start;
   if (compareDates(cursor, cycleEnd) > 0 || compareDates(cursor, through) > 0) return [];
 
   const knownStarts = existingStarts(snapshot.weeklySnapshots || []);

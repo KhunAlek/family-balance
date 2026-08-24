@@ -338,32 +338,38 @@ test('V3-M24 — Last runway day', () => {
   approx(p.variables.runwayPace,p.availableToSpend);
 });
 
-test('V3-M25 — Salary date before receipt is recorded', () => {
-  const s=snapshot({asOf:'2026-08-30',cash:10000,variablesTarget:22000,obligations:[obligation('Old bill',1500,15)]});
+test('V3-M25 — Salary date before receipt is recorded', async () => {
+  const s=snapshot({asOf:'2026-08-30',cash:10000,variablesTarget:22000,efCommitment:1000,obligations:[obligation('Old bill',1500,15)],goals:[goal('A',10000,1000)]});
   const p=buildPlanningState(s,'2026-08-31');
   assert.equal(p.planningState,'awaiting_salary_receipt');
   approx(p.commitments.requiredOutstanding,1500);
   assert.equal(p.guidanceAvailable,false);
-  assert.equal(p.availableToSpend,null);
+  assert.equal(p.spendingAuthorityAvailable,true);
+  approx(p.availableToSpend,6500);
   assert.equal(p.variables.targetPace,null);
   assert.equal(p.variables.runwayPace,null);
   assert.equal(p.variables.recommendedPace,null);
   assert.equal(p.variables.targetRemaining,null);
-  assert.equal(p.transferLimits.emergencyFund,0);
-  assert.deepEqual(p.transferLimits.goals,{});
-  assert.equal(p.paymentSafety,null);
-});
-
-test('V3-M25 — Expired salary boundary blocks payment and EF/Goal transfer safety', async () => {
-  const s=snapshot({asOf:'2026-08-30',cash:10000,efCommitment:1000,goals:[goal('A',10000,1000)]});
+  approx(p.transferLimits.emergencyFund,7500);
+  approx(p.transferLimits.goals.A,7500);
+  approx(p.paymentSafety.availableToSpend,6500);
+  const model=buildDashboardReadModel(s,'2026-08-31');
+  assert.equal(model.planningState,'awaiting_salary_receipt');
+  assert.equal(model.guidanceAvailable,false);
+  assert.equal(model.spendingAuthorityAvailable,true);
+  approx(model.availableToSpend,6500);
+  approx(model.commitments.requiredOutstanding,1500);
+  approx(model.transferLimits.emergencyFund,7500);
+  approx(model.transferLimits.goals.A,7500);
+  approx(model.paymentSafety.availableToSpend,6500);
   const now='2026-08-31T12:00:00.000Z';
-  const preview=buildOneOffPaymentPreview(s,{date:'2026-08-31',oneOffName:'Expired',oneOffAlexAmount:100,oneOffOlgaAmount:0},now);
-  assert.equal(preview.guidanceAvailable,false);
+  const preview=buildOneOffPaymentPreview(s,{date:'2026-08-31',oneOffName:'Live',oneOffAlexAmount:100,oneOffOlgaAmount:0},now);
+  assert.equal(preview.guidanceAvailable,true);
   assert.equal(preview.planningState,'awaiting_salary_receipt');
-  assert.equal(Object.prototype.hasOwnProperty.call(preview,'availableToSpend'),false);
-  await rejected(planFinancialWrite(writeContext('oneOffPayment',{date:'2026-08-31',oneOffName:'Expired',oneOffAlexAmount:100,oneOffOlgaAmount:0},s,now)),/Next salary date has arrived/);
-  await rejected(planFinancialWrite(writeContext('dedicatedTransfer',{date:'2026-08-31',sourceAccount:'Alex',destinationType:'EF',amount:100},s,now)),/Next salary date has arrived/);
-  await rejected(planFinancialWrite(writeContext('dedicatedTransfer',{date:'2026-08-31',sourceAccount:'Alex',destinationType:'Goal',destinationName:'A',amount:100},s,now)),/Next salary date has arrived/);
+  approx(preview.availableToSpend,6500);
+  assert.ok((await planFinancialWrite(writeContext('oneOffPayment',{date:'2026-08-31',oneOffName:'Live',oneOffAlexAmount:100,oneOffOlgaAmount:0},s,now))).statements.length>0);
+  assert.ok((await planFinancialWrite(writeContext('dedicatedTransfer',{date:'2026-08-31',sourceAccount:'Alex',destinationType:'EF',amount:100},s,now))).statements.length>0);
+  assert.ok((await planFinancialWrite(writeContext('dedicatedTransfer',{date:'2026-08-31',sourceAccount:'Alex',destinationType:'Goal',destinationName:'A',amount:100},s,now))).statements.length>0);
 });
 
 function correctedContributionFixture({account='EF',originalDirection='Contribution',replacementDirection='Contribution',replacementAmount=10000,laterWithdrawal=0,reCorrectAmount=null}={}) {

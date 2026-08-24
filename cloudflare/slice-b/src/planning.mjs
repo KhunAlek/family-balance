@@ -262,8 +262,9 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
 
   const goals = goalStates.map(goal => ({ ...goal }));
   const guidanceAvailable = !cycle.boundaryExpired;
-  const authoritativeAvailable = guidanceAvailable ? availableToSpend : null;
-  const voluntaryCapacity = guidanceAvailable ? round2(Math.max(availableToSpend, 0)) : 0;
+  const spendingAuthorityAvailable = true;
+  const authoritativeAvailable = availableToSpend;
+  const voluntaryCapacity = round2(Math.max(availableToSpend, 0));
   const efSafeContribution = round2(efOutstanding + voluntaryCapacity);
   const goalSafeLimits = Object.fromEntries(goals.map(goal => {
     if (!goal.valid || goal.degraded) return [goal.name, 0];
@@ -274,7 +275,8 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
     asOf: requestedDate,
     balanceAsOf: latest.date,
     guidanceAvailable,
-    guidanceError: guidanceAvailable ? null : 'Next salary date has arrived. Record the qualifying salary receipt before using spending or transfer safety guidance.',
+    guidanceError: guidanceAvailable ? null : 'Next salary date has arrived. Record the qualifying salary receipt; forward pace guidance is unavailable until the cycle advances.',
+    spendingAuthorityAvailable,
     planningState,
     planningReason,
     affectedPlanningAccounts,
@@ -323,11 +325,11 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
       maxSafeContribution: efSafeContribution
     },
     goals,
-    transferLimits: { emergencyFund: guidanceAvailable ? efSafeContribution : 0, goals: guidanceAvailable ? goalSafeLimits : {} },
-    paymentSafety: guidanceAvailable ? {
+    transferLimits: { emergencyFund: efSafeContribution, goals: goalSafeLimits },
+    paymentSafety: {
       availableToSpend: authoritativeAvailable,
       safeKTBPortionForPositivePayment: round2(Math.max(authoritativeAvailable, 0))
-    } : null,
+    },
     conservativeSafeMinimum: affectedPlanningAccounts.length > 0
   };
 }

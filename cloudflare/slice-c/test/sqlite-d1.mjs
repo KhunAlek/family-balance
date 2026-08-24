@@ -49,7 +49,7 @@ export class SqliteD1Adapter {
   }
 }
 
-export function createSeededSqliteD1() {
+export function createSeededSqliteD1(options = {}) {
   const raw = new DatabaseSync(':memory:');
   raw.exec('PRAGMA foreign_keys = ON;');
   const here = path.dirname(fileURLToPath(import.meta.url));
@@ -64,6 +64,9 @@ export function createSeededSqliteD1() {
   raw.exec(fs.readFileSync(importSql, 'utf8'));
   raw.exec(fs.readFileSync(path.join(sliceC, 'migrations/0002_revision_state.sql'), 'utf8'));
   raw.exec(fs.readFileSync(path.join(sliceC, 'migrations/0003_salary_cycle_sources.sql'), 'utf8'));
+  if (options.includeV3 !== false) {
+    raw.exec(fs.readFileSync(path.resolve(sliceC, '../slice-d/migrations/0005_v3_minimal_planning.sql'), 'utf8'));
+  }
   fs.rmSync(tmp, { recursive: true, force: true });
   return { db: new SqliteD1Adapter(raw), raw };
 }

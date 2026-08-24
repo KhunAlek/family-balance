@@ -117,7 +117,7 @@ test('preview makes zero writes', async () => {
   assert.equal(scalar(raw, 'SELECT current_revision AS n FROM household_revisions').n, 0);
 });
 
-test('final payment recalculates from fresh authoritative state after a preceding write', async () => {
+test('final payment recalculates from fresh authoritative state after an Available-neutral committed contribution', async () => {
   const { db } = createSeededSqliteD1();
   const before = await loadFinancialSnapshot(db, 'family');
   const preview = buildOneOffPaymentPreview(before, { date: '2026-08-14', oneOffName: '1600', oneOffAlexAmount: 1600, oneOffOlgaAmount: 0 }, NOW);
@@ -125,10 +125,8 @@ test('final payment recalculates from fresh authoritative state after a precedin
 
   await write(db, 'dedicatedTransfer', { date: '2026-08-14', sourceAccount: 'Alex', amount: 100, destinationType: 'EF', destinationName: 'EF' }, { writeToken: 'preceding-ef' });
 
-  await assert.rejects(
-    write(db, 'oneOffPayment', { date: '2026-08-14', oneOffName: '1600', oneOffAlexAmount: 1600, oneOffOlgaAmount: 0 }, { writeToken: 'final-payment' }),
-    error => error instanceof FinancialWriteValidationError && error.requiresEFWithdrawal === true && error.split.efPortion > 0
-  );
+  const result = await write(db, 'oneOffPayment', { date: '2026-08-14', oneOffName: '1600', oneOffAlexAmount: 1600, oneOffOlgaAmount: 0 }, { writeToken: 'final-payment' });
+  assert.equal(result.revision, 2);
 });
 
 test('explicit EF withdrawal is persisted as a ledger withdrawal and KTB credit', async () => {

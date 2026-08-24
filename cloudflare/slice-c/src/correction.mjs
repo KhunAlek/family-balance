@@ -1,5 +1,6 @@
 import { FinancialWriteValidationError, statement } from './write-protocol.mjs';
-import { compareDates, isoDate } from '../../slice-b/src/dates.mjs';
+import { bangkokBusinessDate, compareDates, isoDate } from '../../slice-b/src/dates.mjs';
+import { goalCommitmentState } from '../../slice-b/src/planning.mjs';
 
 const round2 = value => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 const toSatang = value => Math.round((Number(value) + Number.EPSILON) * 100);
@@ -131,6 +132,18 @@ function planGoalCorrection(ctx,before,values,reason) {
   if(!Number.isInteger(rank)||rank<=0)fail('Priority rank must be a positive whole number.');
   const status=own(values,'status')?String(values.status||'').trim():before.status;if(!status)fail('Goal status is required.');
   const targetDate=own(values,'targetDate')?(values.targetDate?date(values.targetDate,'Target date'):null):before.target_date;
+
+  // Lifetime-target edits may not make an existing current-cycle commitment
+  // impossible. The commitment is current-cycle state and is never silently
+  // reduced by a Goal correction or status change.
+  const commitment = goalCommitmentState(ctx.snapshot,before.name,bangkokBusinessDate(new Date(ctx.nowIso)));
+  if (commitment) {
+    const newLifetimeRemaining = round2(Math.max(target - commitment.factualBalance, 0));
+    if (commitment.outstanding > newLifetimeRemaining + 0.001) {
+      fail(`This target would leave ${commitment.outstanding} THB of current-cycle Goal commitment outstanding but only ${newLifetimeRemaining} THB remaining to the new lifetime target. Reduce the cycle commitment first.`);
+    }
+  }
+
   const after={...asPlain(before),target_amount_satang:toSatang(target),priority_rank:rank,status,target_date:targetDate};
   return {statements:[
     statement('UPDATE goals SET target_amount_satang=?,priority_rank=?,status=?,target_date=? WHERE household_id=? AND name=?',toSatang(target),rank,status,targetDate,ctx.householdId,before.name),

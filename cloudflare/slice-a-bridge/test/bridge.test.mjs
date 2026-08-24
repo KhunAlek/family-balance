@@ -131,11 +131,13 @@ await withAuthMock(async seen => {
   assert.equal(data.readAuthority, 'cloudflare-d1');
   assert.equal(data.authenticatedUser, 'abystrov66@gmail.com');
   assert.deepEqual(data.currentBalances, { alex: 2285, olga: 11455, asOf: '2026-08-12' });
-  assert.equal(data.variablesState.activeVariablesPlan, 28000);
+  assert.equal(data.planningState, 'target_not_set');
+  assert.equal(data.variablesState.target, null);
   assert.equal(data.variablesState.spentCycleToDate, 19008);
-  assert.equal(data.variablesState.remainingBudget, 8992);
-  assert.equal(data.paymentSafety.safeDiscretionaryKTB, 1661.48);
-  assert.equal(data.transferLimits.emergencyFund, 242.13);
+  assert.equal(data.variablesState.targetRemaining, null);
+  assert.equal(data.availableToSpend, 12726);
+  assert.equal(data.paymentSafety.availableToSpend, 12726);
+  assert.equal(data.transferLimits.emergencyFund, 13726);
   assert.equal(data.transferLimits.goalsTotal, 0);
   assert.equal(response.headers.get('cache-control'), 'no-store');
   assert.equal(response.headers.get('access-control-allow-origin'), 'https://khunalek.github.io');
@@ -156,7 +158,8 @@ await withAuthMock(async () => {
   assert.equal(response.status, 200);
   const data = await response.json();
   assert.equal(data.ok, true);
-  assert.equal(data.safeDiscretionaryKTB, 1661.48);
+  assert.equal(data.availableToSpend, 12726);
+  assert.equal(data.fundingNeeded, 0);
   assert.equal(data.safeKTBPortion, 1000);
   assert.equal(data.efRequired, 0);
   assert.equal(raw.prepare('SELECT COUNT(*) AS n FROM financial_write_claims').get().n, before.claims);

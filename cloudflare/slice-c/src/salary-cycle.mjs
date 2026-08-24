@@ -88,9 +88,7 @@ export function planSalaryReceiptTransition(snapshot, receiptDate, source, house
 
   // Freeze the old cycle from the pre-reset snapshot. Only after every missing
   // closed card is planned do we reset the current-only v3 planning state.
-  const frozenWeeklySnapshots = nextSalary
-    ? buildMissingClosedWeeklySnapshots(snapshot,currentStart,receipt,addDays(receipt,-1))
-    : [];
+  const frozenWeeklySnapshots = buildMissingClosedWeeklySnapshots(snapshot,currentStart,receipt,addDays(receipt,-1));
   return {
     salary:true,
     advanced:true,

@@ -93,6 +93,31 @@ test('weekly freeze preserves NULL target across every missing gap', () => {
   assert.equal(snapshot.weeklySnapshots[0].planned_variables_satang,123456);
 });
 
+test('salary advance freezes every missing old-cycle card when next salary date is NULL', () => {
+  for (const target of [2200000,null]) {
+    const snapshot=clone(loadLockedSourceSnapshot());
+    snapshot.salaryCycle.next_salary_date=null;
+    snapshot.salaryCycle.variables_target_satang=target;
+    snapshot.weeklySnapshots=[
+      {week_start:'2026-08-03',week_end:'2026-08-09',planned_variables_satang:777777},
+      {week_start:'2026-08-17',week_end:'2026-08-23',planned_variables_satang:888888}
+    ];
+    const transition=planSalaryReceiptTransition(snapshot,'2026-08-29','Alex Salary','family');
+    assert.equal(transition.advanced,true);
+    assert.deepEqual(transition.frozenWeeklySnapshots.map(row=>[row.week_start,row.week_end]),[
+      ['2026-07-31','2026-08-02'],
+      ['2026-08-10','2026-08-16'],
+      ['2026-08-24','2026-08-28']
+    ]);
+    assert.ok(transition.frozenWeeklySnapshots.every(row=>target===null ? row.planned_variables_satang===null : row.planned_variables_satang!==null));
+    const firstReset=transition.statements.findIndex(item=>/UPDATE salary_cycle_state SET current_cycle_start/.test(item.sql));
+    const lastFreeze=Math.max(...transition.statements.map((item,index)=>/INSERT INTO weekly_snapshots/.test(item.sql)?index:-1));
+    assert.ok(lastFreeze<firstReset);
+    snapshot.weeklySnapshots.push(...transition.frozenWeeklySnapshots);
+    assert.deepEqual(planSalaryReceiptTransition(snapshot,'2026-08-29','Alex Salary','family').frozenWeeklySnapshots,[]);
+  }
+});
+
 test('second household salary after a newly opened cycle joins that cycle rather than opening another one', () => {
   const snapshot=clone(loadLockedSourceSnapshot());
   snapshot.salaryCycle={current_cycle_start:'2026-08-31',next_salary_date:'2026-09-29',salary_receipt_cutover_date:'2026-08-13',variables_target_satang:null,ef_cycle_commitment_satang:1500000};

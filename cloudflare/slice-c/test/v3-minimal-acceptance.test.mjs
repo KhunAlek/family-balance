@@ -364,7 +364,7 @@ test('V3-M25 — Salary date before receipt is recorded', async () => {
   approx(model.paymentSafety.availableToSpend,6500);
   const now='2026-08-31T12:00:00.000Z';
   const preview=buildOneOffPaymentPreview(s,{date:'2026-08-31',oneOffName:'Live',oneOffAlexAmount:100,oneOffOlgaAmount:0},now);
-  assert.equal(preview.guidanceAvailable,true);
+  assert.equal(preview.paymentSafetyAvailable,true);
   assert.equal(preview.planningState,'awaiting_salary_receipt');
   approx(preview.availableToSpend,6500);
   assert.ok((await planFinancialWrite(writeContext('oneOffPayment',{date:'2026-08-31',oneOffName:'Live',oneOffAlexAmount:100,oneOffOlgaAmount:0},s,now))).statements.length>0);
@@ -453,11 +453,13 @@ test('V3-M33 — Goal outstanding limit accepted case', async () => {
 });
 
 test('V3-M34 — Goal outstanding limit rejection', async () => {
-  const s=snapshot({goals:[goal('A',4000,0)],ledger:[ledgerRow(1,'2026-07-20','A','Contribution',1000),ledgerRow(2,'2026-08-10','A','Contribution',1000)]});
+  const s=snapshot({goals:[goal('A',5000,0)],ledger:[ledgerRow(1,'2026-07-20','A','Contribution',1000),ledgerRow(2,'2026-08-10','A','Contribution',1000)]});
   const proposed=goalCommitmentState(s,'A','2026-08-20',5000);
-  approx(proposed.lifetimeRemaining,2000);
+  approx(proposed.lifetimeRemaining,3000);
+  approx(proposed.grossCompleted,1000);
   approx(proposed.outstanding,4000);
   await rejected(planFinancialWrite(writeContext('setGoalCommitment',{goalName:'A',amount:5000},s)),/outstanding while only/);
+  assert.equal(s.goals[0].cycle_commitment_satang,0);
 });
 
 test('V3-M35 — Goal target reduction cannot strand larger commitment', async () => {
@@ -558,6 +560,18 @@ test('V3-M45 — Explicit read-model states', () => {
   assert.equal(buildDashboardReadModel(snapshot({variablesTarget:22000,asOf:'2026-08-30'}),'2026-08-31').planningState,'awaiting_salary_receipt');
   const current=ledgerRow(2,'2026-08-10','A','Contribution',1000,'Ledger',2),audit=correctionAudit('c',2,current,{...current,source_sheet:'Correction',source_row:998});
   assert.equal(buildDashboardReadModel(snapshot({variablesTarget:22000,goals:[goal('A',10000,2000)],ledger:[current],correctionAudits:[audit]}),'2026-08-20').planningState,'degraded_correction_data');
+  const missingBoundary=buildDashboardReadModel(snapshot({nextSalary:null,variablesTarget:null}),'2026-08-20');
+  assert.equal(missingBoundary.planningState,'salary_boundary_not_set');
+  assert.equal(missingBoundary.spendingAuthorityAvailable,false);
+  assert.equal(missingBoundary.availableToSpend,null);
+  assert.equal(missingBoundary.commitments,null);
+  assert.equal(missingBoundary.variables.targetPace,null);
+  assert.equal(missingBoundary.variables.runwayPace,null);
+  assert.equal(missingBoundary.variables.recommendedPace,null);
+  const degradedMissingBoundary=buildDashboardReadModel(snapshot({nextSalary:null,variablesTarget:null,goals:[goal('A',10000,2000)],ledger:[current],correctionAudits:[audit]}),'2026-08-20');
+  assert.equal(degradedMissingBoundary.planningState,'degraded_correction_data');
+  assert.deepEqual(degradedMissingBoundary.affectedPlanningAccounts,['A']);
+  assert.equal(degradedMissingBoundary.availableToSpend,null);
   assert.equal(buildPlanningState(snapshot({cycleStart:'2026-09-01',nextSalary:'2026-09-30',asOf:'2026-09-10',variablesTarget:22000}),'2026-08-20').planningState,'historical_not_authoritative');
 });
 

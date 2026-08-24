@@ -193,14 +193,18 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
   const operationalCash = round2(Math.max(Number(latest.combinedBalance) || 0, 0));
 
   if (!cycle.valid) {
+    const unresolved = authoritativeLedgerMovements(snapshot, { cycleStart, throughDate: requestedDate });
+    const affectedPlanningAccounts = unresolved.affectedAccounts || [];
+    const missingBoundary = !!cycleStart && !cycle.nextSalaryDate;
     return {
       asOf: requestedDate,
       balanceAsOf: latest.date,
       guidanceAvailable: false,
       guidanceError: cycle.error,
-      planningState: variablesTarget === null ? 'target_not_set' : 'ready',
-      planningReason: !cycle.nextSalaryDate ? 'next_salary_date_required' : 'salary_cycle_invalid',
-      affectedPlanningAccounts: [],
+      planningState: affectedPlanningAccounts.length ? 'degraded_correction_data' : (missingBoundary ? 'salary_boundary_not_set' : (variablesTarget === null ? 'target_not_set' : 'ready')),
+      planningReason: affectedPlanningAccounts.length ? 'current_cycle_ledger_correction_unresolved' : (missingBoundary ? 'next_salary_date_required' : 'salary_cycle_invalid'),
+      affectedPlanningAccounts,
+      spendingAuthorityAvailable: false,
       salaryCycle: { valid: false, cycleStart: cycle.cycleStart, nextSalaryDate: cycle.nextSalaryDate, cycleEnd: cycle.cycleEnd },
       operationalCash,
       commitments: null,

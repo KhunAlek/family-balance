@@ -73,4 +73,41 @@ async function logout(){
   if(window.google&&google.accounts&&google.accounts.id)google.accounts.id.disableAutoSelect();
   showAuthGate('You have signed out.');
 }
-document.getElementById('logoutBtn').addEventListener('click',logout);
+async function logoutAndClose(){await logout();window.close()}
+document.getElementById('logoutBtn').addEventListener('click',logoutAndClose);
+
+let selectedPrimaryTab='position';
+const detailOpeners=new Map();
+function selectPrimaryTab(tabName,focusTab=false){
+  if(!['position','pace','commitments','savings'].includes(tabName))return;
+  selectedPrimaryTab=tabName;
+  document.querySelectorAll('[data-tab-panel]').forEach(panel=>{panel.hidden=panel.dataset.tabPanel!==tabName});
+  document.querySelectorAll('[data-tab]').forEach(tab=>{
+    const selected=tab.dataset.tab===tabName;
+    tab.classList.toggle('active',selected);
+    if(tab.getAttribute('role')==='tab')tab.setAttribute('aria-selected',String(selected));
+    if(selected&&focusTab&&tab.getAttribute('role')==='tab')tab.focus();
+  });
+  document.querySelectorAll('.detail-view:not([hidden])').forEach(detail=>{detail.hidden=true});
+  window.scrollTo({top:0,behavior:'auto'});
+}
+function openDetail(detailId,opener){
+  const detail=document.getElementById(detailId);
+  if(!detail)return;
+  detailOpeners.set(detailId,opener||null);
+  detail.hidden=false;
+  if(detailId==='efDetails'&&efChartInstance)setTimeout(()=>efChartInstance.resize(),0);
+  const first=detail.querySelector('[data-close-detail],button,a,input,select');
+  if(first)first.focus();
+}
+function closeDetail(detail){
+  if(!detail)return;
+  detail.hidden=true;
+  const opener=detailOpeners.get(detail.id);
+  if(opener)opener.focus();
+}
+document.querySelectorAll('[data-tab]').forEach(tab=>tab.addEventListener('click',()=>selectPrimaryTab(tab.dataset.tab)));
+document.querySelectorAll('[data-open-detail]').forEach(button=>button.addEventListener('click',()=>openDetail(button.dataset.openDetail,button)));
+document.querySelectorAll('[data-close-detail]').forEach(button=>button.addEventListener('click',()=>closeDetail(button.closest('.detail-view'))));
+document.addEventListener('keydown',event=>{if(event.key==='Escape'){const detail=document.querySelector('.detail-view:not([hidden])');if(detail)closeDetail(detail)}});
+selectPrimaryTab(selectedPrimaryTab);

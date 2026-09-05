@@ -17,8 +17,11 @@ export const BACKUP_TABLES = Object.freeze([
   'correction_audit',
   'household_revisions',
   'salary_cycle_sources',
+  'one_off_categories',
+  'new_function_request_receipts',
 ]);
 
+const CATEGORY_TABLES = ['one_off_categories', 'new_function_request_receipts'];
 const encoder = new TextEncoder();
 const schemaTableList = BACKUP_TABLES.map(table => `'${table}'`).join(',');
 
@@ -60,13 +63,19 @@ export async function buildPortableBackup(db, options = {}) {
   if (!db || typeof db.prepare !== 'function') throw new Error('D1 binding is unavailable.');
   const createdAt = new Date(options.createdAt ?? Date.now()).toISOString();
   const environment = validEnvironment(options.environment);
+  // Both category tables are absent in pre-0006 backups. Preserve that
+  // supported restore path, but reject a partially applied increment.
+  const [inventory] = await db.batch([db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('one_off_categories','new_function_request_receipts')")]);
+  const categoryTableCount = rows(inventory).length;
+  if (categoryTableCount !== 0 && categoryTableCount !== CATEGORY_TABLES.length) throw new Error('Category schema is incomplete.');
+  const includedTables = BACKUP_TABLES.filter(table => categoryTableCount || !CATEGORY_TABLES.includes(table));
   const statements = [
     db.prepare(`SELECT type,name,tbl_name,sql FROM sqlite_master WHERE sql IS NOT NULL AND type IN ('table','index','trigger') AND tbl_name IN (${schemaTableList}) AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' ORDER BY CASE type WHEN 'table' THEN 1 WHEN 'index' THEN 2 WHEN 'trigger' THEN 3 ELSE 4 END,name`),
-    ...BACKUP_TABLES.map(table => db.prepare(`SELECT * FROM ${table} ORDER BY rowid`)),
+    ...includedTables.map(table => db.prepare(`SELECT * FROM ${table} ORDER BY rowid`)),
   ];
   const results = await db.batch(statements);
-  const tables = {};
-  BACKUP_TABLES.forEach((table, index) => { tables[table] = rows(results[index + 1]); });
+  const tables = Object.fromEntries(BACKUP_TABLES.map(table => [table, []]));
+  includedTables.forEach((table, index) => { tables[table] = rows(results[index + 1]); });
   const schema = rows(results[0]);
   if (!schema.every(validSchemaItem)) throw new Error('Database schema contains an unsupported object.');
   const dataJson = JSON.stringify(tables);
@@ -142,7 +151,13 @@ export async function runPortableBackup(db, bucket, options = {}) {
 export async function verifyPortableBackup(backup) {
   if (!backup || backup.format !== BACKUP_FORMAT || !Array.isArray(backup.schema) || !backup.tables || !backup.integrity) return false;
   if (!backup.schema.every(validSchemaItem)) return false;
-  for (const table of BACKUP_TABLES) if (!Array.isArray(backup.tables[table])) return false;
+  const categorySchemaCount = backup.schema.filter(item => item.type === 'table' && CATEGORY_TABLES.includes(item.name)).length;
+  if (categorySchemaCount !== 0 && categorySchemaCount !== CATEGORY_TABLES.length) return false;
+  for (const table of BACKUP_TABLES) {
+    if (!categorySchemaCount && CATEGORY_TABLES.includes(table)) {
+      if (backup.tables[table] !== undefined && (!Array.isArray(backup.tables[table]) || backup.tables[table].length)) return false;
+    } else if (!Array.isArray(backup.tables[table])) return false;
+  }
   const expectedTables = await sha256Hex(JSON.stringify(backup.tables));
   const expectedPayload = await sha256Hex(JSON.stringify({ schema: backup.schema, tables: backup.tables }));
   return expectedTables === backup.integrity.tablesSha256 && expectedPayload === backup.integrity.payloadSha256;

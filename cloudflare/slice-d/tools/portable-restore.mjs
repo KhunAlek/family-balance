@@ -29,10 +29,10 @@ export async function buildRestoreSql(backup, options = {}) {
       if (sql) lines.push(`${sql.replace(/;+$/g, '')};`);
     }
   } else if (options.clearExisting) {
-    for (const table of [...BACKUP_TABLES].reverse()) lines.push(`DELETE FROM ${identifier(table)};`);
+    for (const table of [...BACKUP_TABLES].reverse().filter(table => backup.schema.some(item => item.type === 'table' && item.name === table))) lines.push(`DELETE FROM ${identifier(table)};`);
   }
   for (const table of BACKUP_TABLES) {
-    for (const row of backup.tables[table]) {
+    for (const row of backup.tables[table] || []) {
       const columns = Object.keys(row);
       if (!columns.length) continue;
       const columnSql = columns.map(column => `"${String(column).replace(/"/g, '""')}"`).join(',');

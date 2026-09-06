@@ -7,6 +7,7 @@ import {FIXED_EXPENSE_ACTIONS,executeFixedExpenseWrite,getFixedExpenses,previewF
 import { loadFinancialSnapshot } from '../../slice-b/src/d1-repository.mjs';
 import { buildDashboardReadModel } from '../../slice-b/src/read-model.mjs';
 import { executeRevisionClaimWrite, FinancialWriteValidationError, StaleFinancialWriterError } from '../../slice-c/src/write-protocol.mjs';
+import { executeGoalWithdrawal } from '../../slice-c/src/goal-withdrawal.mjs';
 import { buildOneOffPaymentPreview, planFinancialWrite } from '../../slice-c/src/write-actions.mjs';
 import { previewCorrection } from '../../slice-c/src/correction.mjs';
 import { buildCorrectionCatalog } from '../../slice-c/src/correction-catalog.mjs';
@@ -169,7 +170,7 @@ async function handleFinancialAction(payload, identity, env, options = {}) {
     if (payload.apiAction === 'write') {
       const writePayload = payload.payload || {};
       const action = String(writePayload.action || '').trim();
-      const execute = action === 'oneOffPayment' ? executeTypedPayment : FIXED_EXPENSE_ACTIONS.has(action)?executeFixedExpenseWrite : OTHER_INCOME_ACTIONS.has(action) ? executeOtherIncomeWrite : action === 'incomeReceipt' ? executeIncomeReceipt : CATEGORY_ACTIONS.has(action) ? executeCategoryWrite : action === 'correctRecord' && writePayload.entityType === 'salaryCycle' ? executeReportingCorrection : executeRevisionClaimWrite;
+      const execute = action === 'oneOffPayment' ? executeTypedPayment : action === 'goalWithdrawal' ? executeGoalWithdrawal : FIXED_EXPENSE_ACTIONS.has(action)?executeFixedExpenseWrite : OTHER_INCOME_ACTIONS.has(action) ? executeOtherIncomeWrite : action === 'incomeReceipt' ? executeIncomeReceipt : CATEGORY_ACTIONS.has(action) ? executeCategoryWrite : action === 'correctRecord' && writePayload.entityType === 'salaryCycle' ? executeReportingCorrection : executeRevisionClaimWrite;
       const result = await execute(env.DB, {
         householdId: 'family',
         actorEmail: identity.email,

@@ -83,14 +83,14 @@ test('EF withdrawal is explicit: ledger withdrawal plus KTB credit', async () =>
 
 test('Withdrawal from a fully funded Goal atomically records facts and marks it done', async () => {
   const snapshot=clone(baseSnapshot());snapshot.goals=[{name:'Laptop',target_amount_satang:2500000,priority_rank:1,status:'active',cycle_commitment_satang:0}];snapshot.ledger=[{ledger_id:1,business_date:'2026-08-10',sheet_order:1,account:'Laptop',direction:'Contribution',amount_satang:2500000,source_sheet:'Cloudflare',source_row:1}];
-  const plan=await planFinancialWrite(context('goalWithdrawal',{date:'2026-08-14',goalName:'Laptop',destinationAccount:'Alex',amount:1000},snapshot));
+  const plan=await planFinancialWrite(context('goalWithdrawal',{date:'2026-08-14',goalName:'Laptop',destinationAccount:'Alex',amount:1000,purpose:'useForGoal'},snapshot));
   assert.equal(plan.response.status,'done');assert.equal(plan.statements.length,3);assert.match(plan.statements[0].sql,/ledger_movements/);assert.match(plan.statements[1].sql,/balance_history/);assert.match(plan.statements[2].sql,/UPDATE goals SET status/);
 });
 
 test('Withdrawal from a Goal below target preserves active status and rejects overdraft', async () => {
   const snapshot=clone(baseSnapshot());snapshot.goals=[{name:'Laptop',target_amount_satang:3000000,priority_rank:1,status:'active',cycle_commitment_satang:0}];snapshot.ledger=[{ledger_id:1,business_date:'2026-08-10',sheet_order:1,account:'Laptop',direction:'Contribution',amount_satang:2500000,source_sheet:'Cloudflare',source_row:1}];
-  const plan=await planFinancialWrite(context('goalWithdrawal',{date:'2026-08-14',goalName:'Laptop',destinationAccount:'Olga',amount:1000},snapshot));assert.equal(plan.response.status,'active');assert.equal(plan.statements.length,2);
-  await expectValidation(planFinancialWrite(context('goalWithdrawal',{date:'2026-08-14',goalName:'Laptop',destinationAccount:'Olga',amount:26000},snapshot)),/exceeds the Goal balance/);
+  const plan=await planFinancialWrite(context('goalWithdrawal',{date:'2026-08-14',goalName:'Laptop',destinationAccount:'Olga',amount:1000,purpose:'useForGoal'},snapshot));assert.equal(plan.response.status,'active');assert.equal(plan.statements.length,2);
+  await expectValidation(planFinancialWrite(context('goalWithdrawal',{date:'2026-08-14',goalName:'Laptop',destinationAccount:'Olga',amount:26000,purpose:'useForGoal'},snapshot)),/exceeds the Goal balance/);
 });
 
 test('KTB transfer preserves combined KTB and rejects account overdraft', async () => {

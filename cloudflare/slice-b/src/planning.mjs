@@ -260,7 +260,7 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
     runwayPace = round2(availableToSpend / remainingRunwayDays);
     if (variablesTarget !== null && spent !== null) {
       targetPace = round2(targetRemainingBase / remainingRunwayDays);
-      recommendedPace = targetExceededByBase > 0 ? runwayPace : round2(Math.min(targetPace, runwayPace));
+      recommendedPace = targetPace;
     }
   }
 
@@ -319,7 +319,8 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
       targetPace,
       runwayPace,
       recommendedPace,
-      remainingRunwayDays
+      remainingRunwayDays,
+      originalElapsedPaceDelta: cycle.boundaryExpired || variablesTarget === null || spent === null ? null : round2(spent - variablesTarget / cycle.totalSpendingDays * countInclusiveDays(cycle.cycleStart, completionThrough))
     },
     emergencyFund: {
       currentBalance: accountLedgerBalance(snapshot.ledger || [], 'EF'),

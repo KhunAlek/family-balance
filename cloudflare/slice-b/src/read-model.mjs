@@ -90,7 +90,7 @@ export function buildDashboardReadModel(snapshot, onDate = bangkokBusinessDate()
       variablesTarget: planning.variables?.target ?? null,
       efCycleCommitment: planning.commitments?.ef?.commitment ?? null
     },
-    goals: goalsForDisplay,
+    goals: goalsForDisplay.filter(goal => goal.status !== 'done'),
     suggestedNextGoalRank: goalsForDisplay.length + 1,
     incomeSources,
     variableIncomeSources: incomeSources.filter(item => !item.isSalary).map(item => item.source),

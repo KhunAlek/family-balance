@@ -176,6 +176,17 @@ function planEFWithdrawal(ctx) {
   let alex=movement.latest.alex,olga=movement.latest.olga;if(destination==='Alex')alex=round2(alex+amount);else olga=round2(olga+amount);
   return {statements:[ledgerInsert(ctx,1,{date:movement.date,account:'EF',direction:'Withdrawal',amount}),balanceInsert(ctx,2,{date:movement.date,alex,olga,oneOffName:'Withdraw from EF',oneOffAmount:amount,oneOffAccount:destination})],response:{amount,destination,efBalance:round2(efBalance-amount),balances:{alex,olga}}};
 }
+function planGoalWithdrawal(ctx) {
+  const amount=positiveAmount(ctx.payload.amount,'Withdrawal amount'),destination=normalizeAccount(ctx.payload.destinationAccount),name=String(ctx.payload.goalName||'').trim();
+  if(!destination)fail('Choose Alex KTB or Olga KTB.');
+  const goal=(ctx.snapshot.goals||[]).find(item=>item.name===name);if(!goal)fail('Goal not found.');
+  const movement=validateMovementDate(ctx.payload.date,ctx.snapshot,ctx.nowIso),balance=accountLedgerBalance(ctx.snapshot.ledger||[],name),target=fromSatang(goal.target_amount_satang);
+  if(amount>balance+0.001)fail('Withdrawal amount exceeds the Goal balance.');
+  let alex=movement.latest.alex,olga=movement.latest.olga;if(destination==='Alex')alex=round2(alex+amount);else olga=round2(olga+amount);
+  const statements=[ledgerInsert(ctx,1,{date:movement.date,account:name,direction:'Withdrawal',amount}),balanceInsert(ctx,2,{date:movement.date,alex,olga,oneOffName:`Withdraw from Goal: ${name}`,oneOffAmount:amount,oneOffAccount:destination})];
+  const completed=balance+0.001>=target;if(completed&&goal.status!=='done')statements.push(statement('UPDATE goals SET status=? WHERE household_id=? AND name=?','done',ctx.householdId,name));
+  return{statements,response:{goalName:name,amount,destination,goalBalance:round2(balance-amount),status:completed?'done':goal.status,balances:{alex,olga}}};
+}
 function planKTBTransfer(ctx) {
   const amount=positiveAmount(ctx.payload.amount,'Transfer amount'),source=normalizeAccount(ctx.payload.sourceAccount),destination=normalizeAccount(ctx.payload.destinationAccount);
   if(!source||!destination||source===destination)fail('Choose two different KTB accounts.');
@@ -261,6 +272,7 @@ export async function planFinancialWrite(ctx) {
     case'setEFCommitment':return planSetEFCommitment(ctx);
     case'setGoalCommitment':return planSetGoalCommitment(ctx);
     case'efWithdrawal':return planEFWithdrawal(ctx);
+    case'goalWithdrawal':return planGoalWithdrawal(ctx);
     case'ktbTransfer':return planKTBTransfer(ctx);
     case'addGoal':return planAddGoal(ctx);
     case'dedicatedTransfer':return planDedicatedTransfer(ctx);

@@ -1,0 +1,5 @@
+.pace-card{grid-template-columns:1fr}
+.pace-copy h3{font-size:36px}
+.pace-primary-label{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:750}
+.report-chart-wrap{position:relative;height:260px;min-height:260px}
+@media(max-width:760px){.pace-card{grid-template-columns:1fr}.pace-copy h3{font-size:29px}.report-chart-wrap{height:220px;min-height:220px}}

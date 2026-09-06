@@ -152,6 +152,7 @@ function planGoalCorrection(ctx,before,values,reason) {
 }
 
 function planSalaryCycleCorrection(ctx,before,values,reason) {
+  if (ctx.snapshot.reportingEnabled && !ctx.reportingCorrectionValidated) fail('Review the salary-cycle reporting correction preview first.');
   const start=own(values,'currentCycleStart')?date(values.currentCycleStart,'Current cycle start'):before.current_cycle_start;
   const next=own(values,'nextSalaryDate')?(values.nextSalaryDate?date(values.nextSalaryDate,'Next salary date'):null):before.next_salary_date;
   if(next&&compareDates(next,start)<=0)fail('Next salary date must be after current cycle start.');

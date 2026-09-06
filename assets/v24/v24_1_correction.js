@@ -15,7 +15,7 @@
       <label for="correctionType">Record type</label><select id="correctionType" required></select>
       <label for="correctionRecord">Record</label><select id="correctionRecord" required><option value="">Choose a record</option></select>
       <div class="movement-summary" id="correctionCurrent">Choose a record to see its current values.</div>
-      <div id="correctionFields"></div>
+      <div id="correctionFields"></div><div class="form-summary" id="correctionImpact" hidden aria-live="polite"></div>
       <label for="correctionReason">Reason for correction</label><textarea id="correctionReason" required placeholder="What was wrong, and what evidence are you correcting it from?"></textarea>
       <div class="form-msg" id="correctionMsg"></div>
       <div class="modal-actions"><button type="button" class="btn secondary" id="correctionCancelBottom">Cancel</button><button type="submit" class="btn primary" id="correctionSubmit" disabled>Apply audited correction</button></div>
@@ -31,6 +31,21 @@
   const submit=document.getElementById('correctionSubmit');
   let catalog=null;
   let preview=null;
+  let reportingPreview=null;
+  let reportingPreviewKey=null;
+  let correctionRequestId=null;
+  const impactEl=document.getElementById('correctionImpact');
+  function invalidateImpact(){reportingPreview=null;reportingPreviewKey=null;impactEl.hidden=true;submit.textContent=typeEl.value==='salaryCycle'?'Preview reporting changes':'Apply audited correction';}
+  function renderImpact(impact){
+    impactEl.hidden=false;
+    if(!impact){impactEl.textContent='Review the corrected salary-cycle dates, then apply the audited correction.';return;}
+    const amount=n=>new Intl.NumberFormat('en-TH',{style:'currency',currency:'THB'}).format(n/100);
+    const date=d=>new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(d+'T00:00:00Z'));
+    const cycleName=(start,totals)=>{const i=totals.findIndex(t=>t.cycleStart===start);return i===totals.length-1?'Current cycle':i===totals.length-2?'Previous cycle':i>=0?'Earlier cycle':'Previously unassigned';};
+    const totals=impact.beforeTotals.map((before,i)=>{const after=impact.afterTotals[i];return `<li>${escape(cycleName(before.cycleStart,impact.beforeTotals))}: ${escape(amount(before.amountSatang))} → ${escape(amount(after.amountSatang))}</li>`;}).join('');
+    const moved=impact.movedPayments.map(p=>`<li>${escape(date(p.businessDate))} · ${escape(p.description||'Categorized payment')} · ${escape(amount(p.amountSatang))}: ${escape(cycleName(p.fromCycleStart,impact.beforeTotals))} → ${escape(cycleName(p.toCycleStart,impact.afterTotals))}</li>`).join('');
+    impactEl.innerHTML=`<strong>Reporting changes</strong><p>Cycle start: ${escape(date(impact.oldStart))} → ${escape(date(impact.newStart))}</p><p>One-off totals before → after</p><ul>${totals}</ul>${moved?`<p>Payments moving between cycles</p><ul>${moved}</ul>`:'<p>No payments move between cycles.</p>'}<p>Payment dates, amounts and accounts stay unchanged. Frozen weekly snapshots stay unchanged.</p>`;
+  }
 
   const escape=v=>escapeHtml(v==null?'':v);
   const moneySatang=v=>v==null?'':String(Math.round(Number(v))/100);
@@ -68,15 +83,15 @@
   function setCorrectionMsg(text,type='err'){
     setMsg('correctionMsg',text,type);
   }
-  function closeCorrection(){modal.classList.remove('show');preview=null;}
-  function resetRecord(){recordEl.innerHTML='<option value="">Choose a record</option>';fieldsEl.innerHTML='';currentEl.textContent='Choose a record to see its current values.';reasonEl.value='';submit.disabled=true;preview=null;}
+  function closeCorrection(){modal.classList.remove('show');preview=null;invalidateImpact();}
+  function resetRecord(){invalidateImpact();correctionRequestId=null;recordEl.innerHTML='<option value="">Choose a record</option>';fieldsEl.innerHTML='';currentEl.textContent='Choose a record to see its current values.';reasonEl.value='';submit.disabled=true;preview=null;}
   function renderRecordOptions(){
     resetRecord();
     const records=catalog&&catalog.records&&catalog.records[typeEl.value]||[];
     recordEl.innerHTML='<option value="">Choose a record</option>'+records.map(r=>`<option value="${escape(r.entityId)}">${escape(r.label)}</option>`).join('');
   }
   function renderFields(data){
-    preview=data;
+    preview=data;invalidateImpact();correctionRequestId=null;
     const c=data.current||{};
     currentEl.innerHTML='<strong>Current stored record</strong><br>'+escape((catalog.records[typeEl.value]||[]).find(r=>String(r.entityId)===String(data.entityId))?.label||data.entityId);
     const specs=fieldSpecs[data.entityType]||[];
@@ -119,20 +134,39 @@
   modal.addEventListener('click',e=>{if(e.target===modal)closeCorrection();});
   typeEl.addEventListener('change',renderRecordOptions);
   recordEl.addEventListener('change',loadPreview);
+  fieldsEl.addEventListener('input',()=>{invalidateImpact();correctionRequestId=null;});
+  reasonEl.addEventListener('input',()=>{invalidateImpact();correctionRequestId=null;});
   document.getElementById('correctionForm').addEventListener('submit',async e=>{
     e.preventDefault();setCorrectionMsg('');
     if(!preview||!typeEl.value||!recordEl.value){setCorrectionMsg('Choose a record first.');return;}
     const reason=reasonEl.value.trim();if(!reason){setCorrectionMsg('Explain why this correction is needed.');return;}
     const correctedValues={};
     fieldsEl.querySelectorAll('[data-correction-field]').forEach(el=>{correctedValues[el.dataset.correctionField]=el.value;});
-    setBusy(submit,true,'Applying…','Apply audited correction');
+    const values={action:'correctRecord',entityType:typeEl.value,entityId:recordEl.value,correctedValues,reason};
+    const key=JSON.stringify(values);
+    const salary=typeEl.value==='salaryCycle';
+    const needsPreview=salary&&(!reportingPreview||reportingPreviewKey!==key);
+    setBusy(submit,true,needsPreview?'Previewing…':'Applying…','Apply audited correction');
+    const controls=[...document.getElementById('correctionForm').querySelectorAll('input,select,textarea')];
+    controls.forEach(el=>{el.disabled=true;});
     try{
-      const result=await postAction({action:'correctRecord',entityType:typeEl.value,entityId:recordEl.value,correctedValues,reason});
-      if(!result||!result.ok){setCorrectionMsg(result&&result.error||'Could not apply correction.');return;}
+      if(needsPreview){
+        const result=await apiCall('previewSalaryCycleCorrection',values);
+        if(!result||!result.ok)throw new Error(result&&result.error||'Could not preview reporting changes.');
+        reportingPreview=result;reportingPreviewKey=key;renderImpact(result.reportingImpact);
+        return;
+      }
+      if(salary){
+        correctionRequestId=correctionRequestId||crypto.randomUUID();
+        values.requestId=correctionRequestId;
+        values.previewRevision=reportingPreview.previewRevision;
+      }
+      const result=await postAction(values);
+      if(!result||!result.ok){if(result&&result.staleWriter)invalidateImpact();setCorrectionMsg(result&&result.error||'Could not apply correction.');return;}
       closeCorrection();
       await refreshLiveData();
-    }catch(err){setCorrectionMsg('Network error — correction was not confirmed. Refresh before trying again.');}
-    finally{setBusy(submit,false,'','Apply audited correction');}
+    }catch(err){setCorrectionMsg(needsPreview?(err&&err.message||'Could not preview reporting changes.'):'Network error — correction was not confirmed. Retry with the same details to check the result.');}
+    finally{controls.forEach(el=>{el.disabled=false;});setBusy(submit,false,'',salary&&!reportingPreview?'Preview reporting changes':'Apply audited correction');}
   });
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.classList.contains('show'))closeCorrection();});
 })();

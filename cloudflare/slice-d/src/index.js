@@ -1,3 +1,5 @@
+import { previewSalaryReportingCorrection, executeReportingCorrection } from '../../slice-c/src/reporting-correction.mjs';
+import { getOneOffReport } from '../../slice-b/src/reporting.mjs';
 import { CATEGORY_ACTIONS, executeCategoryWrite, loadOneOffCategories, previewCategoryAction } from '../../slice-c/src/new-function-categories.mjs';
 import { loadFinancialSnapshot } from '../../slice-b/src/d1-repository.mjs';
 import { buildDashboardReadModel } from '../../slice-b/src/read-model.mjs';
@@ -131,6 +133,12 @@ async function handleFinancialAction(payload, identity, env, options = {}) {
       const values = payload.payload || {};
       return jsonResponse(await previewCategoryAction(env.DB, values.action, values, 'family'));
     }
+    if (payload.apiAction === 'previewSalaryCycleCorrection') {
+      return jsonResponse(await previewSalaryReportingCorrection(env.DB, payload.payload || {}));
+    }
+    if (payload.apiAction === 'getOneOffReport') {
+      return jsonResponse(await getOneOffReport(env.DB, payload.payload || {}));
+    }
     if (payload.apiAction === 'dashboard') {
       const snapshot = await loadFinancialSnapshot(env.DB, 'family');
       const model = buildDashboardReadModel(snapshot);
@@ -151,7 +159,7 @@ async function handleFinancialAction(payload, identity, env, options = {}) {
     if (payload.apiAction === 'write') {
       const writePayload = payload.payload || {};
       const action = String(writePayload.action || '').trim();
-      const execute = CATEGORY_ACTIONS.has(action) ? executeCategoryWrite : executeRevisionClaimWrite;
+      const execute = CATEGORY_ACTIONS.has(action) ? executeCategoryWrite : action === 'correctRecord' && writePayload.entityType === 'salaryCycle' ? executeReportingCorrection : executeRevisionClaimWrite;
       const result = await execute(env.DB, {
         householdId: 'family',
         actorEmail: identity.email,

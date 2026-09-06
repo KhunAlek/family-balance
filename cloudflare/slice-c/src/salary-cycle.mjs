@@ -66,7 +66,8 @@ export function planSalaryReceiptTransition(snapshot, receiptDate, source, house
       salary:true, advanced:true, newCycleStart:receipt, variablesTargetRequired:true, frozenWeeklySnapshots:[],
       statements:[
         ...resetPlanningStatements(snapshot, householdId, receipt),
-        insertCycleSource(householdId,receipt,source)
+        insertCycleSource(householdId,receipt,source),
+        ...(snapshot.reportingEnabled ? [statement('INSERT OR IGNORE INTO reporting_salary_cycles(household_id,cycle_start) VALUES(?,?)',householdId,receipt)] : [])
       ]
     };
   }
@@ -98,7 +99,8 @@ export function planSalaryReceiptTransition(snapshot, receiptDate, source, house
     statements:[
       ...frozenWeeklySnapshots.map(insertWeeklySnapshot),
       ...resetPlanningStatements(snapshot, householdId, receipt),
-      insertCycleSource(householdId,receipt,source)
+      insertCycleSource(householdId,receipt,source),
+      ...(snapshot.reportingEnabled ? [statement('INSERT OR IGNORE INTO reporting_salary_cycles(household_id,cycle_start) VALUES(?,?)',householdId,receipt)] : [])
     ]
   };
 }

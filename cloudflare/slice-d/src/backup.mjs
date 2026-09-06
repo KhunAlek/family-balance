@@ -19,9 +19,13 @@ export const BACKUP_TABLES = Object.freeze([
   'salary_cycle_sources',
   'one_off_categories',
   'new_function_request_receipts',
+  'reporting_salary_cycles',
+  'one_off_payments',
+  'one_off_payment_allocations',
 ]);
 
 const CATEGORY_TABLES = ['one_off_categories', 'new_function_request_receipts'];
+const REPORTING_TABLES = ['reporting_salary_cycles','one_off_payments','one_off_payment_allocations'];
 const encoder = new TextEncoder();
 const schemaTableList = BACKUP_TABLES.map(table => `'${table}'`).join(',');
 
@@ -68,7 +72,10 @@ export async function buildPortableBackup(db, options = {}) {
   const [inventory] = await db.batch([db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('one_off_categories','new_function_request_receipts')")]);
   const categoryTableCount = rows(inventory).length;
   if (categoryTableCount !== 0 && categoryTableCount !== CATEGORY_TABLES.length) throw new Error('Category schema is incomplete.');
-  const includedTables = BACKUP_TABLES.filter(table => categoryTableCount || !CATEGORY_TABLES.includes(table));
+  const [reportingInventory] = await db.batch([db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('reporting_salary_cycles','one_off_payments','one_off_payment_allocations')")]);
+  const reportingTableCount=rows(reportingInventory).length;
+  if (reportingTableCount!==0 && (reportingTableCount!==REPORTING_TABLES.length || !categoryTableCount)) throw new Error('Reporting schema is incomplete.');
+  const includedTables = BACKUP_TABLES.filter(table => (categoryTableCount || !CATEGORY_TABLES.includes(table)) && (reportingTableCount || !REPORTING_TABLES.includes(table)));
   const statements = [
     db.prepare(`SELECT type,name,tbl_name,sql FROM sqlite_master WHERE sql IS NOT NULL AND type IN ('table','index','trigger') AND tbl_name IN (${schemaTableList}) AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' ORDER BY CASE type WHEN 'table' THEN 1 WHEN 'index' THEN 2 WHEN 'trigger' THEN 3 ELSE 4 END,name`),
     ...includedTables.map(table => db.prepare(`SELECT * FROM ${table} ORDER BY rowid`)),
@@ -153,8 +160,10 @@ export async function verifyPortableBackup(backup) {
   if (!backup.schema.every(validSchemaItem)) return false;
   const categorySchemaCount = backup.schema.filter(item => item.type === 'table' && CATEGORY_TABLES.includes(item.name)).length;
   if (categorySchemaCount !== 0 && categorySchemaCount !== CATEGORY_TABLES.length) return false;
+  const reportingSchemaCount=backup.schema.filter(item=>item.type==='table' && REPORTING_TABLES.includes(item.name)).length;
+  if (reportingSchemaCount!==0 && (reportingSchemaCount!==REPORTING_TABLES.length || !categorySchemaCount)) return false;
   for (const table of BACKUP_TABLES) {
-    if (!categorySchemaCount && CATEGORY_TABLES.includes(table)) {
+    if ((!categorySchemaCount && CATEGORY_TABLES.includes(table)) || (!reportingSchemaCount && REPORTING_TABLES.includes(table))) {
       if (backup.tables[table] !== undefined && (!Array.isArray(backup.tables[table]) || backup.tables[table].length)) return false;
     } else if (!Array.isArray(backup.tables[table])) return false;
   }

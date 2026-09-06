@@ -1,4 +1,5 @@
-import { executeRevisionClaimWrite, FinancialWriteValidationError, statement } from './write-protocol.mjs';
+import { executeRequestReceiptWrite } from './request-receipts.mjs';
+import { FinancialWriteValidationError, statement } from './write-protocol.mjs';
 
 export const CATEGORY_ACTIONS = new Set([
   'addOneOffCategory', 'deactivateOneOffCategory', 'reactivateOneOffCategory'
@@ -61,49 +62,11 @@ export async function previewCategoryAction(db, action, payload, householdId = '
   return { ok: true, action, category, categoryId: action === 'addOneOffCategory' ? null : category_id };
 }
 
-async function payloadHash(action, semantic) {
-  const bytes = new TextEncoder().encode(JSON.stringify({ action, ...semantic }));
-  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
-  return Array.from(hash, byte => byte.toString(16).padStart(2, '0')).join('');
-}
-
-async function replay(db, householdId, requestId, action, hash) {
-  const row = await primary(db).prepare('SELECT action,semantic_payload_hash,response_json FROM new_function_request_receipts WHERE household_id=? AND request_id=?').bind(householdId, requestId).first();
-  if (!row) return null;
-  if (row.action !== action || row.semantic_payload_hash !== hash) fail('This request ID was already used with different details.');
-  return JSON.parse(row.response_json);
-}
-
 export async function executeCategoryWrite(db, options) {
   const { householdId = 'family', action, payload = {} } = options;
-  const requestId = payload.requestId;
-  if (typeof requestId !== 'string' || !/^[a-zA-Z0-9:_-]{1,128}$/.test(requestId)) fail('A stable request ID is required.');
   const semantic = semanticPayload(action, payload);
-  const hash = await payloadHash(action, semantic);
-  const original = await replay(db, householdId, requestId, action, hash);
-  if (original) return original;
-  try {
-    return await executeRevisionClaimWrite(db, {
-      ...options,
-      householdId,
-      planWrite: async ctx => {
-        // The financial revision is read before these rows. A concurrent
-        // lifecycle change consumes that revision claim and this batch loses.
-        const categories = await loadOneOffCategories(primary(db), householdId);
-        const plan = categoryPlan(ctx, categories, semantic);
-        const response = { ok: true, action, baseRevision: ctx.baseRevision, revision: ctx.nextRevision, writeToken: ctx.writeToken, ...plan.response };
-        plan.statements.push(statement(
-          'INSERT INTO new_function_request_receipts(household_id,request_id,action,semantic_payload_hash,committed_revision,response_json) VALUES(?,?,?,?,?,?)',
-          householdId, requestId, action, hash, ctx.nextRevision, JSON.stringify(response)
-        ));
-        return plan;
-      }
-    });
-  } catch (error) {
-    // Resolve the winner of a same-request race, including a changed base
-    // revision. An unrelated SQL failure remains a failure without a receipt.
-    const original = await replay(db, householdId, requestId, action, hash);
-    if (original) return original;
-    throw error;
-  }
+  return executeRequestReceiptWrite(db, options, semantic, async ctx => {
+    const categories = await loadOneOffCategories(primary(db), householdId);
+    return categoryPlan(ctx, categories, semantic);
+  }, JSON.stringify({action,...semantic}));
 }

@@ -15,6 +15,11 @@ export function buildDashboardReadModel(snapshot, onDate = bangkokBusinessDate()
   const cards = planning.salaryCycle?.cycleStart && planning.salaryCycle?.cycleEnd
     ? computeWeeklyVariablesCards(snapshot, onDate, planning)
     : [];
+  const currentPaceCard = cards.find(card => card.isCurrent) || cards.find(card => !card.isClosed) || null;
+  const paceCap = Math.max(Number(planning.availableToSpend) || 0, 0);
+  const positionPace = currentPaceCard?.planned === null || currentPaceCard?.planned === undefined || planning.variables?.recommendedPace === null || planning.variables?.recommendedPace === undefined
+    ? null
+    : { week: round2(Math.max(0, Math.min(Number(currentPaceCard.planned), paceCap))), today: round2(Math.max(0, Math.min(Number(planning.variables.recommendedPace), paceCap))) };
   const commitmentsAvailable = planning.commitments !== null && planning.commitments !== undefined;
   const safeGoals = planning.transferLimits?.goals || null;
 
@@ -70,6 +75,7 @@ export function buildDashboardReadModel(snapshot, onDate = bangkokBusinessDate()
     variables: planning.variables,
     variablesState: planning.variables,
     weeklyVariablesCards: cards,
+    positionPace,
     emergencyFund,
     fixedObligations: planning.fixedObligations ?? null,
     transferLimits,

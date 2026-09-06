@@ -24,6 +24,13 @@ export function enumerateObligationOccurrences(obligations, cycleStart, nextSala
   for (const obligation of obligations || []) {
     const name = String(obligation.name || '').trim();
     if (!name) continue;
+    if (obligation.recurrence_type === 'weekly') {
+      for (let due = new Date(start); due < next; due = addDays(due, 1)) {
+        const weekday = due.getUTCDay() || 7;
+        if (weekday === Number(obligation.due_weekday) && (!obligation.start_date || isoDate(due) >= obligation.start_date)) occurrences.push({ obligation, name, dueDate: new Date(due) });
+      }
+      continue;
+    }
     if (obligation.due_type === 'Payday') {
       occurrences.push({ obligation, name, dueDate: new Date(start) });
       continue;
@@ -108,6 +115,7 @@ export function remainingFixedObligations(snapshot, onDate, paymentsAsOfDate) {
       estimateDifference: amountType === 'Variable' && finalVariable ? round2(expected - paid) : null,
       dueType: obligation.due_type,
       dueDay: obligation.due_day,
+      dueWeekday: obligation.due_weekday,
       dueDate: due,
       occurrenceKey: `${name}|${due}`,
       status,

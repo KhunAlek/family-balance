@@ -6,6 +6,7 @@ const html = fs.readFileSync(new URL('../../../index.html', import.meta.url), 'u
 const app1 = fs.readFileSync(new URL('../../../assets/v24/v24_1_app1.js', import.meta.url), 'utf8');
 const app2 = fs.readFileSync(new URL('../../../assets/v24/v24_1_app2.js', import.meta.url), 'utf8');
 const responsive = fs.readFileSync(new URL('../../../assets/v24/v24_1_tabs.css', import.meta.url), 'utf8');
+const positionPaceCss = fs.readFileSync(new URL('../../../assets/v24/v24_1_position_pace.css', import.meta.url), 'utf8');
 const correction = fs.readFileSync(new URL('../../../assets/v24/v24_1_correction.js', import.meta.url), 'utf8');
 
 test('phone navigation is four true panels rather than scroll anchors', () => {
@@ -39,6 +40,13 @@ test('phone landing panels hide inactive content and reserve scrolling for detai
 test('Position shows the explicit next salary date', () => {
   assert.match(html, /data-tab-panel="position"[\s\S]*<span>Next salary<\/span><b id="heroNextSalary">/);
   assert.doesNotMatch(html, /class="sr-only" id="heroNextSalary"/);
+});
+
+test('Position Pace card is directly below Available, responsive, labelled and navigates to Pace', () => {
+  assert.match(html, /position-hero[\s\S]*id="positionPaceCard"[\s\S]*Free to spend this week[\s\S]*Free to spend today[\s\S]*data-open-drawer="payment"/);
+  assert.match(html, /id="positionPaceCard"[^>]*data-tab="pace"/);
+  assert.match(positionPaceCss, /position-pace-card/);
+  assert.match(positionPaceCss, /grid-template-columns:1fr 1fr/);
 });
 
 test('secondary account actions live in a focused detail view', () => {

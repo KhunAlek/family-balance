@@ -82,3 +82,29 @@ test('2026-08-14 accepted baseline reconciles under v3 mid-cycle cutover state',
   assert.equal(Object.prototype.hasOwnProperty.call(fourth, 'available'), false);
   assert.equal(Object.prototype.hasOwnProperty.call(fifth, 'available'), false);
 });
+
+test('Position Pace uses shared capped values and hides when Pace is unavailable', () => {
+  const positive = loadLockedSourceSnapshot();
+  positive.salaryCycle.variables_target_satang = 100000000;
+  const capped = buildDashboardReadModel(positive, '2026-08-14');
+  assert.deepEqual(capped.positionPace, { week: capped.availableToSpend, today: capped.availableToSpend });
+
+  const zero = loadLockedSourceSnapshot();
+  zero.salaryCycle.variables_target_satang = 100000000;
+  zero.balanceHistory.at(-1).alex_balance_satang = 101400;
+  zero.balanceHistory.at(-1).olga_balance_satang = 0;
+  const zeroModel = buildDashboardReadModel(zero, '2026-08-14');
+  assert.equal(zeroModel.availableToSpend, 0);
+  assert.deepEqual(zeroModel.positionPace, { week: 0, today: 0 });
+
+  const negative = loadLockedSourceSnapshot();
+  negative.salaryCycle.variables_target_satang = 100000000;
+  negative.balanceHistory.at(-1).alex_balance_satang = 0;
+  negative.balanceHistory.at(-1).olga_balance_satang = 0;
+  const negativeModel = buildDashboardReadModel(negative, '2026-08-14');
+  assert.ok(negativeModel.availableToSpend < 0);
+  assert.deepEqual(negativeModel.positionPace, { week: 0, today: 0 });
+
+  const unavailable = loadLockedSourceSnapshot();
+  assert.equal(buildDashboardReadModel(unavailable, '2026-08-14').positionPace, null);
+});

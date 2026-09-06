@@ -21,6 +21,7 @@
 <link rel="stylesheet" href="assets/v24/v24_1_notifications.css">
 <link rel="stylesheet" href="assets/v25/brand.css">
 <link rel="stylesheet" href="assets/v24/v24_1_repair.css?v=20260906">
+<link rel="stylesheet" href="assets/v24/v24_1_position_pace.css?v=20260906-1">
 </head>
 <body>
 <div id="app" style="display:none">
@@ -49,6 +50,7 @@
       <section class="primary-tab-panel" data-tab-panel="position" id="overview" aria-labelledby="positionTab">
         <div class="eyebrow">Today’s position</div>
         <article class="hero position-hero"><div class="hero-copy"><div class="hero-label">Available to spend · <span id="heroDateRange"></span></div><div class="hero-value"><span id="heroAmount">—</span><small id="heroCurrency">THB</small></div><p class="hero-note" id="heroNote"></p><div class="position-equation"><div><span>Operational cash</span><b id="heroPlanned">—</b></div><i>−</i><div><span>Commitments</span><b id="heroSpent">—</b></div><i>=</i><div><span>Available</span><b id="paymentSafeAmount">—</b></div></div></div></article>
+        <button class="position-pace-card" id="positionPaceCard" type="button" data-tab="pace" hidden><span><small>Free to spend this week</small><b id="positionPaceWeek">—</b></span><span><small>Free to spend today</small><b id="positionPaceToday">—</b></span></button>
         <button class="btn primary tab-primary-action" type="button" data-open-drawer="payment">Preview payment</button>
         <article class="panel compact-panel" id="accountsSection"><div class="panel-head"><h3>Account balances</h3><div class="panel-actions"><button type="button" data-open-detail="accountsDetails">Move money</button><button type="button" data-open-drawer="balance">Update balances</button></div></div><div class="accounts"><div class="account"><span>Alex KTB</span><b id="currentAlexBalance">—</b><small id="alexBalanceDate"></small></div><div class="account"><span>Olga KTB</span><b id="currentOlgaBalance">—</b><small id="olgaBalanceDate"></small></div></div><div class="salary-row"><div><span>Next salary</span><b id="heroNextSalary">—</b><small id="salaryCycleText">—</small></div><button class="text-action" type="button" data-open-drawer="nextSalary">Change</button></div></article>
         <div class="detail-view" id="accountsDetails" hidden><div class="detail-head"><div><div class="eyebrow">Position detail</div><h2>Accounts &amp; records</h2></div><button type="button" data-close-detail>← Back</button></div><article class="panel"><div class="accounts"><div class="account account-wide"><span>Combined KTB</span><b id="combinedBalance">—</b><small id="combinedBalanceNote"></small></div></div><div class="freshness" id="reconciliationFreshness"></div><div class="context-actions detail-actions"><button type="button" class="btn secondary" data-open-drawer="income">Income received</button><button type="button" class="btn secondary" data-open-drawer="ktbTransfer">KTB ↔ KTB</button><button type="button" class="btn secondary" id="recordsCorrectionBtn">Records &amp; corrections</button></div></article></div>
@@ -134,7 +136,7 @@
 <script src="assets/v24/v24_1_income.js"></script>
 <script src="assets/v24/v24_1_payment.js"></script>
 <script src="assets/v24/v24_1_categories.js"></script>
-<script src="assets/v24/v24_1_fixed.js?v=20260906-1418"></script>
+<script src="assets/v24/v24_1_fixed.js?v=20260906-weekly-1"></script>
 <script src="assets/v24/v24_1_reports.js"></script>
 </body>
 </html>

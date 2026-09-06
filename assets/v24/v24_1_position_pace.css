@@ -1,0 +1,9 @@
+.position-pace-card{display:grid;grid-template-columns:1fr 1fr;width:100%;margin-top:12px;padding:0;border:1px solid #a87900;border-radius:16px;background:#f5c84c;color:#382900;text-align:left;cursor:pointer;overflow:hidden;font:inherit}
+.position-pace-card[hidden]{display:none!important}
+.position-pace-card>span{display:block;padding:14px 16px}
+.position-pace-card>span+span{border-left:1px solid rgba(56,41,0,.3)}
+.position-pace-card small,.position-pace-card b{display:block}
+.position-pace-card small{font-size:11px;font-weight:750}
+.position-pace-card b{margin-top:5px;font-size:21px}
+.position-pace-card:focus-visible{outline:3px solid #116b68;outline-offset:2px}
+@media(max-width:760px){.position-pace-card{margin-top:8px}.position-pace-card>span{padding:10px 12px}.position-pace-card b{font-size:17px}}

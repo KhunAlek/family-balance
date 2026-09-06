@@ -1,0 +1,11 @@
+ALTER TABLE obligations ADD COLUMN active INTEGER NOT NULL DEFAULT 1 CHECK(active IN(0,1));
+ALTER TABLE obligations ADD COLUMN recurrence_type TEXT NOT NULL DEFAULT 'monthly' CHECK(recurrence_type IN('monthly','yearly'));
+ALTER TABLE obligations ADD COLUMN due_month INTEGER CHECK(due_month IS NULL OR due_month BETWEEN 1 AND 12);
+ALTER TABLE obligations ADD COLUMN start_date TEXT;
+ALTER TABLE obligation_occurrences ADD COLUMN cycle_start TEXT;
+ALTER TABLE obligation_occurrences ADD COLUMN category TEXT;
+ALTER TABLE obligation_payments ADD COLUMN occurrence_id TEXT REFERENCES obligation_occurrences(occurrence_id);
+UPDATE obligation_occurrences SET cycle_start=COALESCE((SELECT max(r.cycle_start) FROM reporting_salary_cycles r WHERE r.household_id=obligation_occurrences.household_id AND r.cycle_start<=obligation_occurrences.due_date),(SELECT current_cycle_start FROM salary_cycle_state s WHERE s.household_id=obligation_occurrences.household_id)),category=(SELECT o.category FROM obligations o WHERE o.household_id=obligation_occurrences.household_id AND o.name=obligation_occurrences.obligation_name);
+UPDATE obligation_payments SET occurrence_id=(SELECT x.occurrence_id FROM obligation_occurrences x WHERE x.household_id=obligation_payments.household_id AND x.obligation_name=obligation_payments.obligation_name AND x.due_date=obligation_payments.occurrence_due_date) WHERE occurrence_id IS NULL AND 1=(SELECT count(*) FROM obligation_occurrences x WHERE x.household_id=obligation_payments.household_id AND x.obligation_name=obligation_payments.obligation_name AND x.due_date=obligation_payments.occurrence_due_date);
+CREATE INDEX idx_obligation_occurrence_cycle ON obligation_occurrences(household_id,cycle_start,due_date);
+CREATE TRIGGER fixed_expense_management_enabled BEFORE INSERT ON obligation_occurrences WHEN NEW.cycle_start IS NULL BEGIN SELECT RAISE(ABORT,'cycle_start is required'); END;

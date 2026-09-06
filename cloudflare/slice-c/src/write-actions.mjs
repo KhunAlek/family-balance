@@ -4,6 +4,7 @@ import { historyRowOrder, latestUsableBalance, manualReconciliationFreshness } f
 import { buildPlanningState, goalCommitmentState } from '../../slice-b/src/planning.mjs';
 import { accountLedgerBalance } from '../../slice-b/src/ef-goals.mjs';
 import { enumerateObligationOccurrences } from '../../slice-b/src/obligations.mjs';
+import {fixedOccurrenceDates} from './fixed-expenses.mjs';
 import { planCorrection } from './correction.mjs';
 import { planSalaryReceiptTransition } from './salary-cycle.mjs';
 
@@ -142,7 +143,9 @@ function planSetNextSalaryDate(ctx) {
   const start = isoDate(ctx.snapshot.salaryCycle?.current_cycle_start);
   if (!start) fail('Current salary-cycle start is not configured.');
   if (compareDates(date,start) <= 0) fail('Next salary date must be after the current salary-cycle start.');
-  return { statements:[statement('UPDATE salary_cycle_state SET next_salary_date=? WHERE household_id=?',date,ctx.householdId)], response:{currentCycleStart:start,nextSalaryDate:date} };
+  const statements=[statement('UPDATE salary_cycle_state SET next_salary_date=? WHERE household_id=?',date,ctx.householdId)];
+  if(ctx.snapshot.fixedExpenseEnabled)for(const def of ctx.snapshot.obligations||[])for(const due of fixedOccurrenceDates(def,start,date))statements.push(statement('INSERT OR IGNORE INTO obligation_occurrences(occurrence_id,household_id,obligation_name,due_date,expected_amount_satang,amount_type,cycle_start,category) VALUES(?,?,?,?,?,?,?,?)',`${ctx.writeToken}:occ:${def.name}:${due}`,ctx.householdId,def.name,due,def.expected_amount_satang,def.amount_type,start,def.category));
+  return { statements, response:{currentCycleStart:start,nextSalaryDate:date} };
 }
 function planSetVariablesTarget(ctx) {
   const amount = nonNegativeAmount(ctx.payload.amount, 'Variables target');
@@ -206,16 +209,18 @@ function planDedicatedTransfer(ctx) {
   return {statements:[ledgerInsert(ctx,1,{date:movement.date,account:destinationName,direction:'Contribution',amount}),balanceInsert(ctx,2,{date:movement.date,alex,olga,oneOffName:destinationType==='EF'?'Transfer to EF':`Transfer to Goal: ${destinationName}`,oneOffAmount:amount,oneOffAccount:source})],response:{destination:destinationName,amount,balances:{alex,olga}}};
 }
 
-function occurrenceExists(snapshot,name,dueDate){const start=isoDate(snapshot.salaryCycle?.current_cycle_start),next=isoDate(snapshot.salaryCycle?.next_salary_date);if(!start||!next)return false;return enumerateObligationOccurrences(snapshot.obligations||[],start,next).some(item=>item.name===name&&isoDate(item.dueDate)===dueDate)}
+function occurrenceExists(snapshot,name,dueDate){const start=isoDate(snapshot.salaryCycle?.current_cycle_start),next=isoDate(snapshot.salaryCycle?.next_salary_date);if(!start||!next)return false;if(snapshot.fixedExpenseEnabled)return(snapshot.obligationOccurrences||[]).some(x=>x.cycle_start===start&&x.obligation_name===name&&x.due_date===dueDate);return enumerateObligationOccurrences(snapshot.obligations||[],start,next).some(item=>item.name===name&&isoDate(item.dueDate)===dueDate)}
 function planObligationPayment(ctx) {
   const name=String(ctx.payload.obligationName||'').trim(),obligation=(ctx.snapshot.obligations||[]).find(item=>String(item.name||'').trim()===name);if(!obligation)fail('Obligation not found.');
   const amount=positiveAmount(ctx.payload.amount,'Payment amount'),source=normalizeAccount(ctx.payload.sourceAccount);if(!source)fail('Choose Alex KTB or Olga KTB.');
   const movement=validateMovementDate(ctx.payload.date,ctx.snapshot,ctx.nowIso);let dueDate=isoDate(ctx.payload.occurrenceDueDate);
-  if(!dueDate){const occurrences=enumerateObligationOccurrences(ctx.snapshot.obligations||[],ctx.snapshot.salaryCycle?.current_cycle_start,ctx.snapshot.salaryCycle?.next_salary_date).filter(item=>item.name===name);if(occurrences.length===1)dueDate=isoDate(occurrences[0].dueDate)}
+  if(!dueDate){const occurrences=ctx.snapshot.fixedExpenseEnabled?(ctx.snapshot.obligationOccurrences||[]).filter(item=>item.cycle_start===isoDate(ctx.snapshot.salaryCycle?.current_cycle_start)&&item.obligation_name===name).map(item=>({name:item.obligation_name,dueDate:item.due_date})):enumerateObligationOccurrences(ctx.snapshot.obligations||[],ctx.snapshot.salaryCycle?.current_cycle_start,ctx.snapshot.salaryCycle?.next_salary_date).filter(item=>item.name===name);if(occurrences.length===1)dueDate=isoDate(occurrences[0].dueDate)}
   if(!dueDate||!occurrenceExists(ctx.snapshot,name,dueDate))fail('Choose the obligation occurrence being paid.');
   let alex=movement.latest.alex,olga=movement.latest.olga;if(source==='Alex'){if(amount>alex+0.001)fail('Transfer amount exceeds Alex KTB balance.');alex=round2(alex-amount)}else{if(amount>olga+0.001)fail('Transfer amount exceeds Olga KTB balance.');olga=round2(olga-amount)}
   const amountType=String(obligation.amount_type||'').toLowerCase()==='variable'?'Variable':'Fixed',paymentStatus=amountType==='Variable'?(String(ctx.payload.paymentStatus||'Final').trim().toLowerCase()==='partial'?'Partial':'Final'):'Partial',expected=fromSatang(obligation.expected_amount_satang);
-  return {statements:[statement(`INSERT INTO obligation_payments(payment_id,household_id,obligation_name,period,payment_date,occurrence_due_date,expected_amount_satang,actual_amount_satang,paid_from,balance_adjusted,payment_status,note) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,`${ctx.writeToken}:obligation`,ctx.householdId,name,monthPeriod(dueDate),movement.date,dueDate,toSatang(expected),toSatang(amount),source,1,paymentStatus,String(ctx.payload.note||'').trim()||null),balanceInsert(ctx,1,{date:movement.date,alex,olga,oneOffName:`Fixed obligation: ${name}`,oneOffAmount:amount,oneOffAccount:source})],response:{obligationName:name,occurrenceDueDate:dueDate,amount,paymentStatus,balances:{alex,olga}}};
+  const occurrence=(ctx.snapshot.obligationOccurrences||[]).find(x=>x.cycle_start===isoDate(ctx.snapshot.salaryCycle?.current_cycle_start)&&x.obligation_name===name&&x.due_date===dueDate);
+  const insert=ctx.snapshot.fixedExpenseEnabled?statement(`INSERT INTO obligation_payments(payment_id,household_id,obligation_name,period,payment_date,occurrence_due_date,expected_amount_satang,actual_amount_satang,paid_from,balance_adjusted,payment_status,note,occurrence_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`,`${ctx.writeToken}:obligation`,ctx.householdId,name,monthPeriod(dueDate),movement.date,dueDate,toSatang(expected),toSatang(amount),source,1,paymentStatus,String(ctx.payload.note||'').trim()||null,occurrence.occurrence_id):statement(`INSERT INTO obligation_payments(payment_id,household_id,obligation_name,period,payment_date,occurrence_due_date,expected_amount_satang,actual_amount_satang,paid_from,balance_adjusted,payment_status,note) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,`${ctx.writeToken}:obligation`,ctx.householdId,name,monthPeriod(dueDate),movement.date,dueDate,toSatang(expected),toSatang(amount),source,1,paymentStatus,String(ctx.payload.note||'').trim()||null);
+  return {statements:[insert,balanceInsert(ctx,1,{date:movement.date,alex,olga,oneOffName:`Fixed obligation: ${name}`,oneOffAmount:amount,oneOffAccount:source})],response:{obligationName:name,occurrenceDueDate:dueDate,amount,paymentStatus,balances:{alex,olga}}};
 }
 
 export function buildOneOffPaymentPreview(snapshot,payload,nowIso=new Date().toISOString()) {

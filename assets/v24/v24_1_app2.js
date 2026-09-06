@@ -79,7 +79,7 @@ document.getElementById('logoutBtn').addEventListener('click',logoutAndClose);
 let selectedPrimaryTab='position';
 const detailOpeners=new Map();
 function selectPrimaryTab(tabName,focusTab=false){
-  if(!['position','pace','commitments','savings'].includes(tabName))return;
+  if(!['position','pace','commitments','savings','reports'].includes(tabName))return;
   selectedPrimaryTab=tabName;
   document.querySelectorAll('[data-tab-panel]').forEach(panel=>{panel.hidden=panel.dataset.tabPanel!==tabName});
   document.querySelectorAll('[data-tab]').forEach(tab=>{

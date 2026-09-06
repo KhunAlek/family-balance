@@ -1,8 +1,9 @@
 import {previewTypedPayment,executeTypedPayment} from '../../slice-c/src/typed-payment.mjs';
 import { OTHER_INCOME_ACTIONS, executeOtherIncomeWrite, executeIncomeReceipt, getOtherIncomeSources, previewOtherIncome } from '../../slice-c/src/other-income.mjs';
 import { previewSalaryReportingCorrection, executeReportingCorrection } from '../../slice-c/src/reporting-correction.mjs';
-import { getOneOffReport } from '../../slice-b/src/reporting.mjs';
+import { getOneOffReport, getOneOffPayments } from '../../slice-b/src/reporting.mjs';
 import { CATEGORY_ACTIONS, executeCategoryWrite, loadOneOffCategories, previewCategoryAction } from '../../slice-c/src/new-function-categories.mjs';
+import {FIXED_EXPENSE_ACTIONS,executeFixedExpenseWrite,getFixedExpenses,previewFixedExpense} from '../../slice-c/src/fixed-expenses.mjs';
 import { loadFinancialSnapshot } from '../../slice-b/src/d1-repository.mjs';
 import { buildDashboardReadModel } from '../../slice-b/src/read-model.mjs';
 import { executeRevisionClaimWrite, FinancialWriteValidationError, StaleFinancialWriterError } from '../../slice-c/src/write-protocol.mjs';
@@ -141,7 +142,10 @@ async function handleFinancialAction(payload, identity, env, options = {}) {
     if (payload.apiAction === 'getOneOffReport') {
       return jsonResponse(await getOneOffReport(env.DB, payload.payload || {}));
     }
+    if (payload.apiAction === 'getOneOffPayments') return jsonResponse(await getOneOffPayments(env.DB,payload.payload||{}));
     if (payload.apiAction === 'getOtherIncomeSources') return jsonResponse(await getOtherIncomeSources(env.DB,payload.payload||{}));
+    if(payload.apiAction==='getFixedExpenses')return jsonResponse(await getFixedExpenses(env.DB));
+    if(payload.apiAction==='previewFixedExpense')return jsonResponse(await previewFixedExpense(env.DB,payload.payload||{}));
     if (payload.apiAction === 'previewOtherIncome') {
       const values=payload.payload||{};
       return jsonResponse(await previewOtherIncome(env.DB,values.action,values));
@@ -165,7 +169,7 @@ async function handleFinancialAction(payload, identity, env, options = {}) {
     if (payload.apiAction === 'write') {
       const writePayload = payload.payload || {};
       const action = String(writePayload.action || '').trim();
-      const execute = action === 'oneOffPayment' ? executeTypedPayment : OTHER_INCOME_ACTIONS.has(action) ? executeOtherIncomeWrite : action === 'incomeReceipt' ? executeIncomeReceipt : CATEGORY_ACTIONS.has(action) ? executeCategoryWrite : action === 'correctRecord' && writePayload.entityType === 'salaryCycle' ? executeReportingCorrection : executeRevisionClaimWrite;
+      const execute = action === 'oneOffPayment' ? executeTypedPayment : FIXED_EXPENSE_ACTIONS.has(action)?executeFixedExpenseWrite : OTHER_INCOME_ACTIONS.has(action) ? executeOtherIncomeWrite : action === 'incomeReceipt' ? executeIncomeReceipt : CATEGORY_ACTIONS.has(action) ? executeCategoryWrite : action === 'correctRecord' && writePayload.entityType === 'salaryCycle' ? executeReportingCorrection : executeRevisionClaimWrite;
       const result = await execute(env.DB, {
         householdId: 'family',
         actorEmail: identity.email,

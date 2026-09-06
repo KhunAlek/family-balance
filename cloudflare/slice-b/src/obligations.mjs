@@ -72,7 +72,9 @@ export function remainingFixedObligations(snapshot, onDate, paymentsAsOfDate) {
   const paymentIndex = buildPaymentIndex(snapshot, paymentsAsOfDate || onDate);
   const cutoverPeriod = String(snapshot.config?.obligation_payments_cutover_period || '').slice(0, 7);
   const migrationPaidPeriod = String(snapshot.salaryCycle?.salary_receipt_cutover_date || snapshot.config?.salary_receipt_cutover_date || '').slice(0, 7);
-  const occurrences = enumerateObligationOccurrences(snapshot.obligations || [], cycleStart, nextSalaryDate);
+  const occurrences = snapshot.fixedExpenseEnabled
+    ? (snapshot.obligationOccurrences||[]).filter(row=>row.cycle_start===cycleStart).map(row=>({obligation:{...(snapshot.obligations||[]).find(x=>x.name===row.obligation_name),expected_amount_satang:row.expected_amount_satang,amount_type:row.amount_type,category:row.category},name:row.obligation_name,dueDate:parseIsoDate(row.due_date)}))
+    : enumerateObligationOccurrences(snapshot.obligations || [], cycleStart, nextSalaryDate);
 
   const items = occurrences.map(({ obligation, name, dueDate }) => {
     const due = isoDate(dueDate);

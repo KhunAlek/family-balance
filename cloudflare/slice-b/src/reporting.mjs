@@ -48,6 +48,13 @@ export function reportTotals(cycles,payments) {
   return totals;
 }
 
+function cycleLabel(start,end){
+ const through=end||bangkokBusinessDate(),counts=new Map();
+ for(let d=start;d<=through;d=isoDate(addDays(d,1))){const month=d.slice(0,7);counts.set(month,(counts.get(month)||0)+1);}
+ const endMonth=through.slice(0,7),winner=[...counts].sort((a,b)=>b[1]-a[1]||(a[0]===endMonth?-1:b[0]===endMonth?1:a[0].localeCompare(b[0])))[0]?.[0]||start.slice(0,7);
+ const [year,month]=winner.split('-');return new Intl.DateTimeFormat('en',{month:'long',timeZone:'UTC'}).format(new Date(`${year}-${month}-01T00:00:00Z`))+' '+year;
+}
+
 export async function getOneOffReport(db,payload={},householdId='family',today=bangkokBusinessDate()) {
   const cycles=await loadReportingCycles(db,householdId);
   if (!cycles.length) fail('Factual reporting cycle history is required.');
@@ -57,7 +64,20 @@ export async function getOneOffReport(db,payload={},householdId='family',today=b
   const totals=reportTotals(cycles,payments).filter(t=>selected.includes(t.cycleStart));
   const baseline=payload.baseline||totals[0].cycleStart;
   if (!selected.includes(baseline)) fail('Choose a selected cycle as the baseline.');
-  return {ok:true,cycles:cycles.map((c,i)=>({cycleStart:c.cycle_start,cycleEnd:cycles[i+1]?isoDate(addDays(cycles[i+1].cycle_start,-1)):null})),selectedCycleStarts:totals.map(t=>t.cycleStart),baseline:totals.length>1?baseline:null,totals};
+  const cycleRows=cycles.map((c,i)=>({cycleStart:c.cycle_start,cycleEnd:cycles[i+1]?isoDate(addDays(cycles[i+1].cycle_start,-1)):null}));
+  const labels=new Map();for(const c of cycleRows){const base=cycleLabel(c.cycleStart,c.cycleEnd);labels.set(base,(labels.get(base)||0)+1);c.label=base;}
+  for(const c of cycleRows)if(labels.get(c.label)>1)c.label+=' · '+c.cycleStart;
+  const base=totals.find(t=>t.cycleStart===baseline);
+  for(const total of totals){total.differenceSatang=totals.length>1?total.amountSatang-base.amountSatang:null;total.percentageDifference=totals.length>1&&base.amountSatang!==0?(total.amountSatang-base.amountSatang)*100/base.amountSatang:null;}
+  const categoryLabels={Uncategorized:'Uncategorized'};for(const p of payments)if(p.category_id)categoryLabels[p.category_id]=p.category_name;
+  return {ok:true,cycles:cycleRows,selectedCycleStarts:totals.map(t=>t.cycleStart),baseline:totals.length>1?baseline:null,categoryLabels,totals};
+}
+
+export async function getOneOffPayments(db,payload={},householdId='family',today=bangkokBusinessDate()){
+ const cycles=await loadReportingCycles(db,householdId),selected=payload.cycleStarts;
+ if(!Array.isArray(selected)||!selected.length||selected.length>3||new Set(selected).size!==selected.length||selected.some(start=>!cycles.some(c=>c.cycle_start===start)))fail('Choose a nonempty selection from the latest three factual cycles.');
+ const payments=await loadReportingPayments(db,householdId,cycles[0].cycle_start,today),allowed=new Set(selected),category=payload.categoryId===undefined||payload.categoryId===null?null:String(payload.categoryId);
+ return {ok:true,payments:payments.map(p=>({...p,cycleStart:reportingCycleForDate(cycles,p.business_date)})).filter(p=>allowed.has(p.cycleStart)&&(category===null||p.category_id===category)).sort((a,b)=>b.cycleStart.localeCompare(a.cycleStart)||b.business_date.localeCompare(a.business_date)||b.one_off_payment_id.localeCompare(a.one_off_payment_id))};
 }
 
 export async function salaryReportingImpact(db,snapshot,newStart,householdId='family',today=bangkokBusinessDate()) {

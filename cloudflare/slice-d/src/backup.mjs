@@ -3,6 +3,11 @@ export const BACKUP_FORMAT = 'family-cash-flow-d1-portable-v2';
 export const BACKUP_TABLES = Object.freeze([
   'households',
   'configuration',
+  'one_off_categories',
+  'new_function_request_receipts',
+  'reporting_salary_cycles',
+  'one_off_payments',
+  'one_off_payment_allocations',
   'balance_history',
   'income_definitions',
   'other_income_sources',
@@ -19,11 +24,6 @@ export const BACKUP_TABLES = Object.freeze([
   'correction_audit',
   'household_revisions',
   'salary_cycle_sources',
-  'one_off_categories',
-  'new_function_request_receipts',
-  'reporting_salary_cycles',
-  'one_off_payments',
-  'one_off_payment_allocations',
 ]);
 
 const CATEGORY_TABLES = ['one_off_categories', 'new_function_request_receipts'];

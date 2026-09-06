@@ -236,6 +236,7 @@ export function buildOneOffPaymentPreview(snapshot,payload,nowIso=new Date().toI
 }
 
 function planOneOffPayment(ctx) {
+  if(ctx.snapshot.typedPaymentEnabled&&!ctx.typedPaymentValidated)fail('Validate the typed payment before recording it.');
   const alexAmount=nonNegativeAmount(ctx.payload.oneOffAlexAmount||0,'Amounts'),olgaAmount=nonNegativeAmount(ctx.payload.oneOffOlgaAmount||0,'Amounts'),total=round2(alexAmount+olgaAmount);if(total<=0)fail('At least one account amount must be greater than zero.');
   const name=String(ctx.payload.oneOffName||'').trim();if(!name)fail('Payment name is required.');
   const movement=validateMovementDate(ctx.payload.date,ctx.snapshot,ctx.nowIso),state=buildPlanningState(ctx.snapshot,movement.date);if(!state.spendingAuthorityAvailable||state.availableToSpend===null)fail('Spending authority is unavailable.');

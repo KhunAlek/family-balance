@@ -13,7 +13,7 @@ export async function loadFinancialSnapshot(db, householdId = 'family') {
     db.prepare('SELECT week_start,week_end,planned_variables_satang,spent_variables_satang,spent_variables_status,difference_satang,opening_balance_satang,opening_balance_status,closing_balance_satang,status FROM weekly_snapshots WHERE household_id=? ORDER BY week_start').bind(householdId),
     db.prepare('SELECT cycle_start,source FROM salary_cycle_sources WHERE household_id=? ORDER BY cycle_start,source').bind(householdId),
     db.prepare("SELECT correction_id,entity_type,entity_id,before_json,after_json,reason,actor_email,corrected_at,base_revision,write_token FROM correction_audit WHERE household_id=? AND entity_type='ledger_movement' ORDER BY corrected_at,correction_id").bind(householdId),
-    db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('reporting_salary_cycles','other_income_sources')")
+    db.prepare("SELECT name FROM sqlite_master WHERE type IN ('table','trigger') AND name IN ('reporting_salary_cycles','other_income_sources','immutable_one_off_payment')")
   ];
   const results = await db.batch(statements);
   const rows = index => results[index]?.results || [];
@@ -28,6 +28,7 @@ export async function loadFinancialSnapshot(db, householdId = 'family') {
     householdId,
     ...(rows(12).some(r=>r.name==='reporting_salary_cycles') ? { reportingEnabled: true } : {}),
     ...(rows(12).some(r=>r.name==='other_income_sources') ? { otherIncomeEnabled: true } : {}),
+    ...(rows(12).some(r=>r.name==='immutable_one_off_payment') ? { typedPaymentEnabled: true } : {}),
     config,
     salaryCycle,
     balanceHistory: rows(2),

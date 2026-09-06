@@ -1,3 +1,4 @@
+import {previewTypedPayment,executeTypedPayment} from '../../slice-c/src/typed-payment.mjs';
 import { OTHER_INCOME_ACTIONS, executeOtherIncomeWrite, executeIncomeReceipt, getOtherIncomeSources, previewOtherIncome } from '../../slice-c/src/other-income.mjs';
 import { previewSalaryReportingCorrection, executeReportingCorrection } from '../../slice-c/src/reporting-correction.mjs';
 import { getOneOffReport } from '../../slice-b/src/reporting.mjs';
@@ -151,8 +152,7 @@ async function handleFinancialAction(payload, identity, env, options = {}) {
       return jsonResponse({ ...model, authenticatedUser: identity.email });
     }
     if (payload.apiAction === 'previewPayment') {
-      const snapshot = await loadFinancialSnapshot(env.DB, 'family');
-      return jsonResponse(buildOneOffPaymentPreview(snapshot, payload.payload || {}));
+      return jsonResponse(await previewTypedPayment(env.DB,payload.payload||{}));
     }
     if (payload.apiAction === 'correctionCatalog') {
       const snapshot = await loadFinancialSnapshot(env.DB, 'family');
@@ -165,7 +165,7 @@ async function handleFinancialAction(payload, identity, env, options = {}) {
     if (payload.apiAction === 'write') {
       const writePayload = payload.payload || {};
       const action = String(writePayload.action || '').trim();
-      const execute = OTHER_INCOME_ACTIONS.has(action) ? executeOtherIncomeWrite : action === 'incomeReceipt' ? executeIncomeReceipt : CATEGORY_ACTIONS.has(action) ? executeCategoryWrite : action === 'correctRecord' && writePayload.entityType === 'salaryCycle' ? executeReportingCorrection : executeRevisionClaimWrite;
+      const execute = action === 'oneOffPayment' ? executeTypedPayment : OTHER_INCOME_ACTIONS.has(action) ? executeOtherIncomeWrite : action === 'incomeReceipt' ? executeIncomeReceipt : CATEGORY_ACTIONS.has(action) ? executeCategoryWrite : action === 'correctRecord' && writePayload.entityType === 'salaryCycle' ? executeReportingCorrection : executeRevisionClaimWrite;
       const result = await execute(env.DB, {
         householdId: 'family',
         actorEmail: identity.email,

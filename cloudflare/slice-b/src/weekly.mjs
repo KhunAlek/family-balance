@@ -56,6 +56,10 @@ export function computeWeeklyVariablesCards(snapshot, onDate, planningState) {
   const cycleEnd = parseIsoDate(cycleEndIso);
   const target = planningState.variables?.target;
   const totalDays = Number(planningState.salaryCycle.totalSpendingDays) || countInclusiveDays(cycleStart, cycleEnd);
+  const today = isoDate(onDate);
+  const adaptiveDaily = planningState.guidanceAvailable && planningState.variables?.targetRemaining !== null && planningState.variables?.remainingRunwayDays > 0
+    ? round2(Number(planningState.variables.targetRemaining) / Number(planningState.variables.remainingRunwayDays))
+    : null;
 
   const ranges = [];
   let pos = new Date(cycleStart);
@@ -73,10 +77,12 @@ export function computeWeeklyVariablesCards(snapshot, onDate, planningState) {
   return ranges.map(cardRange => {
     const start = isoDate(cardRange.start);
     const end = isoDate(cardRange.end);
-    const isClosed = end < isoDate(onDate);
-    const isCurrent = start <= isoDate(onDate) && isoDate(onDate) <= end;
-    const planned = target === null || target === undefined ? null : round2(Number(target) / totalDays * countInclusiveDays(start, end));
-    const card = { weekStart: start, weekEnd: end, cardStart: start, cardEnd: end, isClosed, isCurrent, planned };
+    const isClosed = end < today;
+    const isCurrent = start <= today && today <= end;
+    const originalPlanned = target === null || target === undefined ? null : round2(Number(target) / totalDays * countInclusiveDays(start, end));
+    const guidanceStart = isCurrent ? today : start;
+    const planned = isClosed ? originalPlanned : adaptiveDaily === null ? null : round2(adaptiveDaily * countInclusiveDays(guidanceStart, end));
+    const card = { weekStart: start, weekEnd: end, cardStart: isCurrent ? today : start, cardEnd: end, isClosed, isCurrent, planned };
 
     if (isClosed) {
       const frozen = snapshots.get(`${start}|${end}`);
@@ -88,7 +94,7 @@ export function computeWeeklyVariablesCards(snapshot, onDate, planningState) {
       } else {
         const factual = computeSliceFactual(snapshot, start, end);
         card.spent = factual.factual;
-        card.difference = factual.factual === 'no data' || planned === null ? null : round2(Number(factual.factual) - planned);
+        card.difference = factual.factual === 'no data' || originalPlanned === null ? null : round2(Number(factual.factual) - originalPlanned);
         card.provisional = true;
       }
       return card;
@@ -98,7 +104,7 @@ export function computeWeeklyVariablesCards(snapshot, onDate, planningState) {
       const current = computeCurrentSliceState(snapshot, start);
       card.spent = current.spent;
       card.spentAsOf = current.asOfDate;
-      card.difference = current.spent === 'no data' || planned === null ? null : round2(Number(current.spent) - planned);
+      card.difference = null;
     } else {
       card.spent = null;
       card.difference = null;

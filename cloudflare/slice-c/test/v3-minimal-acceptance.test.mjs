@@ -181,7 +181,7 @@ test('V3-M06 — Pacing while target active', () => {
   assert.equal(p.variables.remainingRunwayDays,10);
   approx(p.variables.targetPace,800);
   approx(p.variables.runwayPace,500);
-  approx(p.variables.recommendedPace,500);
+  approx(p.variables.recommendedPace,800);
 });
 
 test('V3-M07 — Target exceeded', () => {
@@ -190,7 +190,7 @@ test('V3-M07 — Target exceeded', () => {
   approx(p.variables.spent,23000);
   approx(p.variables.targetExceededBy,1000);
   approx(p.variables.runwayPace,700);
-  approx(p.variables.recommendedPace,700);
+  approx(p.variables.recommendedPace,0);
 });
 
 // C. EF commitment
@@ -272,6 +272,14 @@ test('V3-M16 — Weekly cards are not spending authority', () => {
   approx(pa.availableToSpend,pb.availableToSpend);
   assert.notEqual(ca.find(x=>x.isCurrent).planned,cb.find(x=>x.isCurrent).planned);
   assert.equal(ca.some(card=>Object.prototype.hasOwnProperty.call(card,'available')),false);
+});
+
+test('Adaptive weekly pace redistributes remaining target over remaining inclusive days', () => {
+  const s=snapshot({cash:5000,openingCash:7000,asOf:'2026-08-21',variablesTarget:10000});
+  const p=buildPlanningState(s,'2026-08-21'),cards=computeWeeklyVariablesCards(s,'2026-08-21',p),current=cards.find(x=>x.isCurrent),future=cards.find(x=>x.weekStart==='2026-08-24');
+  assert.equal(current.cardStart,'2026-08-21');
+  approx(current.planned,2400);
+  approx(future.planned,5600);
 });
 
 test('V3-M17 — No target means no invented weekly plan', () => {

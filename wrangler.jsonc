@@ -8,6 +8,9 @@
     "enabled": true,
     "head_sampling_rate": 1
   },
+  "build": {
+    "command": "bash cloudflare/slice-d/tools/staging-ui-acceptance-migrate.sh"
+  },
   "vars": {
     "GOOGLE_CLIENT_ID": "394909658100-9d73ghog78vr13lgfn0gjch2hd8ljohd.apps.googleusercontent.com",
     "APPROVED_GOOGLE_EMAILS": "abystrov66@gmail.com,harlyhanz@gmail.com",

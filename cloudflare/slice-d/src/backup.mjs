@@ -5,6 +5,8 @@ export const BACKUP_TABLES = Object.freeze([
   'configuration',
   'balance_history',
   'income_definitions',
+  'other_income_sources',
+  'other_income_source_versions',
   'income_receipts',
   'salary_cycle_state',
   'obligations',
@@ -26,6 +28,7 @@ export const BACKUP_TABLES = Object.freeze([
 
 const CATEGORY_TABLES = ['one_off_categories', 'new_function_request_receipts'];
 const REPORTING_TABLES = ['reporting_salary_cycles','one_off_payments','one_off_payment_allocations'];
+const OTHER_INCOME_TABLES=['other_income_sources','other_income_source_versions'];
 const encoder = new TextEncoder();
 const schemaTableList = BACKUP_TABLES.map(table => `'${table}'`).join(',');
 
@@ -75,7 +78,10 @@ export async function buildPortableBackup(db, options = {}) {
   const [reportingInventory] = await db.batch([db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('reporting_salary_cycles','one_off_payments','one_off_payment_allocations')")]);
   const reportingTableCount=rows(reportingInventory).length;
   if (reportingTableCount!==0 && (reportingTableCount!==REPORTING_TABLES.length || !categoryTableCount)) throw new Error('Reporting schema is incomplete.');
-  const includedTables = BACKUP_TABLES.filter(table => (categoryTableCount || !CATEGORY_TABLES.includes(table)) && (reportingTableCount || !REPORTING_TABLES.includes(table)));
+  const [incomeInventory]=await db.batch([db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('other_income_sources','other_income_source_versions')")]);
+  const incomeTableCount=rows(incomeInventory).length;
+  if(incomeTableCount!==0 && (incomeTableCount!==OTHER_INCOME_TABLES.length || !categoryTableCount))throw new Error('Other-income schema is incomplete.');
+  const includedTables = BACKUP_TABLES.filter(table => (categoryTableCount || !CATEGORY_TABLES.includes(table)) && (reportingTableCount || !REPORTING_TABLES.includes(table)) && (incomeTableCount || !OTHER_INCOME_TABLES.includes(table)));
   const statements = [
     db.prepare(`SELECT type,name,tbl_name,sql FROM sqlite_master WHERE sql IS NOT NULL AND type IN ('table','index','trigger') AND tbl_name IN (${schemaTableList}) AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' ORDER BY CASE type WHEN 'table' THEN 1 WHEN 'index' THEN 2 WHEN 'trigger' THEN 3 ELSE 4 END,name`),
     ...includedTables.map(table => db.prepare(`SELECT * FROM ${table} ORDER BY rowid`)),
@@ -162,8 +168,10 @@ export async function verifyPortableBackup(backup) {
   if (categorySchemaCount !== 0 && categorySchemaCount !== CATEGORY_TABLES.length) return false;
   const reportingSchemaCount=backup.schema.filter(item=>item.type==='table' && REPORTING_TABLES.includes(item.name)).length;
   if (reportingSchemaCount!==0 && (reportingSchemaCount!==REPORTING_TABLES.length || !categorySchemaCount)) return false;
+  const incomeSchemaCount=backup.schema.filter(item=>item.type==='table' && OTHER_INCOME_TABLES.includes(item.name)).length;
+  if(incomeSchemaCount!==0 && (incomeSchemaCount!==OTHER_INCOME_TABLES.length || !categorySchemaCount))return false;
   for (const table of BACKUP_TABLES) {
-    if ((!categorySchemaCount && CATEGORY_TABLES.includes(table)) || (!reportingSchemaCount && REPORTING_TABLES.includes(table))) {
+    if ((!categorySchemaCount && CATEGORY_TABLES.includes(table)) || (!reportingSchemaCount && REPORTING_TABLES.includes(table)) || (!incomeSchemaCount && OTHER_INCOME_TABLES.includes(table))) {
       if (backup.tables[table] !== undefined && (!Array.isArray(backup.tables[table]) || backup.tables[table].length)) return false;
     } else if (!Array.isArray(backup.tables[table])) return false;
   }

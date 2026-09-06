@@ -110,7 +110,9 @@ function planIncomeReceipt(ctx) {
   if (total <= 0) fail('At least one account amount must be greater than zero.');
   const source = String(payload.incomeSource || '').trim();
   if (!source) fail('Income source is required.');
-  if (!configuredIncome(snapshot, source)) fail('Income source is not configured.');
+  const definition = configuredIncome(snapshot, source);
+  if (!ctx.otherIncomeSource && !definition) fail('Income source is not configured.');
+  if (snapshot.otherIncomeEnabled && !ctx.otherIncomeSource && definition?.pay_day === 'Variable') fail('Validate the active other-income source before recording this receipt.');
   const movement = validateMovementDate(payload.date, snapshot, ctx.nowIso);
   let alex = movement.latest.alex, olga = movement.latest.olga, seq = 1;
   const statements = [];
@@ -130,7 +132,7 @@ function planIncomeReceipt(ctx) {
       `${ctx.writeToken}:income:olga`,ctx.householdId,source,movement.date,toSatang(olgaAmount),'Olga KTB',ctx.householdId,identity.sourceRow));
     seq += 1;
   }
-  const transition = planSalaryReceiptTransition(snapshot,movement.date,source,ctx.householdId);
+  const transition = ctx.otherIncomeSource ? { advanced:false, variablesTargetRequired:false, statements:[] } : planSalaryReceiptTransition(snapshot,movement.date,source,ctx.householdId);
   statements.push(...transition.statements);
   return { statements, response:{ date:movement.date,alexBalance:alex,olgaBalance:olga,source,totalAmount:total,salaryCycleAdvanced:!!transition.advanced,nextSalaryDateRequired:!!transition.advanced,variablesTargetRequired:!!transition.variablesTargetRequired } };
 }

@@ -37,6 +37,16 @@ async function withAuthMock(fn, email = 'abystrov66@gmail.com') {
   finally { globalThis.fetch = originalFetch; }
 }
 
+async function withFixedNow(nowIso, fn) {
+  const RealDate = globalThis.Date;
+  globalThis.Date = class extends RealDate {
+    constructor(...args) { super(...(args.length ? args : [nowIso])); }
+    static now() { return new RealDate(nowIso).getTime(); }
+  };
+  try { return await fn(); }
+  finally { globalThis.Date = RealDate; }
+}
+
 {
   const response = await call('/health');
   assert.equal(response.status, 200);
@@ -121,7 +131,7 @@ async function withAuthMock(fn, email = 'abystrov66@gmail.com') {
 }
 
 // Authenticated dashboard is fully D1-computed.
-await withAuthMock(async seen => {
+await withFixedNow('2026-08-14T05:00:00.000Z', () => withAuthMock(async seen => {
   const { db } = createSeededSqliteD1();
   const response = await call('/api/apps-script', apiRequest({ apiAction: 'dashboard', sessionToken: 'signed-session-test' }), { ...baseEnv, DB: db });
   assert.equal(response.status, 200);
@@ -141,7 +151,7 @@ await withAuthMock(async seen => {
   assert.equal(data.transferLimits.goalsTotal, 0);
   assert.equal(response.headers.get('cache-control'), 'no-store');
   assert.equal(response.headers.get('access-control-allow-origin'), 'https://khunalek.github.io');
-});
+}));
 
 // Preview is D1-computed and makes zero write claims/mutations.
 await withAuthMock(async () => {

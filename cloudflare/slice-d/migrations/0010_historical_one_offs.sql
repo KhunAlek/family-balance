@@ -8,9 +8,14 @@ UNION ALL SELECT household_id||':legacy-one-off:dentist-3000',household_id,'2026
 UNION ALL SELECT household_id||':legacy-one-off:dumbo-rats',household_id,'2026-08-08',NULL,'Dumbo rats for Nick',250000,'Olga','2026-09-06T00:00:00.000Z','legacy-dumbo-rats','Balance Check row 64' FROM households
 UNION ALL SELECT household_id||':legacy-one-off:toyota',household_id,'2026-07-16',NULL,'Toyota',544500,NULL,'2026-09-06T00:00:00.000Z','legacy-toyota','Balance Check rows 17+18; owner-confirmed split' FROM households;
 INSERT OR IGNORE INTO one_off_payment_allocations(one_off_payment_id,account,amount_satang)
-SELECT household_id||':legacy-one-off:dentist-800','Alex',80000 FROM households
-UNION ALL SELECT household_id||':legacy-one-off:openai-api','Alex',20000 FROM households
-UNION ALL SELECT household_id||':legacy-one-off:dentist-3000','Alex',300000 FROM households
-UNION ALL SELECT household_id||':legacy-one-off:dumbo-rats','Olga',250000 FROM households
-UNION ALL SELECT household_id||':legacy-one-off:toyota','Alex',44500 FROM households
-UNION ALL SELECT household_id||':legacy-one-off:toyota','Olga',500000 FROM households;
+SELECT household_id||':legacy-one-off:dentist-800','Alex',80000 FROM households;
+INSERT OR IGNORE INTO one_off_payment_allocations(one_off_payment_id,account,amount_satang)
+SELECT household_id||':legacy-one-off:openai-api','Alex',20000 FROM households;
+INSERT OR IGNORE INTO one_off_payment_allocations(one_off_payment_id,account,amount_satang)
+SELECT household_id||':legacy-one-off:dentist-3000','Alex',300000 FROM households;
+INSERT OR IGNORE INTO one_off_payment_allocations(one_off_payment_id,account,amount_satang)
+SELECT household_id||':legacy-one-off:dumbo-rats','Olga',250000 FROM households;
+INSERT OR IGNORE INTO one_off_payment_allocations(one_off_payment_id,account,amount_satang)
+SELECT household_id||':legacy-one-off:toyota','Alex',44500 FROM households;
+INSERT OR IGNORE INTO one_off_payment_allocations(one_off_payment_id,account,amount_satang)
+SELECT household_id||':legacy-one-off:toyota','Olga',500000 FROM households;

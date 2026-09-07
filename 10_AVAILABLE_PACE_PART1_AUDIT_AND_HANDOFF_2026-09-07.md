@@ -8,7 +8,9 @@
 - Starting worktree: clean; local branch one commit ahead of upstream; no uncommitted user changes
 - Part 1 branch: `docs/available-pace-part1-20260907`
 - Production Worker: `family-cash-flow-production`
-- Production Worker version/deployment identifier: unresolved because `CLOUDFLARE_API_TOKEN` was absent from the task environment, launch environment, and documented keychain lookup; Wrangler and authenticated-browser substitutes were not used
+- Production deployment identifier: `d536b765-5992-4b2e-9d7d-add42b3b70d5`
+- Production version identifier: `24a6ac54-0af0-4d1b-8587-774524eb4dfa` at 100%
+- Production deployment timestamp/source: `2026-09-07T00:27:57.356822Z`, Cloudflare API
 
 ## Exact-SHA repository audit
 
@@ -122,4 +124,4 @@ The frontend must consume the canonical server object. It must not calculate the
 - Audit/implementation map: this file
 - Application behavior changed in Part 1: no
 - Production mutation: none
-- Unresolved issue: current production Worker deployment/version metadata could not be read because the configured Cloudflare API token was unavailable to this task. Resolve with a read-only REST call before declaring Part 1 successful; do not use Wrangler.
+- Unresolved issues: none identified in Part 1.

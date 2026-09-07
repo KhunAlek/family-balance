@@ -34,12 +34,14 @@ test('frontend distinguishes unavailable required obligations from a factual emp
   assert.ok(unavailable >= 0 && none > unavailable);
 });
 
-test('salary receipt prompt chain requests Variables target before next salary date', () => {
-  assert.match(app4, /if\(r\.variablesTargetRequired\)\{openActionDrawer\('variablesTarget'\)/);
-  assert.match(app4, /else if\(r\.nextSalaryDateRequired\)\{openActionDrawer\('nextSalary'\)/);
-  assert.match(app4, /await refreshLiveData\(\);if\(!currentData\.config\.nextSalaryDate\)\{openActionDrawer\('nextSalary'\)/);
-  const salaryTarget = app4.indexOf("if(r.variablesTargetRequired){openActionDrawer('variablesTarget')");
-  const salaryDateFallback = app4.indexOf("else if(r.nextSalaryDateRequired){openActionDrawer('nextSalary')");
-  const targetThenDate = app4.indexOf("await refreshLiveData();if(!currentData.config.nextSalaryDate){openActionDrawer('nextSalary')");
-  assert.ok(salaryTarget >= 0 && salaryDateFallback > salaryTarget && targetThenDate >= 0);
+test('salary receipt prompt chain requests only the next salary date', () => {
+  assert.match(app4, /if\(r\.nextSalaryDateRequired\)\{openActionDrawer\('nextSalary'\)/);
+  assert.doesNotMatch(app4, /variablesTargetRequired|variablesTarget|setVariablesTarget/i);
+});
+
+test('forward pace unavailability is distinct from numeric zero pace', () => {
+  assert.match(app1, /positionPace\.hidden=!pace/);
+  assert.match(app1, /if\(!pace\)\{document\.getElementById\('paceWeeklyValue'\)\.textContent='Pacing unavailable'/);
+  assert.match(app1, /fmtMoney\(pace\.throughSunday,c,true\)/);
+  assert.match(app1, /fmtMoney\(pace\.today,c,true\)/);
 });

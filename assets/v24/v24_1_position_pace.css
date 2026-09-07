@@ -2,8 +2,9 @@
 .position-pace-card[hidden]{display:none!important}
 .position-pace-card>span{display:block;padding:14px 16px}
 .position-pace-card>span+span{border-left:1px solid rgba(56,41,0,.3)}
+.position-pace-card .position-pace-explanation{grid-column:1/-1;padding-top:10px;border-top:1px solid rgba(56,41,0,.3);border-left:0;font-size:12px;line-height:1.4}
 .position-pace-card small,.position-pace-card b{display:block}
 .position-pace-card small{font-size:11px;font-weight:750}
 .position-pace-card b{margin-top:5px;font-size:21px}
 .position-pace-card:focus-visible{outline:3px solid #116b68;outline-offset:2px}
-@media(max-width:760px){.position-pace-card{margin-top:8px}.position-pace-card>span{padding:10px 12px}.position-pace-card b{font-size:17px}}
+@media(max-width:760px){.position-pace-card{margin-top:8px}.position-pace-card>span{padding:10px 12px}.position-pace-card small{font-size:10px;line-height:1.25}.position-pace-card b{font-size:16px;white-space:nowrap}.position-pace-card .position-pace-explanation{font-size:11px}}

@@ -22,7 +22,8 @@ test('phone navigation is four true panels rather than scroll anchors', () => {
 test('approved information-led action placement is present', () => {
   assert.match(html, /data-tab-panel="position"[\s\S]*data-open-drawer="payment"[\s\S]*Preview payment/);
   assert.match(html, /data-tab-panel="position"[\s\S]*data-open-drawer="balance"[\s\S]*Update balances/);
-  assert.match(html, /data-tab-panel="pace"[\s\S]*data-open-drawer="variablesTarget"/);
+  assert.match(html, /data-tab-panel="pace"[\s\S]*<h2>Available pace<\/h2>/);
+  assert.doesNotMatch(html, /data-open-drawer="variablesTarget"/);
   assert.match(html, /data-tab-panel="commitments"[\s\S]*data-open-drawer="efCommitment"/);
   assert.match(html, /data-tab-panel="commitments"[\s\S]*data-open-drawer="goalCommitment"/);
   assert.match(html, /data-tab-panel="savings"[\s\S]*data-open-drawer="efWithdrawal"/);
@@ -43,7 +44,7 @@ test('Position shows the explicit next salary date', () => {
 });
 
 test('Position Pace card is directly below Available, responsive, labelled and navigates to Pace', () => {
-  assert.match(html, /position-hero[\s\S]*id="positionPaceCard"[\s\S]*Free to spend this week[\s\S]*Free to spend today[\s\S]*data-open-drawer="payment"/);
+  assert.match(html, /position-hero[\s\S]*id="positionPaceCard"[\s\S]*Available pace through Sunday[\s\S]*Available pace today[\s\S]*data-open-drawer="payment"/);
   assert.match(html, /id="positionPaceCard"[^>]*data-tab="pace"/);
   assert.match(positionPaceCss, /position-pace-card/);
   assert.match(positionPaceCss, /grid-template-columns:1fr 1fr/);
@@ -55,12 +56,11 @@ test('secondary account actions live in a focused detail view', () => {
   assert.match(html, /data-open-detail="accountsDetails">Move money<\/button>/);
 });
 
-test('compact header actions remain accessible and target warning is concise', () => {
+test('compact header actions remain accessible with no target warning', () => {
   assert.match(html, /id="notificationsBtn" aria-label="Notifications"/);
   assert.match(html, /id="logoutBtn" aria-label="Sign out and close"/);
-  assert.match(html, /id="guidanceTargetBtn"[\s\S]*>Set target<\/button>/);
-  assert.match(app1, /target_not_set:''/);
-  assert.match(app1, /text\.textContent='Variables target not set\.'/);
+  assert.doesNotMatch(html, /guidanceTargetBtn|Set target|variablesTarget/i);
+  assert.doesNotMatch(app1, /target_not_set|Variables target not set/i);
 });
 
 test('KTB transfer uses explicit direction choices and close signs out before requesting close', () => {

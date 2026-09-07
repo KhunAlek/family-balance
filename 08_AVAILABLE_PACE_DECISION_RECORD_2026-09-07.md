@@ -1,7 +1,7 @@
 # Available Pace Decision Record
 
-**Status:** owner-approved implementation authority  
-**Business date:** 2026-09-07 (Asia/Bangkok)  
+**Status:** owner-approved implementation authority
+**Business date:** 2026-09-07 (Asia/Bangkok)
 **Audited baseline:** `78ecb21cf45e413f7e25e4d50343b4a9ead142e3`
 
 ## 1. Decision and precedence
@@ -100,4 +100,3 @@ Factual past Variables spending may appear only when clearly labelled as factual
 ## 8. Scope lock
 
 This change does not authorize deployment, production D1/R2 mutation, Cloudflare configuration changes, data cleanup, a new recommendation system, event sourcing, a planning-history system, or changes to financial semantics outside the exact pace dependency removal described above.
-

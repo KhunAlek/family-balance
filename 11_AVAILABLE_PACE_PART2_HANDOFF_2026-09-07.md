@@ -28,4 +28,3 @@
 - Replace the still-target-based frontend contract assertions in Slice C; retain unrelated phone/navigation/accessibility assertions.
 - Prove Position and Pace render the same canonical response without frontend financial calculations.
 - Do not deploy without a separate owner authorization.
-

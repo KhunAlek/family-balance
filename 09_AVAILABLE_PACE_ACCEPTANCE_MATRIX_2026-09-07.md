@@ -1,7 +1,7 @@
 # Available Pace Acceptance Matrix
 
-**Authority:** `08_AVAILABLE_PACE_DECISION_RECORD_2026-09-07.md`  
-**Design baseline:** `78ecb21cf45e413f7e25e4d50343b4a9ead142e3`  
+**Authority:** `08_AVAILABLE_PACE_DECISION_RECORD_2026-09-07.md`
+**Design baseline:** `78ecb21cf45e413f7e25e4d50343b4a9ead142e3`
 **Rule:** these cases replace target-based expectations only where the decision record supersedes them. All unrelated regression coverage remains mandatory.
 
 | ID | Invariant and setup | Required observation | Intended proof surface |
@@ -34,8 +34,6 @@
 ## Required state partitions
 
 Every implementation verdict must cover valid creation, invalid creation, mutation rejection, retry/idempotency, reversal/correction where applicable, ordering, serialization, restore, salary transition, weekly freeze, and read-model reconstruction. Zero pace and unavailable pace are separate states and must never share an ambiguous serialized representation.
-
 ## Superseded acceptance expectations
 
 At implementation time, replace—not weaken—the target-dependent expectations currently found in `cloudflare/slice-b/test/live-read-model.test.mjs`, `cloudflare/slice-c/test/v3-minimal-acceptance.test.mjs`, `cloudflare/slice-c/test/salary-cycle.test.mjs`, `cloudflare/slice-c/test/write-actions.test.mjs`, `cloudflare/slice-c/test/frontend-unavailability-contract.test.mjs`, `cloudflare/slice-c/test/phone-ui-contract.test.mjs`, `cloudflare/slice-d/test/other-income.test.mjs`, and `cloudflare/slice-d/test/v3-minimal-db-acceptance.test.mjs`. Preserve unrelated assertions in those files.
-

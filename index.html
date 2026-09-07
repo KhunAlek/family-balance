@@ -22,6 +22,7 @@
 <link rel="stylesheet" href="assets/v25/brand.css">
 <link rel="stylesheet" href="assets/v24/v24_1_repair.css?v=20260906">
 <link rel="stylesheet" href="assets/v24/v24_1_position_pace.css?v=20260907-available-pace">
+<link rel="stylesheet" href="assets/v24/v24_1_obligation_calendar.css?v=20260907-calendar">
 </head>
 <body>
 <div id="app" style="display:none">
@@ -58,8 +59,8 @@
 
       <section class="primary-tab-panel" data-tab-panel="pace" id="weekly" aria-labelledby="paceTab" hidden>
         <div class="section-head"><h2>Available pace</h2></div>
+        <article class="pace-card pace-guidance-gold"><div class="pace-head"><b>Current guidance</b><span class="status-pill green" id="paceStatus">Checking</span></div><div class="pace-copy"><span class="pace-primary-label">Available pace through Sunday</span><h3 id="paceWeeklyValue">—</h3><p><b id="paceValue">—</b> Available pace today</p><p id="paceText">Checking the salary-cycle boundary.</p></div></article>
         <div class="pace-summary"><div><span>Current Available</span><b id="paceAvailable">—</b></div><div><span>Next salary</span><b id="paceNextSalary">—</b></div><div><span>Remaining runway days</span><b id="paceRunwayDays">—</b></div></div>
-        <article class="pace-card"><div class="pace-head"><b>Current guidance</b><span class="status-pill green" id="paceStatus">Checking</span></div><div class="pace-copy"><span class="pace-primary-label">Available pace through Sunday</span><h3 id="paceWeeklyValue">—</h3><p><b id="paceValue">—</b> Available pace today</p><p id="paceText">Checking the salary-cycle boundary.</p></div></article>
         <div class="pace-rule">Pace divides today’s Available across the remaining days until salary. Spending changes future pace because it changes the real account balance.</div>
         <button class="detail-launch" type="button" data-open-detail="weeklyDetails">View weekly detail</button>
         <div class="detail-view" id="weeklyDetails" hidden><div class="detail-head"><div><div class="eyebrow">Pace detail</div><h2>Weekly pace</h2></div><button type="button" data-close-detail>← Back</button></div><div class="week-grid" id="weeklyVarCards"></div></div>
@@ -73,7 +74,7 @@
           <div class="commitment-row ef"><span><b>EF commitment</b><small>Outstanding this cycle</small></span><strong id="availableEF">—</strong><button type="button" class="text-action" data-open-drawer="efCommitment">Edit</button></div>
           <div class="commitment-row goals"><span><b>Goal commitments</b><small>Outstanding this cycle</small></span><strong id="availableGoals">—</strong><button type="button" class="text-action" data-open-drawer="goalCommitment">Edit</button></div>
         </div>
-        <div class="detail-view" id="obligationsDetails" hidden><div class="detail-head"><div><div class="eyebrow">Commitments detail</div><h2>Fixed obligations</h2></div><button type="button" data-close-detail>← Back</button></div><article class="panel" id="fixedObligationsSection"><div class="compact-list" id="obligationsList"></div></article></div>
+        <div class="detail-view" id="obligationsDetails" hidden><div class="detail-head"><div><div class="eyebrow">Commitments detail</div><h2>Fixed obligations</h2></div><button type="button" data-close-detail>← Back</button></div><article class="panel" id="fixedObligationsSection"><div class="obligation-calendar-head"><h3 id="obligationsMonth"></h3></div><div class="obligation-calendar-weekdays" aria-hidden="true"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div><div class="obligation-calendar" id="obligationsList" role="grid" aria-label="Fixed obligations calendar"></div></article></div>
       </section>
 
       <section class="primary-tab-panel" data-tab-panel="savings" aria-labelledby="savingsTab" hidden>
@@ -123,7 +124,8 @@
 
 <div class="modal-backdrop" id="movementModal" role="dialog" aria-modal="true" aria-labelledby="movementTitle"><aside class="modal movement-drawer"><div class="drawer-head"><div><h2 id="movementTitle">Record movement</h2><p id="movementDescription"></p></div><button type="button" class="detail-back" id="movementCancel">← Back</button></div><form id="movementForm"><div class="movement-summary" id="movementSummary"></div><label for="movementDate">Date</label><input type="date" id="movementDate" required><label for="movementSource">Paid from</label><select id="movementSource" required><option value="Alex">Alex KTB</option><option value="Olga">Olga KTB</option></select><div class="movement-balance" id="movementSourceBalance"></div><label for="movementAmount">Amount</label><input type="number" min="0.01" step="0.01" id="movementAmount" required><div class="hint" id="movementAmountHint"></div><div id="movementPaymentStatusWrap" style="display:none"><label for="movementPaymentStatus">Payment type</label><select id="movementPaymentStatus"><option value="Final">Final payment — Close this bill</option><option value="Partial">Partial payment — keep it open</option></select><div class="hint">Variable bills default to final payment.</div></div><div id="movementNoteWrap" style="display:none"><label for="movementNote">Note (optional)</label><textarea id="movementNote"></textarea></div><div class="form-msg" id="movementMsg"></div><div class="modal-actions"><button type="button" class="btn secondary" id="movementCancelBottom">Cancel</button><button type="submit" class="btn primary" id="movementSubmit">Save</button></div></form></aside></div>
 
-<script src="assets/v24/v24_1_app1.js"></script>
+<script src="assets/v24/v24_1_obligation_calendar.js?v=20260907-calendar"></script>
+<script src="assets/v24/v24_1_app1.js?v=20260907-calendar"></script>
 <script src="assets/v24/v24_1_app2.js"></script>
 <script src="assets/v24/v24_1_app3.js"></script>
 <script src="assets/v24/v24_1_notifications.js"></script>

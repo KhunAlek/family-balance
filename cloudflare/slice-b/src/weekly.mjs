@@ -54,12 +54,7 @@ export function computeWeeklyVariablesCards(snapshot, onDate, planningState) {
   if (!cycleStartIso || !cycleEndIso) return [];
   const cycleStart = parseIsoDate(cycleStartIso);
   const cycleEnd = parseIsoDate(cycleEndIso);
-  const target = planningState.variables?.target;
-  const totalDays = Number(planningState.salaryCycle.totalSpendingDays) || countInclusiveDays(cycleStart, cycleEnd);
   const today = isoDate(onDate);
-  const adaptiveDaily = planningState.guidanceAvailable && planningState.variables?.targetRemaining !== null && planningState.variables?.remainingRunwayDays > 0
-    ? round2(Number(planningState.variables.targetRemaining) / Number(planningState.variables.remainingRunwayDays))
-    : null;
 
   const ranges = [];
   let pos = new Date(cycleStart);
@@ -74,27 +69,24 @@ export function computeWeeklyVariablesCards(snapshot, onDate, planningState) {
   const snapshots = new Map();
   for (const row of snapshot.weeklySnapshots || []) snapshots.set(`${row.week_start}|${row.week_end}`, row);
 
-  return ranges.map(cardRange => {
+  const cards = ranges.map(cardRange => {
     const start = isoDate(cardRange.start);
     const end = isoDate(cardRange.end);
     const isClosed = end < today;
     const isCurrent = start <= today && today <= end;
-    const originalPlanned = target === null || target === undefined ? null : round2(Number(target) / totalDays * countInclusiveDays(start, end));
     const guidanceStart = isCurrent ? today : start;
-    const planned = isClosed ? originalPlanned : adaptiveDaily === null ? null : round2(adaptiveDaily * countInclusiveDays(guidanceStart, end));
-    const card = { weekStart: start, weekEnd: end, cardStart: isCurrent ? today : start, cardEnd: end, isClosed, isCurrent, planned };
+    const card = { weekStart: start, weekEnd: end, cardStart: isCurrent ? today : start, cardEnd: end, isClosed, isCurrent, planned: null };
 
     if (isClosed) {
       const frozen = snapshots.get(`${start}|${end}`);
       if (frozen) {
-        card.planned = frozen.planned_variables_satang === null || frozen.planned_variables_satang === undefined ? null : thb(frozen.planned_variables_satang);
         card.spent = frozen.spent_variables_satang === null ? (frozen.spent_variables_status || 'no data') : thb(frozen.spent_variables_satang);
-        card.difference = frozen.difference_satang === null || frozen.difference_satang === undefined ? null : thb(frozen.difference_satang);
+        card.difference = null;
         card.provisional = false;
       } else {
         const factual = computeSliceFactual(snapshot, start, end);
         card.spent = factual.factual;
-        card.difference = factual.factual === 'no data' || originalPlanned === null ? null : round2(Number(factual.factual) - originalPlanned);
+        card.difference = null;
         card.provisional = true;
       }
       return card;
@@ -111,4 +103,21 @@ export function computeWeeklyVariablesCards(snapshot, onDate, planningState) {
     }
     return card;
   });
+
+  const pace = planningState.availablePace;
+  if (!pace || pace.remainingRunwayDays <= 0) return cards;
+  const openCards = cards.filter(card => !card.isClosed && card.cardStart <= cycleEndIso && card.cardEnd >= today);
+  const paceBaseSatang = Math.round(Math.max(Number(planningState.availableToSpend) || 0, 0) * 100);
+  let allocatedSatang = 0;
+  openCards.forEach((card, index) => {
+    const start = maxDate(card.cardStart, today);
+    const end = minDate(card.cardEnd, cycleEnd);
+    const days = countInclusiveDays(start, end);
+    const satang = index === openCards.length - 1
+      ? paceBaseSatang - allocatedSatang
+      : Math.round(paceBaseSatang * days / pace.remainingRunwayDays);
+    card.planned = satang / 100;
+    allocatedSatang += satang;
+  });
+  return cards;
 }

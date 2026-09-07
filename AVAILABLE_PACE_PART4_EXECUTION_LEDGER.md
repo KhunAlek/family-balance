@@ -1,0 +1,28 @@
+# Available Pace Part 4 Execution Ledger
+
+Business date: 2026-09-07 (Asia/Bangkok)
+
+- baseline inspection — `5c65878df1dff4ab64d2fa2e502fa45e689aeadb` — clean `docs/available-pace-part1-20260907` worktree; `origin` configured; no upstream tracking branch.
+- exact-SHA authority and invariant inspection — `5c65878df1dff4ab64d2fa2e502fa45e689aeadb` — inspected the Part 1 decision record and acceptance matrix, Parts 2–3 handoffs and ledgers, every changed implementation/test file since `78ecb21cf45e413f7e25e4d50343b4a9ead142e3`, adjacent planning/read/write/salary/weekly/backup/restore/runtime files, package manifests, and production configuration before making current-behavior claims.
+- changed-module syntax verification — `5c65878df1dff4ab64d2fa2e502fa45e689aeadb` — `/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node --check` on all eight changed JavaScript modules; 8 passed, 0 failed.
+- focused planning verification — `5c65878df1dff4ab64d2fa2e502fa45e689aeadb` — `/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node --test cloudflare/slice-b/test/live-read-model.test.mjs cloudflare/slice-c/test/v3-minimal-acceptance.test.mjs`; 47 passed, 0 failed.
+- focused read-model verification — `5c65878df1dff4ab64d2fa2e502fa45e689aeadb` — `/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node --test cloudflare/slice-b/test/live-read-model.test.mjs cloudflare/slice-b/test/read-model-unavailability.test.mjs`; 5 passed, 0 failed.
+- focused weekly verification — `5c65878df1dff4ab64d2fa2e502fa45e689aeadb` — `/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node --test cloudflare/slice-c/test/v3-minimal-acceptance.test.mjs cloudflare/slice-d/test/weekly-job.test.mjs`; 46 passed, 0 failed.
+- salary-cycle verification — `5c65878df1dff4ab64d2fa2e502fa45e689aeadb` — `/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node --test cloudflare/slice-c/test/salary-cycle.test.mjs`; 8 passed, 0 failed.
+- frontend contract verification — `5c65878df1dff4ab64d2fa2e502fa45e689aeadb` — `/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node --test cloudflare/slice-c/test/frontend-contract.test.mjs cloudflare/slice-c/test/frontend-unavailability-contract.test.mjs cloudflare/slice-c/test/phone-ui-contract.test.mjs`; 22 passed, 0 failed.
+- full Slice B verification — `5c65878df1dff4ab64d2fa2e502fa45e689aeadb` — `/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node --test cloudflare/slice-b/test/*.test.mjs`; 19 passed, 0 failed.
+- full Slice C verification — `5c65878df1dff4ab64d2fa2e502fa45e689aeadb` — `/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node --test cloudflare/slice-c/test/*.test.mjs`; 110 passed, 0 failed.
+- full Slice D verification — `5c65878df1dff4ab64d2fa2e502fa45e689aeadb` — `/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node --test cloudflare/slice-d/test/*.test.mjs`; 119 passed, 0 failed.
+- isolated backup verification — `5c65878df1dff4ab64d2fa2e502fa45e689aeadb` — `/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node --test cloudflare/slice-d/test/backup.test.mjs`; 1 passed, 0 failed.
+- restore-focused verification — `5c65878df1dff4ab64d2fa2e502fa45e689aeadb` — `/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node --test --test-name-pattern='restore|backup' cloudflare/slice-d/test/*.test.mjs`; 16 passed, 0 failed.
+- local production/static smoke verification — `5c65878df1dff4ab64d2fa2e502fa45e689aeadb` — `/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node --test cloudflare/slice-d/test/runtime.test.mjs`; 7 passed, 0 failed.
+- salary/weekly-freeze verification — `5c65878df1dff4ab64d2fa2e502fa45e689aeadb` — `/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node --test cloudflare/slice-c/test/salary-cycle.test.mjs cloudflare/slice-d/test/weekly-job.test.mjs`; 10 passed, 0 failed.
+- locked dependency preparation — `5c65878df1dff4ab64d2fa2e502fa45e689aeadb` — `npm ci` in `cloudflare/slice-d` installed the existing lockfile's 2 packages; audit found 0 vulnerabilities; no manifest or lockfile changed.
+- production package validation without deployment — `5c65878df1dff4ab64d2fa2e502fa45e689aeadb` — `npx --yes wrangler@4.123.0 deploy --config wrangler.production.jsonc --dry-run --outdir /tmp/family-cash-flow-available-pace-part4-dry-run` under the configured Node runtime; 616 assets, 248.80 KiB upload/56.99 KiB gzip, expected DB/BACKUPS/ASSETS bindings, and `--dry-run: exiting now`.
+- candidate diff review — based on `5c65878df1dff4ab64d2fa2e502fa45e689aeadb` — expected Available pace server/frontend/test/document surface only; no D1 migration, production binding/configuration change, authentication change, secret/domain/schedule change, target-data deletion, frozen-snapshot rewrite, historical Accounting rewrite, unrelated redesign, or new dependency.
+- secret scan — based on `5c65878df1dff4ab64d2fa2e502fa45e689aeadb` — resulting diff contained no Cloudflare token, GitHub token, private-key marker, OAuth/client secret, or session-key pattern.
+- diff hygiene repair — based on `5c65878df1dff4ab64d2fa2e502fa45e689aeadb` — removed trailing spaces and excess final blank lines reported by `git diff --check` in three Available pace documents; no semantic content changed.
+
+The exact candidate SHA and its post-commit verification are reported alongside the Part 5 handoff because a commit cannot contain its own hash.
+
+No production deployment, production backup, D1/R2 mutation, migration, Cloudflare configuration change, dependency addition, target-data deletion, frozen-snapshot rewrite, or historical Accounting rewrite occurred.

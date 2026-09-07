@@ -14,8 +14,8 @@ test('2026-08-14 accepted baseline reconciles under v3 mid-cycle cutover state',
   assert.equal(model.cloudflareReadModel, true);
   assert.equal(model.spendingAuthority, 'availableToSpend');
   assert.equal(model.guidanceAvailable, true);
-  assert.equal(model.planningState, 'target_not_set');
-  assert.equal(model.planningReason, 'variables_target_required');
+  assert.equal(model.planningState, 'ready');
+  assert.equal(model.planningReason, null);
   assert.deepEqual(model.currentBalances, { alex: 2285, olga: 11455, asOf: '2026-08-12' });
   approx(model.operationalCash, 13740, 'operational cash');
 
@@ -45,12 +45,15 @@ test('2026-08-14 accepted baseline reconciles under v3 mid-cycle cutover state',
   approx(model.goals[0].cycleCommitment, 0, 'Goal cutover cycle commitment');
   approx(model.goals[0].cycleOutstanding, 0, 'Goal cutover outstanding');
 
-  assert.equal(model.variables.target, null);
   approx(model.variables.spentCycleToDate, 19008, 'Variables spent this salary cycle');
-  assert.equal(model.variables.targetRemaining, null);
-  assert.equal(model.variables.targetPace, null);
-  assert.equal(model.variables.recommendedPace, null);
-  approx(model.variables.runwayPace, 748.59, 'runway-only pace');
+  assert.deepEqual(model.availablePace, {
+    today: 748.59,
+    throughSunday: 2245.76,
+    remainingRunwayDays: 17,
+    guidanceEnd: '2026-08-16',
+    currentGuidanceDays: 3,
+    basis: 'available_to_spend'
+  });
 
   approx(model.commitments.requiredOutstanding, 14, 'required commitments');
   approx(model.commitments.chosenOutstanding, 1000, 'chosen commitments');
@@ -66,19 +69,78 @@ test('2026-08-14 accepted baseline reconciles under v3 mid-cycle cutover state',
   assert.equal(first.provisional, true);
 
   assert.deepEqual([second.weekStart, second.weekEnd, second.isClosed], ['2026-08-03', '2026-08-09', true]);
-  approx(second.planned, 4967.74, 'pre-v3 frozen second-card plan remains unchanged');
+  assert.equal(second.planned, null);
   approx(second.spent, 13104, 'second card spent');
   assert.equal(second.provisional, false);
 
   assert.deepEqual([current.weekStart, current.weekEnd, current.isCurrent], ['2026-08-10', '2026-08-16', true]);
-  assert.equal(current.planned, null);
+  approx(current.planned, 2245.76, 'current Available allocation');
   approx(current.spent, 1172, 'current card factual spent');
   assert.equal(Object.prototype.hasOwnProperty.call(current, 'available'), false);
 
   assert.deepEqual([fourth.weekStart, fourth.weekEnd], ['2026-08-17', '2026-08-23']);
   assert.deepEqual([fifth.weekStart, fifth.weekEnd], ['2026-08-24', '2026-08-30']);
-  assert.equal(fourth.planned, null);
-  assert.equal(fifth.planned, null);
+  approx(fourth.planned, 5240.12, 'future Available allocation');
+  approx(fifth.planned, 5240.12, 'final reconciled Available allocation');
+  approx(current.planned + fourth.planned + fifth.planned, model.availableToSpend, 'open cards reconcile to Available');
   assert.equal(Object.prototype.hasOwnProperty.call(fourth, 'available'), false);
   assert.equal(Object.prototype.hasOwnProperty.call(fifth, 'available'), false);
+});
+
+test('Position Pace uses the canonical Available pace and ignores dormant target values', () => {
+  const positive = loadLockedSourceSnapshot();
+  positive.salaryCycle.variables_target_satang = 100000000;
+  const capped = buildDashboardReadModel(positive, '2026-08-14');
+  assert.deepEqual(capped.positionPace, { week: 2245.76, today: 748.59 });
+  assert.equal(capped.positionPace.week, capped.availablePace.throughSunday);
+  assert.equal(capped.positionPace.today, capped.availablePace.today);
+
+  const nullTarget = loadLockedSourceSnapshot();
+  nullTarget.salaryCycle.variables_target_satang = null;
+  assert.deepEqual(buildDashboardReadModel(nullTarget, '2026-08-14').availablePace, capped.availablePace);
+
+  const zero = loadLockedSourceSnapshot();
+  zero.salaryCycle.variables_target_satang = 100000000;
+  zero.balanceHistory.at(-1).alex_balance_satang = 101400;
+  zero.balanceHistory.at(-1).olga_balance_satang = 0;
+  const zeroModel = buildDashboardReadModel(zero, '2026-08-14');
+  assert.equal(zeroModel.availableToSpend, 0);
+  assert.deepEqual(zeroModel.positionPace, { week: 0, today: 0 });
+
+  const negative = loadLockedSourceSnapshot();
+  negative.salaryCycle.variables_target_satang = 100000000;
+  negative.balanceHistory.at(-1).alex_balance_satang = 0;
+  negative.balanceHistory.at(-1).olga_balance_satang = 0;
+  const negativeModel = buildDashboardReadModel(negative, '2026-08-14');
+  assert.ok(negativeModel.availableToSpend < 0);
+  assert.deepEqual(negativeModel.positionPace, { week: 0, today: 0 });
+
+  const unavailable = loadLockedSourceSnapshot();
+  unavailable.salaryCycle.next_salary_date = null;
+  assert.equal(buildDashboardReadModel(unavailable, '2026-08-14').positionPace, null);
+  assert.equal(buildDashboardReadModel(unavailable, '2026-08-14').availablePace, null);
+});
+
+test('Available pace clips the current window to cycle end and distinguishes zero from unavailable', () => {
+  const lastDay = loadLockedSourceSnapshot();
+  lastDay.balanceHistory.at(-1).alex_balance_satang = 100000;
+  lastDay.balanceHistory.at(-1).olga_balance_satang = 100000;
+  const model = buildDashboardReadModel(lastDay, '2026-08-30');
+  assert.equal(model.availablePace.remainingRunwayDays, 1);
+  assert.equal(model.availablePace.guidanceEnd, '2026-08-30');
+  assert.equal(model.availablePace.today, model.availableToSpend);
+  assert.equal(model.availablePace.throughSunday, model.availableToSpend);
+
+  const zero = loadLockedSourceSnapshot();
+  zero.balanceHistory.at(-1).alex_balance_satang = 101400;
+  zero.balanceHistory.at(-1).olga_balance_satang = 0;
+  const zeroModel = buildDashboardReadModel(zero, '2026-08-14');
+  assert.equal(zeroModel.availablePace.today, 0);
+  assert.equal(zeroModel.availablePace.throughSunday, 0);
+
+  const expired = loadLockedSourceSnapshot();
+  const expiredModel = buildDashboardReadModel(expired, '2026-08-31');
+  assert.equal(expiredModel.planningState, 'awaiting_salary_receipt');
+  assert.notEqual(expiredModel.availableToSpend, null);
+  assert.equal(expiredModel.availablePace, null);
 });

@@ -54,7 +54,7 @@ function resetPlanningStatements(snapshot, householdId, newCycleStart) {
 export function planSalaryReceiptTransition(snapshot, receiptDate, source, householdId = 'family') {
   const salarySet = salarySources(snapshot);
   source = String(source || '').trim();
-  if (!salarySet.has(source)) return { salary:false, advanced:false, statements:[], frozenWeeklySnapshots:[], variablesTargetRequired:false };
+  if (!salarySet.has(source)) return { salary:false, advanced:false, statements:[], frozenWeeklySnapshots:[] };
 
   const currentStart = isoDate(snapshot.salaryCycle?.current_cycle_start);
   const nextSalary = isoDate(snapshot.salaryCycle?.next_salary_date);
@@ -63,7 +63,7 @@ export function planSalaryReceiptTransition(snapshot, receiptDate, source, house
 
   if (!currentStart) {
     return {
-      salary:true, advanced:true, newCycleStart:receipt, variablesTargetRequired:true, frozenWeeklySnapshots:[],
+      salary:true, advanced:true, newCycleStart:receipt, frozenWeeklySnapshots:[],
       statements:[
         ...resetPlanningStatements(snapshot, householdId, receipt),
         insertCycleSource(householdId,receipt,source),
@@ -75,7 +75,7 @@ export function planSalaryReceiptTransition(snapshot, receiptDate, source, house
   const received = activeCycleSources(snapshot,currentStart);
   if (compareDates(receipt,currentStart) <= 0) {
     const statements = receipt === currentStart && !received.has(source) ? [insertCycleSource(householdId,currentStart,source)] : [];
-    return { salary:true, advanced:false, cycleStart:currentStart, statements, frozenWeeklySnapshots:[], variablesTargetRequired:false };
+    return { salary:true, advanced:false, cycleStart:currentStart, statements, frozenWeeklySnapshots:[] };
   }
 
   const sourceAlreadyReceived = received.has(source);
@@ -83,7 +83,7 @@ export function planSalaryReceiptTransition(snapshot, receiptDate, source, house
   if (!sourceAlreadyReceived && !reachedExpectedBoundary) {
     return {
       salary:true, advanced:false, cycleStart:currentStart,
-      statements:[insertCycleSource(householdId,currentStart,source)], frozenWeeklySnapshots:[], variablesTargetRequired:false
+      statements:[insertCycleSource(householdId,currentStart,source)], frozenWeeklySnapshots:[]
     };
   }
 
@@ -94,7 +94,6 @@ export function planSalaryReceiptTransition(snapshot, receiptDate, source, house
     salary:true,
     advanced:true,
     newCycleStart:receipt,
-    variablesTargetRequired:true,
     frozenWeeklySnapshots,
     statements:[
       ...frozenWeeklySnapshots.map(insertWeeklySnapshot),

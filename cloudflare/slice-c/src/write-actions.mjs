@@ -133,9 +133,9 @@ function planIncomeReceipt(ctx) {
       `${ctx.writeToken}:income:olga`,ctx.householdId,source,movement.date,toSatang(olgaAmount),'Olga KTB',ctx.householdId,identity.sourceRow));
     seq += 1;
   }
-  const transition = ctx.otherIncomeSource ? { advanced:false, variablesTargetRequired:false, statements:[] } : planSalaryReceiptTransition(snapshot,movement.date,source,ctx.householdId);
+  const transition = ctx.otherIncomeSource ? { advanced:false, statements:[] } : planSalaryReceiptTransition(snapshot,movement.date,source,ctx.householdId);
   statements.push(...transition.statements);
-  return { statements, response:{ date:movement.date,alexBalance:alex,olgaBalance:olga,source,totalAmount:total,salaryCycleAdvanced:!!transition.advanced,nextSalaryDateRequired:!!transition.advanced,variablesTargetRequired:!!transition.variablesTargetRequired } };
+  return { statements, response:{ date:movement.date,alexBalance:alex,olgaBalance:olga,source,totalAmount:total,salaryCycleAdvanced:!!transition.advanced,nextSalaryDateRequired:!!transition.advanced } };
 }
 
 function planSetNextSalaryDate(ctx) {
@@ -148,8 +148,7 @@ function planSetNextSalaryDate(ctx) {
   return { statements, response:{currentCycleStart:start,nextSalaryDate:date} };
 }
 function planSetVariablesTarget(ctx) {
-  const amount = nonNegativeAmount(ctx.payload.amount, 'Variables target');
-  return { statements:[statement('UPDATE salary_cycle_state SET variables_target_satang=? WHERE household_id=?',toSatang(amount),ctx.householdId)], response:{variablesTarget:amount} };
+  fail('Variables target is no longer supported');
 }
 function planSetEFCommitment(ctx) {
   const amount = nonNegativeAmount(ctx.payload.amount, 'EF commitment');

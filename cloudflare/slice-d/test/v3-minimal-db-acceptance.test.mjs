@@ -85,7 +85,7 @@ test('V3-M42 — post-salary-transition planning state survives ordinary backup/
   assert.ok(salarySource, 'representative fixture must contain a salary source');
   const transition = planSalaryReceiptTransition(oldSnapshot, '2026-08-31', salarySource, 'family');
   assert.equal(transition.advanced, true);
-  assert.equal(transition.variablesTargetRequired, true);
+  assert.equal(Object.hasOwn(transition, 'variablesTargetRequired'), false);
   await db.batch(transition.statements.map(item => db.prepare(item.sql).bind(...item.params)));
   raw.prepare('UPDATE salary_cycle_state SET next_salary_date=?,variables_target_satang=?,ef_cycle_commitment_satang=? WHERE household_id=?').run('2026-09-30', 3100000, 800000, 'family');
   raw.prepare('UPDATE goals SET cycle_commitment_satang=? WHERE household_id=?').run(250000, 'family');

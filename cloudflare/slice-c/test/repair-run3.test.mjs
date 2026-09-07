@@ -140,10 +140,7 @@ test('repair run 3 — degraded correction data precedes awaiting_salary_receipt
   const s = snapshot({ asOf: '2026-08-31' });
   const state = await assertLiveConsumers(s, '2026-08-31', '2026-08-31T12:00:00.000Z');
   assert.equal(state.guidanceAvailable, false);
-  assert.equal(state.variables.targetRemaining, null);
-  assert.equal(state.variables.targetPace, null);
-  assert.equal(state.variables.runwayPace, null);
-  assert.equal(state.variables.recommendedPace, null);
+  assert.equal(state.availablePace, null);
 });
 
 test('repair run 3 — degraded correction data precedes salary_boundary_not_set and keeps authority unavailable', async () => {
@@ -170,16 +167,16 @@ test('repair run 3 — degraded correction data precedes salary_boundary_not_set
   await assertRejectsUnavailable(planFinancialWrite(writeContext('dedicatedTransfer', { date: '2026-08-20', sourceAccount: 'Alex', destinationType: 'Goal', destinationName: 'B', amount: 100 }, s, '2026-08-20T12:00:00.000Z')));
 });
 
-test('repair run 3 — degraded correction data precedes target_not_set across read/payment/transfer consumers', async () => {
+test('repair run 3 — degraded correction data is independent of a null dormant target', async () => {
   const s = snapshot({ variablesTarget: null });
   const state = await assertLiveConsumers(s, '2026-08-20', '2026-08-20T12:00:00.000Z');
   assert.equal(state.guidanceAvailable, true);
-  assert.equal(state.variables.target, null);
+  assert.equal(state.availablePace.basis, 'available_to_spend');
 });
 
-test('repair run 3 — degraded correction data precedes ready across read/payment/transfer consumers', async () => {
+test('repair run 3 — degraded correction data is independent of a non-null dormant target', async () => {
   const s = snapshot({ variablesTarget: 22000 });
   const state = await assertLiveConsumers(s, '2026-08-20', '2026-08-20T12:00:00.000Z');
   assert.equal(state.guidanceAvailable, true);
-  assert.equal(state.variables.target, 22000);
+  assert.equal(state.availablePace.basis, 'available_to_spend');
 });

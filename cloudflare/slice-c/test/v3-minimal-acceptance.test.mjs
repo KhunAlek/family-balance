@@ -155,42 +155,46 @@ test('V3-M03 — Negative Available', () => {
 
 // B. Variables
 
-test('V3-M04 — Target never reserves cash', () => {
+test('AP-06/AP-07 — Dormant target values never affect Available pace', () => {
   const a = snapshot({ cash:20000, variablesTarget:22000, obligations:[obligation('Bill',1500)] });
   const b = clone(a); b.salaryCycle.variables_target_satang=toSatang(30000);
   const pa=buildPlanningState(a,'2026-08-20'),pb=buildPlanningState(b,'2026-08-20');
   approx(pa.availableToSpend,pb.availableToSpend);
   assert.deepEqual(a.balanceHistory,b.balanceHistory);
   assert.deepEqual(a.ledger,b.ledger);
-  assert.notEqual(pa.variables.target,pb.variables.target);
+  assert.deepEqual(pa.availablePace,pb.availablePace);
+  const c=clone(a);c.salaryCycle.variables_target_satang=null;
+  assert.deepEqual(buildPlanningState(c,'2026-08-20').availablePace,pa.availablePace);
 });
 
-test('V3-M05 — Target edit is planning-only', async () => {
+test('AP-15 — Legacy target edit is rejected before producing statements', async () => {
   const s=snapshot({variablesTarget:22000});
-  const plan=await planFinancialWrite(writeContext('setVariablesTarget',{amount:30000},s));
-  assert.equal(plan.statements.length,1);
-  assert.match(plan.statements[0].sql,/UPDATE salary_cycle_state SET variables_target_satang/);
-  assert.doesNotMatch(plan.statements[0].sql,/balance_history|ledger_movements|weekly_snapshots/);
+  await assert.rejects(
+    planFinancialWrite(writeContext('setVariablesTarget',{amount:30000},s)),
+    error=>error instanceof FinancialWriteValidationError&&error.message==='Variables target is no longer supported'
+  );
 });
 
-test('V3-M06 — Pacing while target active', () => {
+test('AP-01/AP-03/AP-04 — Available pace uses inclusive runway and partial current week', () => {
   const s=snapshot({cash:5000,openingCash:7000,asOf:'2026-08-21',variablesTarget:10000});
   const p=buildPlanningState(s,'2026-08-21');
   approx(p.variables.spent,2000);
-  approx(p.variables.targetRemaining,8000);
-  assert.equal(p.variables.remainingRunwayDays,10);
-  approx(p.variables.targetPace,800);
-  approx(p.variables.runwayPace,500);
-  approx(p.variables.recommendedPace,800);
+  assert.equal(p.availablePace.remainingRunwayDays,10);
+  assert.equal(p.availablePace.guidanceEnd,'2026-08-23');
+  assert.equal(p.availablePace.currentGuidanceDays,3);
+  approx(p.availablePace.today,500);
+  approx(p.availablePace.throughSunday,1500);
 });
 
-test('V3-M07 — Target exceeded', () => {
+test('AP-08 — Negative Available remains signed while pace is zero', () => {
   const s=snapshot({cash:7000,openingCash:30000,asOf:'2026-08-21',variablesTarget:22000});
   const p=buildPlanningState(s,'2026-08-21');
   approx(p.variables.spent,23000);
-  approx(p.variables.targetExceededBy,1000);
-  approx(p.variables.runwayPace,700);
-  approx(p.variables.recommendedPace,0);
+  const negative=snapshot({cash:7000,efCommitment:10000,asOf:'2026-08-21',variablesTarget:22000});
+  const state=buildPlanningState(negative,'2026-08-21');
+  approx(state.availableToSpend,-3000);
+  approx(state.availablePace.today,0);
+  approx(state.availablePace.throughSunday,0);
 });
 
 // C. EF commitment
@@ -256,7 +260,7 @@ test('V3-M15 — New salary cycle state', () => {
   const s=snapshot({cycleStart:'2026-08-01',nextSalary:'2026-08-31',variablesTarget:27500,efCommitment:9000,configEfDefault:12000,goals:[goal('A',20000,3500)],incomeDefinitions:[{source:'Salary',pay_day:'31'}],salaryCycleSources:[{cycle_start:'2026-08-01',source:'Salary'}]});
   const tr=planSalaryReceiptTransition(s,'2026-08-31','Salary','family');
   assert.equal(tr.advanced,true);
-  assert.equal(tr.variablesTargetRequired,true);
+  assert.equal(Object.hasOwn(tr,'variablesTargetRequired'),false);
   const cycle=tr.statements.find(x=>/UPDATE salary_cycle_state SET current_cycle_start/.test(x.sql));
   assert.deepEqual(cycle.params.slice(0,2),['2026-08-31',toSatang(12000)]);
   assert.ok(tr.statements.some(x=>/variables_target_satang=NULL/.test(x.sql)));
@@ -270,22 +274,23 @@ test('V3-M16 — Weekly cards are not spending authority', () => {
   const pa=buildPlanningState(a,'2026-08-20'),pb=buildPlanningState(b,'2026-08-20');
   const ca=computeWeeklyVariablesCards(a,'2026-08-20',pa),cb=computeWeeklyVariablesCards(b,'2026-08-20',pb);
   approx(pa.availableToSpend,pb.availableToSpend);
-  assert.notEqual(ca.find(x=>x.isCurrent).planned,cb.find(x=>x.isCurrent).planned);
+  assert.deepEqual(ca.map(x=>x.planned),cb.map(x=>x.planned));
   assert.equal(ca.some(card=>Object.prototype.hasOwnProperty.call(card,'available')),false);
 });
 
-test('Adaptive weekly pace redistributes remaining target over remaining inclusive days', () => {
+test('AP-05/AP-23 — Weekly pace redistributes Available and reconciles to the cent', () => {
   const s=snapshot({cash:5000,openingCash:7000,asOf:'2026-08-21',variablesTarget:10000});
   const p=buildPlanningState(s,'2026-08-21'),cards=computeWeeklyVariablesCards(s,'2026-08-21',p),current=cards.find(x=>x.isCurrent),future=cards.find(x=>x.weekStart==='2026-08-24');
   assert.equal(current.cardStart,'2026-08-21');
-  approx(current.planned,2400);
-  approx(future.planned,5600);
+  approx(current.planned,1500);
+  approx(future.planned,3500);
+  approx(cards.filter(x=>!x.isClosed).reduce((sum,x)=>sum+x.planned,0),p.availableToSpend);
 });
 
-test('V3-M17 — No target means no invented weekly plan', () => {
+test('AP-07 — Null target still produces Available weekly guidance', () => {
   const s=snapshot({variablesTarget:null,asOf:'2026-08-20'}),p=buildPlanningState(s,'2026-08-20'),cards=computeWeeklyVariablesCards(s,'2026-08-20',p);
-  assert.equal(p.planningState,'target_not_set');
-  assert.equal(cards.filter(x=>!x.isClosed).every(x=>x.planned===null),true);
+  assert.equal(p.planningState,'ready');
+  assert.equal(cards.filter(x=>!x.isClosed).every(x=>x.planned!==null),true);
   assert.equal(cards.some(x=>x.planned===22000||x.planned===28000),false);
 });
 
@@ -334,16 +339,16 @@ test('V3-M23 — Cross-month salary-cycle Variables actual', () => {
   const s=snapshot({cycleStart:'2026-08-22',nextSalary:'2026-09-29',asOf:'2026-09-05',cash:8000,openingCash:10000,variablesTarget:5000,balanceHistory:[balanceRow('2026-08-21',10000,1),balanceRow('2026-08-31',9000,2),balanceRow('2026-09-05',8000,3)]});
   const p=buildPlanningState(s,'2026-09-05');
   approx(p.variables.spentCycleToDate,2000);
-  approx(p.variables.targetRemaining,3000);
-  assert.equal(p.variables.remainingRunwayDays,24);
-  approx(p.variables.targetPace,125);
+  assert.equal(p.availablePace.remainingRunwayDays,24);
+  approx(p.availablePace.today,p.availableToSpend/24);
 });
 
 test('V3-M24 — Last runway day', () => {
   const s=snapshot({asOf:'2026-08-30',cash:10000,variablesTarget:10000});
   const p=buildPlanningState(s,'2026-08-30');
-  assert.equal(p.variables.remainingRunwayDays,1);
-  approx(p.variables.runwayPace,p.availableToSpend);
+  assert.equal(p.availablePace.remainingRunwayDays,1);
+  approx(p.availablePace.today,p.availableToSpend);
+  approx(p.availablePace.throughSunday,p.availableToSpend);
 });
 
 test('V3-M25 — Salary date before receipt is recorded', async () => {
@@ -354,10 +359,7 @@ test('V3-M25 — Salary date before receipt is recorded', async () => {
   assert.equal(p.guidanceAvailable,false);
   assert.equal(p.spendingAuthorityAvailable,true);
   approx(p.availableToSpend,6500);
-  assert.equal(p.variables.targetPace,null);
-  assert.equal(p.variables.runwayPace,null);
-  assert.equal(p.variables.recommendedPace,null);
-  assert.equal(p.variables.targetRemaining,null);
+  assert.equal(p.availablePace,null);
   approx(p.transferLimits.emergencyFund,7500);
   approx(p.transferLimits.goals.A,7500);
   approx(p.paymentSafety.availableToSpend,6500);
@@ -496,24 +498,23 @@ test('V3-M37 — Negative Available payment funding', () => {
 test('V3-M38 — Mid-cycle cutover with prior EF contribution', () => {
   const s=snapshot({variablesTarget:null,efCommitment:15000,ledger:[ledgerRow(1,'2026-08-10','EF','Contribution',5000)],goals:[goal('A',20000,0)]});
   const p=buildPlanningState(s,'2026-08-20');
-  assert.equal(p.variables.target,null);
-  assert.equal(p.planningState,'target_not_set');
+  assert.equal(p.planningState,'ready');
   approx(p.commitments.ef.grossCompleted,5000);
   approx(p.commitments.ef.outstanding,10000);
   approx(p.commitments.goalsOutstanding,0);
 });
 
-test('V3-M39 — Frozen card survives target edit', async () => {
+test('AP-16 — Frozen card storage survives target retirement without becoming guidance', async () => {
   const frozen={week_start:'2026-08-03',week_end:'2026-08-09',planned_variables_satang:toSatang(7000),spent_variables_satang:toSatang(6500),spent_variables_status:null,difference_satang:toSatang(-500),opening_balance_satang:null,opening_balance_status:'no data',closing_balance_satang:null,status:'closed'};
   const s=snapshot({asOf:'2026-08-20',variablesTarget:31000,weeklySnapshots:[frozen]});
   const before=computeWeeklyVariablesCards(s,'2026-08-20',buildPlanningState(s,'2026-08-20'));
-  const edit=await planFinancialWrite(writeContext('setVariablesTarget',{amount:62000},s));
-  assert.equal(edit.statements.length,1);
   const after=clone(s);after.salaryCycle.variables_target_satang=toSatang(62000);
   const cards=computeWeeklyVariablesCards(after,'2026-08-20',buildPlanningState(after,'2026-08-20'));
-  approx(before.find(x=>x.weekStart==='2026-08-03').planned,7000);
-  approx(cards.find(x=>x.weekStart==='2026-08-03').planned,7000);
-  assert.notEqual(before.find(x=>x.isCurrent).planned,cards.find(x=>x.isCurrent).planned);
+  assert.equal(before.find(x=>x.weekStart==='2026-08-03').planned,null);
+  assert.equal(cards.find(x=>x.weekStart==='2026-08-03').planned,null);
+  assert.equal(s.weeklySnapshots[0].planned_variables_satang,toSatang(7000));
+  assert.equal(after.weeklySnapshots[0].planned_variables_satang,toSatang(7000));
+  assert.equal(before.find(x=>x.isCurrent).planned,cards.find(x=>x.isCurrent).planned);
   approx(buildPlanningState(s,'2026-08-20').availableToSpend,buildPlanningState(after,'2026-08-20').availableToSpend);
 });
 
@@ -564,7 +565,7 @@ test('V3-M44 — Correction-aware completion reconciles with factual net balance
 
 test('V3-M45 — Explicit read-model states', () => {
   assert.equal(buildDashboardReadModel(snapshot({variablesTarget:22000}),'2026-08-20').planningState,'ready');
-  assert.equal(buildDashboardReadModel(snapshot({variablesTarget:null}),'2026-08-20').planningState,'target_not_set');
+  assert.equal(buildDashboardReadModel(snapshot({variablesTarget:null}),'2026-08-20').planningState,'ready');
   assert.equal(buildDashboardReadModel(snapshot({variablesTarget:22000,asOf:'2026-08-30'}),'2026-08-31').planningState,'awaiting_salary_receipt');
   const current=ledgerRow(2,'2026-08-10','A','Contribution',1000,'Ledger',2),audit=correctionAudit('c',2,current,{...current,source_sheet:'Correction',source_row:998});
   assert.equal(buildDashboardReadModel(snapshot({variablesTarget:22000,goals:[goal('A',10000,2000)],ledger:[current],correctionAudits:[audit]}),'2026-08-20').planningState,'degraded_correction_data');
@@ -573,9 +574,7 @@ test('V3-M45 — Explicit read-model states', () => {
   assert.equal(missingBoundary.spendingAuthorityAvailable,false);
   assert.equal(missingBoundary.availableToSpend,null);
   assert.equal(missingBoundary.commitments,null);
-  assert.equal(missingBoundary.variables.targetPace,null);
-  assert.equal(missingBoundary.variables.runwayPace,null);
-  assert.equal(missingBoundary.variables.recommendedPace,null);
+  assert.equal(missingBoundary.availablePace,null);
   const degradedMissingBoundary=buildDashboardReadModel(snapshot({nextSalary:null,variablesTarget:null,goals:[goal('A',10000,2000)],ledger:[current],correctionAudits:[audit]}),'2026-08-20');
   assert.equal(degradedMissingBoundary.planningState,'degraded_correction_data');
   assert.deepEqual(degradedMissingBoundary.affectedPlanningAccounts,['A']);

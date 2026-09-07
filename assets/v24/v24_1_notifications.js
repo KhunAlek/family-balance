@@ -19,7 +19,7 @@ async function currentPushSubscription(){
 }
 function notificationDate(value){
   if(!value)return'';
-  try{return new Date(value).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Bangkok'})}catch{return value}
+  try{return new Date(value).toLocaleString(displayLocale('en-GB'),{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Bangkok'})}catch{return value}
 }
 function renderNotificationHistory(items){
   const el=document.getElementById('notificationHistory');

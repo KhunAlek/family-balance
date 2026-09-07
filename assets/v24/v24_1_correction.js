@@ -39,8 +39,8 @@
   function renderImpact(impact){
     impactEl.hidden=false;
     if(!impact){impactEl.textContent='Review the corrected salary-cycle dates, then apply the audited correction.';return;}
-    const amount=n=>new Intl.NumberFormat('en-TH',{style:'currency',currency:'THB'}).format(n/100);
-    const date=d=>new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(d+'T00:00:00Z'));
+    const amount=n=>new Intl.NumberFormat(displayLocale('en-TH'),{style:'currency',currency:'THB'}).format(n/100);
+    const date=d=>new Intl.DateTimeFormat(displayLocale('en-GB'),{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(d+'T00:00:00Z'));
     const cycleName=(start,totals)=>{const i=totals.findIndex(t=>t.cycleStart===start);return i===totals.length-1?'Current cycle':i===totals.length-2?'Previous cycle':i>=0?'Earlier cycle':'Previously unassigned';};
     const totals=impact.beforeTotals.map((before,i)=>{const after=impact.afterTotals[i];return `<li>${escape(cycleName(before.cycleStart,impact.beforeTotals))}: ${escape(amount(before.amountSatang))} → ${escape(amount(after.amountSatang))}</li>`;}).join('');
     const moved=impact.movedPayments.map(p=>`<li>${escape(date(p.businessDate))} · ${escape(p.description||'Categorized payment')} · ${escape(amount(p.amountSatang))}: ${escape(cycleName(p.fromCycleStart,impact.beforeTotals))} → ${escape(cycleName(p.toCycleStart,impact.afterTotals))}</li>`).join('');

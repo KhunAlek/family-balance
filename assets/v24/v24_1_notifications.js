@@ -24,7 +24,7 @@ function notificationDate(value){
 function renderNotificationHistory(items){
   const el=document.getElementById('notificationHistory');
   if(!items||!items.length){el.innerHTML='<div class="empty-state">No reminders yet.</div>';return}
-  el.innerHTML=items.map(item=>'<div class="notification-item"><b>'+escapeHtml(item.title)+'</b><p>'+escapeHtml(item.body)+'</p><small>'+escapeHtml(notificationDate(item.createdAt))+'</small></div>').join('');
+  el.innerHTML=items.map(item=>'<div class="notification-item"><b>'+escapeHtml(uiText(item.title))+'</b><p>'+escapeHtml(uiText(item.body))+'</p><small>'+escapeHtml(notificationDate(item.createdAt))+'</small></div>').join('');
 }
 function setNotificationPanel(state,subscription){
   const supported=webPushSupported(),permission=supported?Notification.permission:'unsupported',enabled=!!subscription&&!!state.currentDeviceEnabled;

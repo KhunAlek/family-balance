@@ -33,7 +33,7 @@ test('early repeat salary freezes every missing old-cycle card before v3 current
   const snapshot=loadLockedSourceSnapshot();
   const transition=planSalaryReceiptTransition(snapshot,'2026-08-29','Alex Salary','family');
   assert.equal(transition.advanced,true);
-  assert.equal(transition.variablesTargetRequired,true);
+  assert.equal(Object.hasOwn(transition,'variablesTargetRequired'),false);
   assert.equal(transition.newCycleStart,'2026-08-29');
   assert.deepEqual(transition.frozenWeeklySnapshots.map(row=>[row.week_start,row.week_end]),[
     ['2026-07-31','2026-08-02'],
@@ -138,7 +138,7 @@ test('income receipt write includes freezes, planning reset, and new-cycle salar
   },'2026-08-29T12:00:00.000Z'));
   assert.equal(plan.response.salaryCycleAdvanced,true);
   assert.equal(plan.response.nextSalaryDateRequired,true);
-  assert.equal(plan.response.variablesTargetRequired,true);
+  assert.equal(Object.hasOwn(plan.response,'variablesTargetRequired'),false);
   assert.equal(plan.statements.filter(item=>/INSERT INTO weekly_snapshots/.test(item.sql)).length,4);
   assert.ok(plan.statements.some(item=>/UPDATE salary_cycle_state SET current_cycle_start/.test(item.sql)));
   assert.ok(plan.statements.some(item=>/UPDATE goals SET cycle_commitment_satang=0/.test(item.sql)));

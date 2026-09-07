@@ -15,11 +15,9 @@ export function buildDashboardReadModel(snapshot, onDate = bangkokBusinessDate()
   const cards = planning.salaryCycle?.cycleStart && planning.salaryCycle?.cycleEnd
     ? computeWeeklyVariablesCards(snapshot, onDate, planning)
     : [];
-  const currentPaceCard = cards.find(card => card.isCurrent) || cards.find(card => !card.isClosed) || null;
-  const paceCap = Math.max(Number(planning.availableToSpend) || 0, 0);
-  const positionPace = currentPaceCard?.planned === null || currentPaceCard?.planned === undefined || planning.variables?.recommendedPace === null || planning.variables?.recommendedPace === undefined
-    ? null
-    : { week: round2(Math.max(0, Math.min(Number(currentPaceCard.planned), paceCap))), today: round2(Math.max(0, Math.min(Number(planning.variables.recommendedPace), paceCap))) };
+  const positionPace = planning.availablePace
+    ? { week: planning.availablePace.throughSunday, today: planning.availablePace.today }
+    : null;
   const commitmentsAvailable = planning.commitments !== null && planning.commitments !== undefined;
   const safeGoals = planning.transferLimits?.goals || null;
 
@@ -74,6 +72,7 @@ export function buildDashboardReadModel(snapshot, onDate = bangkokBusinessDate()
     salaryCycle: planning.salaryCycle,
     variables: planning.variables,
     variablesState: planning.variables,
+    availablePace: planning.availablePace,
     weeklyVariablesCards: cards,
     positionPace,
     emergencyFund,
@@ -93,7 +92,6 @@ export function buildDashboardReadModel(snapshot, onDate = bangkokBusinessDate()
       currency: snapshot.config?.currency || 'THB',
       currentSalaryCycleStart: snapshot.salaryCycle?.current_cycle_start || '',
       nextSalaryDate: snapshot.salaryCycle?.next_salary_date || '',
-      variablesTarget: planning.variables?.target ?? null,
       efCycleCommitment: planning.commitments?.ef?.commitment ?? null
     },
     goals: goalsForDisplay.filter(goal => goal.status !== 'done'),

@@ -104,7 +104,7 @@ test('split purchase is one logical report payment and retains both allocations 
 
 test('stale or missing preview fails before claim; direct legacy correction cannot bypass Reports',async t=>{
   const {db,raw}=fixture(t);const p=await prepared(db,'2026-08-01');
-  await executeRevisionClaimWrite(db,{action:'setVariablesTarget',payload:{amount:20000},planWrite:planFinancialWrite,nowIso});
+  await executeRevisionClaimWrite(db,{action:'setEFCommitment',payload:{amount:20000},planWrite:planFinancialWrite,nowIso});
   await assert.rejects(save(db,p),e=>e.staleWriter===true);
   await assert.rejects(save(db,payload('2026-08-01','no-preview')),e=>e.staleWriter===true);
   await assert.rejects(executeRevisionClaimWrite(db,{action:'correctRecord',payload:p,planWrite:planCorrection,nowIso}),/preview first/);

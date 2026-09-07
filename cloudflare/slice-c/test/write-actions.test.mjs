@@ -45,13 +45,13 @@ test('Income received credits the selected account and creates a factual receipt
   assert.match(plan.statements[1].sql, /INSERT INTO income_receipts/);
 });
 
-test('Salary at the explicit next-salary boundary advances the cycle, resets v3 planning state, and requires target input', async () => {
+test('Salary at the explicit next-salary boundary advances the cycle without requiring target input', async () => {
   const plan = await planFinancialWrite(context('incomeReceipt', {
     date: '2026-08-31', incomeSource: 'Alex Salary', incomeAlexAmount: 33775, incomeOlgaAmount: 0
   }, baseSnapshot(), { nowIso: '2026-08-31T12:00:00.000Z' }));
   assert.equal(plan.response.salaryCycleAdvanced, true);
   assert.equal(plan.response.nextSalaryDateRequired, true);
-  assert.equal(plan.response.variablesTargetRequired, true);
+  assert.equal(Object.hasOwn(plan.response, 'variablesTargetRequired'), false);
   const cycleUpdate = plan.statements.find(item => /UPDATE salary_cycle_state SET current_cycle_start/.test(item.sql));
   const goalReset = plan.statements.find(item => /UPDATE goals SET cycle_commitment_satang=0/.test(item.sql));
   const sourceMembership = plan.statements.find(item => /salary_cycle_sources/.test(item.sql));

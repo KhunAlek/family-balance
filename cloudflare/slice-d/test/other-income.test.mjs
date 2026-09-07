@@ -44,7 +44,7 @@ test('past reactivation allows the dated receipt without salary transition or pl
  const {db,raw}=fixture(t);const sourceId=(await add(db)).source.other_income_source_id;
  await write(db,'reactivateOtherIncomeSource',{sourceId,effectiveDate:'2026-08-01',requestId:'past'});
  const before=preserved(raw);const result=await executeIncomeReceipt(db,{action:'incomeReceipt',nowIso,payload:{otherIncomeSourceId:sourceId,incomeAlexAmount:125,incomeOlgaAmount:75,date:'2026-09-06'}});
- assert.equal(result.salaryCycleAdvanced,false);assert.equal(result.variablesTargetRequired,false);assert.deepEqual(preserved(raw),before);
+ assert.equal(result.salaryCycleAdvanced,false);assert.equal(Object.hasOwn(result,'variablesTargetRequired'),false);assert.deepEqual(preserved(raw),before);
  const actual=rows(raw,'income_receipts').filter(r=>r.other_income_source_id===sourceId);assert.equal(actual.length,2);assert.equal(actual.reduce((n,r)=>n+r.amount_satang,0),20000);
  assert.ok(actual.every(r=>r.source==='Tutoring'));
  const versions=rows(raw,'other_income_source_versions');
@@ -100,7 +100,7 @@ test('migrated schema retains qualifying salary reset while same-named explicit 
  await executeIncomeReceipt(db,{action:'incomeReceipt',nowIso,payload:{otherIncomeSourceId:sourceId,incomeSource:salary,incomeAlexAmount:100,date:'2026-09-06'}});
  assert.deepEqual(preserved(raw),before);
  const result=await executeIncomeReceipt(db,{action:'incomeReceipt',nowIso,payload:{incomeSource:salary,incomeAlexAmount:100,date:'2026-09-06'}});
- assert.equal(result.salaryCycleAdvanced,true);assert.equal(result.variablesTargetRequired,true);
+ assert.equal(result.salaryCycleAdvanced,true);assert.equal(Object.hasOwn(result,'variablesTargetRequired'),false);
  const state=rows(raw,'salary_cycle_state')[0];assert.equal(state.current_cycle_start,'2026-09-06');assert.equal(state.next_salary_date,null);assert.equal(state.variables_target_satang,null);
  assert.ok(rows(raw,'weekly_snapshots').length>before.weekly_snapshots.length);
 });

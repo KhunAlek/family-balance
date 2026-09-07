@@ -1,4 +1,4 @@
-import { addDays, compareDates, countInclusiveDays, isoDate } from './dates.mjs';
+import { addDays, compareDates, countInclusiveDays, getWeekBounds, isoDate, minDate } from './dates.mjs';
 import { balanceOnDate, latestUsableBalance } from './balances.mjs';
 import { sumLedgerFlows, sumScheduledFlows } from './flows.mjs';
 import { remainingFixedObligations } from './obligations.mjs';
@@ -172,7 +172,8 @@ function unavailableHistorical(onDate, latest, cycle) {
     operationalCash: latest ? round2(Math.max(latest.combinedBalance, 0)) : null,
     commitments: null,
     availableToSpend: null,
-    variables: null
+    variables: null,
+    availablePace: null
   };
 }
 
@@ -184,9 +185,6 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
   const cycleStart = isoDate(snapshot.salaryCycle?.current_cycle_start);
   if (cycleStart && compareDates(requestedDate, cycleStart) < 0) return unavailableHistorical(requestedDate, latest, cycle);
 
-  const variablesTarget = snapshot.salaryCycle?.variables_target_satang === null || snapshot.salaryCycle?.variables_target_satang === undefined
-    ? null
-    : satangToThb(snapshot.salaryCycle.variables_target_satang);
   const efCommitment = snapshot.salaryCycle?.ef_cycle_commitment_satang === null || snapshot.salaryCycle?.ef_cycle_commitment_satang === undefined
     ? (satangToThb(snapshot.config?.ef_monthly_claim_cap_satang) || EF_DEFAULT_THB)
     : satangToThb(snapshot.salaryCycle.ef_cycle_commitment_satang);
@@ -201,7 +199,7 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
       balanceAsOf: latest.date,
       guidanceAvailable: false,
       guidanceError: cycle.error,
-      planningState: affectedPlanningAccounts.length ? 'degraded_correction_data' : (missingBoundary ? 'salary_boundary_not_set' : (variablesTarget === null ? 'target_not_set' : 'ready')),
+      planningState: affectedPlanningAccounts.length ? 'degraded_correction_data' : (missingBoundary ? 'salary_boundary_not_set' : 'ready'),
       planningReason: affectedPlanningAccounts.length ? 'current_cycle_ledger_correction_unresolved' : (missingBoundary ? 'next_salary_date_required' : 'salary_cycle_invalid'),
       affectedPlanningAccounts,
       spendingAuthorityAvailable: false,
@@ -209,7 +207,8 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
       operationalCash,
       commitments: null,
       availableToSpend: null,
-      variables: { target: variablesTarget, spent: null, spentCycleToDate: null, targetRemaining: null, targetExceededBy: null, targetPace: null, runwayPace: null, recommendedPace: null, remainingRunwayDays: null }
+      variables: { spent: null, spentCycleToDate: null },
+      availablePace: null
     };
   }
 
@@ -231,9 +230,6 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
 
   const spentResult = computeCycleVariablesSpentToDate(snapshot, cycle.cycleStart, completionThrough, operationalCash);
   const spent = spentResult.spent === 'no data' ? null : round2(Math.max(Number(spentResult.spent) || 0, 0));
-  const targetRemainingBase = variablesTarget === null || spent === null ? null : round2(Math.max(variablesTarget - spent, 0));
-  const targetExceededByBase = variablesTarget === null || spent === null ? null : round2(Math.max(spent - variablesTarget, 0));
-
   const affectedPlanningAccounts = [...affected];
   let planningState = 'ready';
   let planningReason = null;
@@ -243,26 +239,20 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
   } else if (cycle.boundaryExpired) {
     planningState = 'awaiting_salary_receipt';
     planningReason = 'next_salary_boundary_reached_without_cycle_advance';
-  } else if (variablesTarget === null) {
-    planningState = 'target_not_set';
-    planningReason = 'variables_target_required';
   }
 
-  let targetRemaining = targetRemainingBase;
-  const targetExceededBy = targetExceededByBase;
-  let targetPace = null;
-  let runwayPace = null;
-  let recommendedPace = null;
   const remainingRunwayDays = cycle.boundaryExpired ? null : cycle.remainingSpendingDays;
-  if (cycle.boundaryExpired) {
-    targetRemaining = null;
-  } else if (remainingRunwayDays > 0) {
-    runwayPace = round2(availableToSpend / remainingRunwayDays);
-    if (variablesTarget !== null && spent !== null) {
-      targetPace = round2(targetRemainingBase / remainingRunwayDays);
-      recommendedPace = targetPace;
-    }
-  }
+  const paceBase = round2(Math.max(availableToSpend, 0));
+  const guidanceEnd = cycle.boundaryExpired ? null : isoDate(minDate(getWeekBounds(requestedDate).end, cycle.cycleEnd));
+  const currentGuidanceDays = guidanceEnd ? countInclusiveDays(requestedDate, guidanceEnd) : null;
+  const availablePace = cycle.boundaryExpired || !remainingRunwayDays ? null : {
+    today: round2(paceBase / remainingRunwayDays),
+    throughSunday: round2(Math.min(paceBase, paceBase * currentGuidanceDays / remainingRunwayDays)),
+    remainingRunwayDays,
+    guidanceEnd,
+    currentGuidanceDays,
+    basis: 'available_to_spend'
+  };
 
   const goals = goalStates.map(goal => ({ ...goal }));
   const guidanceAvailable = !cycle.boundaryExpired;
@@ -310,18 +300,8 @@ export function buildPlanningState(snapshot, onDate, options = {}) {
       shortfall: round2(Math.max(fixed.total - operationalCash, 0)),
       fullyCovered: operationalCash >= fixed.total
     },
-    variables: {
-      target: variablesTarget,
-      spent,
-      spentCycleToDate: spent,
-      targetRemaining,
-      targetExceededBy,
-      targetPace,
-      runwayPace,
-      recommendedPace,
-      remainingRunwayDays,
-      originalElapsedPaceDelta: cycle.boundaryExpired || variablesTarget === null || spent === null ? null : round2(spent - variablesTarget / cycle.totalSpendingDays * countInclusiveDays(cycle.cycleStart, completionThrough))
-    },
+    variables: { spent, spentCycleToDate: spent },
+    availablePace,
     emergencyFund: {
       currentBalance: accountLedgerBalance(snapshot.ledger || [], 'EF'),
       commitment: round2(efCommitment),

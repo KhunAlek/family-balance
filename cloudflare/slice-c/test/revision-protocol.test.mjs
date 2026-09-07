@@ -99,6 +99,31 @@ test('account overdraft is rejected before a revision claim exists', async () =>
   assert.equal(scalar(raw, 'SELECT current_revision AS n FROM household_revisions').n, 0);
 });
 
+test('retired Variables target write and retry make zero writes or revision effects', async () => {
+  const { db, raw } = createSeededSqliteD1();
+  const before = {
+    target: scalar(raw, "SELECT variables_target_satang AS n FROM salary_cycle_state WHERE household_id='family'").n,
+    claims: scalar(raw, 'SELECT COUNT(*) AS n FROM financial_write_claims').n,
+    balances: scalar(raw, 'SELECT COUNT(*) AS n FROM balance_history').n,
+    ledger: scalar(raw, 'SELECT COUNT(*) AS n FROM ledger_movements').n,
+    weekly: scalar(raw, 'SELECT COUNT(*) AS n FROM weekly_snapshots').n
+  };
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    await assert.rejects(
+      write(db, 'setVariablesTarget', { amount: 30000 }, { writeToken: 'retired-target' }),
+      error => error instanceof FinancialWriteValidationError && error.message === 'Variables target is no longer supported'
+    );
+  }
+  assert.deepEqual({
+    target: scalar(raw, "SELECT variables_target_satang AS n FROM salary_cycle_state WHERE household_id='family'").n,
+    claims: scalar(raw, 'SELECT COUNT(*) AS n FROM financial_write_claims').n,
+    balances: scalar(raw, 'SELECT COUNT(*) AS n FROM balance_history').n,
+    ledger: scalar(raw, 'SELECT COUNT(*) AS n FROM ledger_movements').n,
+    weekly: scalar(raw, 'SELECT COUNT(*) AS n FROM weekly_snapshots').n
+  }, before);
+  assert.equal(scalar(raw, 'SELECT current_revision AS n FROM household_revisions').n, 0);
+});
+
 test('preview makes zero writes', async () => {
   const { db, raw } = createSeededSqliteD1();
   const snapshot = await loadFinancialSnapshot(db, 'family');

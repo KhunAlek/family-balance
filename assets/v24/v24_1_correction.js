@@ -9,9 +9,9 @@
   modal.setAttribute('aria-modal','true');
   modal.setAttribute('aria-labelledby','correctionTitle');
   modal.innerHTML=`<aside class="modal movement-drawer">
-    <div class="drawer-head"><div><h2 id="correctionTitle">Correct a record</h2><p>Corrections are audited. The original history is preserved where possible.</p></div><button type="button" class="detail-back" id="correctionCancel">← Back</button></div>
+    <div class="drawer-head"><div><h2 id="correctionTitle">Salary-cycle correction</h2><p>This guarded correction changes salary-cycle reporting dates only.</p></div><button type="button" class="detail-back" id="correctionCancel">← Back</button></div>
     <form id="correctionForm">
-      <div class="form-summary"><strong>Use this only to fix a factual mistake.</strong> Select the existing record, enter the corrected value(s), and explain why. Every correction records before/after values, your signed-in account, time, revision and write token.</div>
+      <div class="form-summary correction-safety"><strong>Other corrections are safely unavailable here.</strong><ul><li>Balance observations are immutable. Record a new balance observation instead.</li><li>Obligation payments will be correctable from Transaction history after the complete payment and cash effect can be reconstructed.</li><li>EF and Goal movements will be correctable after both the fund and KTB effects can be reconstructed.</li><li>Goal configuration is not a transaction correction. Use the existing Savings controls for supported Goal actions.</li></ul></div>
       <label for="correctionType">Record type</label><select id="correctionType" required></select>
       <label for="correctionRecord">Record</label><select id="correctionRecord" required><option value="">Choose a record</option></select>
       <div class="movement-summary" id="correctionCurrent">Choose a record to see its current values.</div>
@@ -50,30 +50,6 @@
   const escape=v=>escapeHtml(v==null?'':v);
   const moneySatang=v=>v==null?'':String(Math.round(Number(v))/100);
   const fieldSpecs={
-    balance:[
-      ['businessDate','Business date','date',c=>c.business_date],
-      ['alexBalance','Alex KTB balance','number',c=>moneySatang(c.alex_balance_satang)],
-      ['olgaBalance','Olga KTB balance','number',c=>moneySatang(c.olga_balance_satang)]
-    ],
-    obligationPayment:[
-      ['paymentDate','Payment date','date',c=>c.payment_date],
-      ['actualAmount','Actual amount','number',c=>moneySatang(c.actual_amount_satang)],
-      ['paidFrom','Paid from','select',c=>c.paid_from,['Alex','Olga']],
-      ['paymentStatus','Payment status','select',c=>c.payment_status||'Partial',['Partial','Final']],
-      ['note','Note','text',c=>c.note||'']
-    ],
-    ledgerMovement:[
-      ['businessDate','Movement date','date',c=>c.business_date],
-      ['account','Account','text',c=>c.account],
-      ['direction','Direction','select',c=>c.direction,['Contribution','Withdrawal']],
-      ['amount','Amount','number',c=>moneySatang(c.amount_satang)]
-    ],
-    goal:[
-      ['targetAmount','Target amount','number',c=>moneySatang(c.target_amount_satang)],
-      ['priorityRank','Priority rank','number',c=>c.priority_rank],
-      ['status','Status','text',c=>c.status],
-      ['targetDate','Target date','date',c=>c.target_date||'']
-    ],
     salaryCycle:[
       ['currentCycleStart','Current cycle start','date',c=>c.current_cycle_start],
       ['nextSalaryDate','Next salary date','date',c=>c.next_salary_date||'']

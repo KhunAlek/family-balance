@@ -45,7 +45,7 @@ test('English remains the fallback for unsupported or incomplete locale data', (
 test('phase two translates remaining surfaces while preserving user-entered names', () => {
   const language = translations();
   assert.equal(language.translate('One-off spending Reports'), 'Отчёты по разовым расходам');
-  assert.equal(language.translate('Correct a record'), 'Исправить запись');
+  assert.equal(language.translate('Salary-cycle correction'), 'Исправление зарплатного цикла');
   assert.equal(language.translate('Manage categories'), 'Управление категориями');
   assert.equal(language.translate('Recent reminders'), 'Недавние напоминания');
   assert.equal(language.translate('Final payment — Close this bill'), 'Окончательный платёж — закрыть счёт');

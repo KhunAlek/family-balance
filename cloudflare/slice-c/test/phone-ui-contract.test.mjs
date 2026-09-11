@@ -6,6 +6,7 @@ const html = fs.readFileSync(new URL('../../../index.html', import.meta.url), 'u
 const app1 = fs.readFileSync(new URL('../../../assets/v24/v24_1_app1.js', import.meta.url), 'utf8');
 const app2 = fs.readFileSync(new URL('../../../assets/v24/v24_1_app2.js', import.meta.url), 'utf8');
 const responsive = fs.readFileSync(new URL('../../../assets/v24/v24_1_tabs.css', import.meta.url), 'utf8');
+const coreResponsive = fs.readFileSync(new URL('../../../assets/v24/v24_1_responsive.css', import.meta.url), 'utf8');
 const positionPaceCss = fs.readFileSync(new URL('../../../assets/v24/v24_1_position_pace.css', import.meta.url), 'utf8');
 const correction = fs.readFileSync(new URL('../../../assets/v24/v24_1_correction.js', import.meta.url), 'utf8');
 
@@ -84,6 +85,11 @@ test('correction entry is contextual rather than injected into the action direct
   assert.doesNotMatch(correction, /action-center/);
   assert.match(correction, /recordsCorrectionBtn/);
   assert.doesNotMatch(html, /class="action-tile"[^>]*>Correct record/);
+  assert.match(html, /id="recordsCorrectionBtn">Salary-cycle correction<\/button>/);
+  assert.match(correction, /Other corrections are safely unavailable here/);
+  assert.doesNotMatch(correction, /\n\s+(balance|obligationPayment|ledgerMovement|goal):\[/);
+  assert.match(responsive, /html,body\{min-height:100%;overflow-x:hidden\}/);
+  assert.match(coreResponsive, /\.correction-safety,\.correction-safety li\{max-width:100%;overflow-wrap:anywhere\}/);
 });
 
 test('commitments total is a typographic summary rather than another card', () => {

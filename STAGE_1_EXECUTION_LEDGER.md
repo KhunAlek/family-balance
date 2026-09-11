@@ -1,0 +1,37 @@
+# Stage 1 Execution Ledger
+
+## Baseline
+
+repository/status inspection — `6f08eb03f9cda40ea2cb357dd4e69a09a3747164` — `git status --short --branch && git rev-parse HEAD && git rev-parse 6f08eb03f9cda40ea2cb357dd4e69a09a3747164^{commit}` — branch `feature/russian-ui-phase2` at the expected SHA; owner work present as untracked `14_TRANSACTION_HISTORY_AND_CORRECTION_SPECIFICATION_2026-09-11.md` and `15_TRANSACTION_HISTORY_AND_CORRECTION_SPECIFICATION_REV1_2026-09-11.md`, preserved without modification
+
+repository authority inspection — `6f08eb03f9cda40ea2cb357dd4e69a09a3747164` — `sed -n '1,260p' ../AGENTS.md` — repository project instructions read; Step 1 is locally authorized, while merge, deploy, production mutation, Cloudflare configuration changes, dependency changes, historical repair, and Step 2 implementation remain forbidden
+
+package inventory inspection — `6f08eb03f9cda40ea2cb357dd4e69a09a3747164` — `unzip -l /Users/alexanderbystrov/Projects/transaction-history-step-1-package.zip` — six package documents found, including the master, Step 1 task, templates, fresh-chat prompt, REV1 requirement source, and manifest
+
+package integrity verification — `6f08eb03f9cda40ea2cb357dd4e69a09a3747164` — `unzip -q /Users/alexanderbystrov/Projects/transaction-history-step-1-package.zip -d <temporary-directory> && shasum -a 256 <five manifested documents> && diff -u PACKAGE_MANIFEST.txt <computed hashes>` — all five manifested SHA-256 hashes matched exactly; diff exited 0
+
+package authority inspection — `6f08eb03f9cda40ea2cb357dd4e69a09a3747164` — `unzip -p ...` for every package document — all six uploaded documents read; current-chat owner authorization makes the Step 1 safety behavior implementable while REV1 remains proposed for later feature stages
+
+exact-baseline source inventory — `6f08eb03f9cda40ea2cb357dd4e69a09a3747164` — `git ls-tree -r --name-only 6f08eb03f9cda40ea2cb357dd4e69a09a3747164` and `git grep -n -E 'correctionPreview|correctRecord|obligationPayment|ledgerMovement|Records & corrections|Correct a record|balance.*correction|correction.*balance' 6f08eb03f9cda40ea2cb357dd4e69a09a3747164 -- ':!*.md'` — located server catalog, preview/planner, Worker and bridge routes, UI/i18n, focused correction tests, bridge contract tests, and guarded reporting-correction tests
+
+exact-baseline behavior inspection — `6f08eb03f9cda40ea2cb357dd4e69a09a3747164` — `git show 6f08eb03f9cda40ea2cb357dd4e69a09a3747164:<path>` for correction catalog/planner, write protocol/dispatch, Worker and bridge routes, correction UI/i18n/index, focused tests, UI contracts, and salary reporting correction tests — confirmed catalog and ordinary preview exposed balance, obligation payment, ledger movement, Goal configuration, and salary cycle; ordinary planner implemented unsafe balance replacement, obligation row update, ledger reversal/replacement, and Goal update; salary-cycle Worker commit was separately routed through guarded reporting correction
+
+## Implementation
+
+server/UI safety patch — `6f08eb03f9cda40ea2cb357dd4e69a09a3747164` plus uncommitted candidate changes — local edits to `correction.mjs`, `correction-catalog.mjs`, correction UI, responsive CSS, index entry, and i18n — added one salary-only legacy correction allowlist shared by preview and commit; removed unsafe catalog/UI families; renamed the surface; added English/Russian safe alternatives and wrapping protection
+
+acceptance coverage update — `6f08eb03f9cda40ea2cb357dd4e69a09a3747164` plus uncommitted candidate changes — local edits to Slice A/C/D correction, Worker, phone, and Russian contract tests — replaced formerly positive unsafe correction expectations under the newly authorized Step 1 requirement; retained historical read-model interpretation tests and guarded salary tests
+
+initial focused verification — `6f08eb03f9cda40ea2cb357dd4e69a09a3747164` plus uncommitted candidate changes — `node --version && node --test cloudflare/slice-c/test/correction.test.mjs cloudflare/slice-c/test/correction-edge.test.mjs cloudflare/slice-c/test/v3-minimal-acceptance.test.mjs cloudflare/slice-c/test/phone-ui-contract.test.mjs cloudflare/slice-c/test/russian-ui-contract.test.mjs cloudflare/slice-d/test/reporting-correction.test.mjs && node cloudflare/slice-a-bridge/test/bridge.test.mjs` — default Node was `v20.15.1`; database test files failed to load because `node:sqlite` was unavailable; 60 non-database tests passed and one new phone assertion failed because it looked in the wrong stylesheet; command exited 1 and is not a passing result
+
+bundled runtime discovery — `6f08eb03f9cda40ea2cb357dd4e69a09a3747164` plus uncommitted candidate changes — Codex workspace dependency inspection — resolved bundled Node at `/Users/alexanderbystrov/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node`; phone check adjusted to assert the actual no-horizontal-overflow rule plus explicit correction-copy wrapping
+
+focused safety and salary verification — `6f08eb03f9cda40ea2cb357dd4e69a09a3747164` plus uncommitted candidate changes — `/Users/alexanderbystrov/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --test cloudflare/slice-c/test/correction.test.mjs cloudflare/slice-c/test/correction-edge.test.mjs cloudflare/slice-c/test/v3-minimal-acceptance.test.mjs cloudflare/slice-c/test/phone-ui-contract.test.mjs cloudflare/slice-c/test/russian-ui-contract.test.mjs cloudflare/slice-d/test/reporting-correction.test.mjs` — bundled Node `v24.19.0`; 86 tests passed, 0 failed, including zero-write preview/commit refusals for all four disabled types, production Worker routing, guarded salary preview/commit/retry/race/rollback/restore behavior, phone layout, and Russian localization
+
+Slice A bridge suite observation — `6f08eb03f9cda40ea2cb357dd4e69a09a3747164` plus uncommitted candidate changes — `/Users/alexanderbystrov/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node cloudflare/slice-a-bridge/test/bridge.test.mjs` — suite stopped before the correction-route section on an unchanged pre-existing expectation at line 144 (`planningState` expected `target_not_set`, observed `ready`); this is recorded as a limitation, not a pass, and the production Worker correction routes are covered by the passing Slice D test
+
+full Slice B/C/D regression — `6f08eb03f9cda40ea2cb357dd4e69a09a3747164` plus uncommitted candidate changes — `/Users/alexanderbystrov/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --test cloudflare/slice-b/test/*.test.mjs cloudflare/slice-c/test/*.test.mjs cloudflare/slice-d/test/*.test.mjs` — 253 tests passed, 0 failed under Node `v24.19.0`; creation/read-model, revision/race/retry/rollback, salary transition/frozen weeks, obligation, transfer, EF/Goal, reports, backup/restore, UI, and correction safety coverage passed
+
+pre-candidate diff and route review — `6f08eb03f9cda40ea2cb357dd4e69a09a3747164` plus uncommitted candidate changes — `git diff --check`, `git diff --stat`, focused `git diff`, `rg` over catalog/UI labels and every `correctionPreview`/`correctRecord` route, and `git status --short` — no whitespace errors; unsafe labels and client field definitions absent; production salary commits remain separately dispatched to `executeReportingCorrection`; ordinary commit dispatch reaches the shared fail-closed planner before claim; dead historical planners remain behind the entry gate; no schema, migration, dependency, configuration, production, or historical-data change found
+
+## Candidate verification

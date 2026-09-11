@@ -184,3 +184,18 @@ test('Worker preview and correction routes enforce auth, return report impact, a
   assert.equal(result.ok,true);assert.equal(result.reportingImpact.movedPayments.length,1);
   assert.deepEqual(factual(raw).one_off_payments.map(p=>p.business_date),['2026-07-31']);
 });
+
+test('production Worker refuses disabled legacy preview and commit requests with zero writes',async t=>{
+  const {db,raw}=fixture(t);const origin='https://isolated.example';
+  const env={DB:db,APPROVED_GOOGLE_EMAILS:'test@example.invalid',SESSION_SIGNING_KEY:'test-only-secret-with-more-than-thirty-two-characters'};
+  const token=await signSession({sub:'test',email:'test@example.invalid'},env);
+  const api=(apiAction,p)=>handleFetch(new Request(origin+'/api/action',{method:'POST',headers:{origin,cookie:`fcf_session=${token}`,'content-type':'application/json'},body:JSON.stringify({apiAction,payload:p})}),env);
+  const state=()=>Object.fromEntries(['financial_write_claims','correction_audit','balance_history','obligation_payments','ledger_movements','household_revisions'].map(table=>[table,query(raw,table)]));
+  for(const entityType of ['balance','obligationPayment','ledgerMovement','goal']){
+    const before=state();
+    const preview=await (await api('correctionPreview',{entityType,entityId:'old-client-id'})).json();
+    assert.equal(preview.ok,false);assert.deepEqual(state(),before);
+    const commit=await (await api('write',{action:'correctRecord',entityType,entityId:'old-client-id',correctedValues:{amount:1},reason:'Synthetic evidence'})).json();
+    assert.equal(commit.ok,false);assert.deepEqual(state(),before);
+  }
+});

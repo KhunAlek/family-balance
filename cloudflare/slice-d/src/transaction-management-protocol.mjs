@@ -41,16 +41,20 @@ function disabledEligibility(transaction,operation) {
   return { eligible:false, operation, kind:transaction.kind, refusalCodes:[MANAGEMENT_DISABLED_CODE] };
 }
 
-export async function previewTransactionManagement(db,payload={},householdId='family') {
+export async function previewTransactionManagement(db,payload={},householdId='family',options={}) {
   const id=text(payload.logicalTransactionId), operation=validateOperation(payload.operation);
   if(!id) fail('INVALID_LOGICAL_TRANSACTION_ID','A logical transaction ID is required.');
   const tables=await loadTables(db), revision=revisionOf(tables,householdId);
   const transaction=findTransaction(buildTerminalTransactionReadModel(tables),id);
   if(!transaction) fail('TRANSACTION_NOT_FOUND','The logical transaction was not found.',404);
   if(transaction.identitySource!=='persisted'||!transaction.terminalVersion.id) fail('MANAGEMENT_IDENTITY_UNAVAILABLE','Persisted transaction identity is required.');
+  const eligibility=options.eligibility ? await options.eligibility({transaction,payload,tables,revision,householdId,nowIso:options.nowIso}) : disabledEligibility(transaction,operation);
+  let impact=null;
+  if(eligibility?.eligible&&options.buildPreview&&payload.semanticPayload) try { impact=await options.buildPreview({transaction,payload,tables,revision,householdId,nowIso:options.nowIso}); }
+  catch(error) { if(error?.code) fail(error.code,error.message,409); throw error; }
   return { ok:true,format:TRANSACTION_MANAGEMENT_PROTOCOL_FORMAT,correlationId:correlationId(payload.correlationId),logicalTransactionId:id,
     operation,baseRevision:revision,terminalVersionId:transaction.terminalVersion.id,terminalVersionNumber:transaction.terminalVersion.number,
-    lifecycle:transaction.lifecycle,kind:transaction.kind,eligibility:disabledEligibility(transaction,operation),commitRequired:{requestId:true,semanticPayload:true,baseRevision:true,terminalVersionId:true} };
+    lifecycle:transaction.lifecycle,kind:transaction.kind,eligibility,impact,commitRequired:{requestId:true,semanticPayload:true,baseRevision:true,terminalVersionId:true} };
 }
 
 function requireCommitPayload(payload) {
@@ -81,10 +85,13 @@ export async function executeTransactionManagementCommit(db,payload={},options={
   if(!transaction) fail('TRANSACTION_NOT_FOUND','The logical transaction was not found.',404);
   if(transaction.identitySource!=='persisted'||!transaction.terminalVersion.id) fail('MANAGEMENT_IDENTITY_UNAVAILABLE','Persisted transaction identity is required.');
   if(transaction.terminalVersion.id!==text(payload.terminalVersionId)) fail('STALE_TERMINAL_VERSION','The terminal transaction version changed; refresh the preview.',409);
-  const eligibility=options.testOnlyEligibility ? await options.testOnlyEligibility({transaction,payload}) : disabledEligibility(transaction,required.operation);
+  const eligibility=options.eligibility ? await options.eligibility({transaction,payload,tables,revision:authoritativeRevision,householdId,nowIso:options.nowIso}) : options.testOnlyEligibility ? await options.testOnlyEligibility({transaction,payload,tables,revision:authoritativeRevision,householdId,nowIso:options.nowIso}) : disabledEligibility(transaction,required.operation);
   if(!eligibility?.eligible) fail(eligibility?.refusalCodes?.[0]||'MANAGEMENT_NOT_ELIGIBLE','Transaction management is not enabled for this transaction.',409);
-  if(typeof options.testOnlyBuildReplacement!=='function') fail(MANAGEMENT_DISABLED_CODE,'Transaction management is not enabled in Step 7.',409);
-  const replacement=await options.testOnlyBuildReplacement({transaction,payload});
+  const builder=options.buildReplacement||options.testOnlyBuildReplacement;
+  if(typeof builder!=='function') fail(MANAGEMENT_DISABLED_CODE,'Transaction management is not enabled in Step 7.',409);
+  let replacement;
+  try { replacement=await builder({transaction,payload,tables,householdId,nowIso:options.nowIso}); }
+  catch(error) { if(error?.code) fail(error.code,error.message,409); throw error; }
   if(!replacement||!Array.isArray(replacement.factStatements)||!Array.isArray(replacement.components)||!replacement.businessDate||!replacement.kind) fail('INVALID_REPLACEMENT_PLAN','The replacement plan is incomplete.');
   const operationId=stableId('management-operation',required.logicalTransactionId,required.requestId);
   const versionId=stableId('transaction-version',required.logicalTransactionId,required.requestId);
@@ -94,7 +101,7 @@ export async function executeTransactionManagementCommit(db,payload={},options={
       if(ctx.baseRevision!==payload.baseRevision) throw new TransactionManagementProtocolError('STALE_MANAGEMENT_REVISION','The household revision changed; refresh the preview.',409);
       const nextVersion=transaction.terminalVersion.number+1;
       const impact=JSON.stringify(replacement.impactSummary||{});
-      const lifecycle=required.operation==='deleted'?'deleted':'active';
+      const lifecycle=replacement.lifecycle||(required.operation==='deleted'?'deleted':'active');
       const statements=[...replacement.factStatements,
         statement('INSERT INTO logical_transaction_versions(version_id,logical_transaction_id,version_number,kind,business_date,committed_revision,operation_type,management_operation_id) VALUES(?,?,?,?,?,?,?,?)',versionId,required.logicalTransactionId,nextVersion,replacement.kind,replacement.businessDate,ctx.nextRevision,required.operation,operationId),
         ...replacement.components.map(component=>statement('INSERT INTO logical_transaction_components(version_id,component_kind,component_id,component_role) VALUES(?,?,?,?)',versionId,component.kind,component.id,component.role)),

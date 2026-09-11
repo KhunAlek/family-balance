@@ -108,15 +108,15 @@ test('portable restore reconstructs identical protocol preview and receipt repla
   assert.deepEqual(restoredPreview,originalPreview);
 });
 
-test('Worker routes preview through auth/origin and rejects direct or old-client commits with zero writes',async t=>{
+test('Worker routes enabled one-off preview through auth/origin while invalid and old-client commits write nothing',async t=>{
   const {db,raw}=fixture(t),before=state(raw),origin='https://family.example';
   const env={DB:db,GOOGLE_CLIENT_ID:'client',APPROVED_GOOGLE_EMAILS:'alex@example.com',SESSION_SIGNING_KEY:'management-protocol-test-key-long-enough'};
   const token=await signSession({sub:'subject',email:'alex@example.com'},env,{jti:'management-route'});
   const request=(body,auth=true,requestOrigin=origin)=>new Request(`${origin}/api/action`,{method:'POST',headers:{origin:requestOrigin,'content-type':'application/json',...(auth?{cookie:`fcf_session=${token}`}:{})},body:JSON.stringify(body)});
   const preview=await handleFetch(request({apiAction:'transactionManagementPreview',payload:{logicalTransactionId:'managed-tx',operation:'corrected',correlationId:'route-preview'}}),env);
-  assert.equal(preview.status,200); assert.equal((await preview.json()).eligibility.eligible,false);
+  assert.equal(preview.status,200); assert.equal((await preview.json()).eligibility.eligible,true);
   const commit=await handleFetch(request({apiAction:'transactionManagementCommit',payload:payload()}),env);
-  assert.equal(commit.status,409); assert.equal((await commit.json()).code,MANAGEMENT_DISABLED_CODE);
+  assert.equal(commit.status,409); assert.equal((await commit.json()).code,'UNEXPECTED_ONE_OFF_FIELD');
   const oldClient=await handleFetch(request({apiAction:'write',payload:{action:'correctRecord',entityType:'balance',entityId:'1',correctedValues:{}}}),env);
   assert.equal(oldClient.status,200); assert.equal((await oldClient.json()).ok,false);
   assert.equal((await handleFetch(request({apiAction:'transactionManagementPreview'},false),env)).status,401);

@@ -22,6 +22,7 @@ import { runWeeklySnapshotJob } from './weekly-job.mjs';
 import { runPortableBackup } from './backup.mjs';
 import { runTransactionHistory, TransactionHistoryError } from './transaction-history.mjs';
 import { previewTransactionManagement, executeTransactionManagementCommit, TransactionManagementProtocolError } from './transaction-management-protocol.mjs';
+import { oneOffEligibility, buildOneOffPreview, buildOneOffReplacement } from './one-off-payment-management.mjs';
 import { runBalanceHistory, BalanceHistoryError } from './balance-history.mjs';
 import {
   DAILY_BALANCE_CRON,
@@ -156,10 +157,10 @@ async function handleFinancialAction(payload, identity, env, options = {}) {
       return jsonResponse(response);
     }
     if (payload.apiAction === 'transactionManagementPreview') {
-      return jsonResponse(await previewTransactionManagement(env.DB, payload.payload || {}, 'family'));
+      return jsonResponse(await previewTransactionManagement(env.DB, payload.payload || {}, 'family', {eligibility:oneOffEligibility,buildPreview:buildOneOffPreview}));
     }
     if (payload.apiAction === 'transactionManagementCommit') {
-      return jsonResponse(await executeTransactionManagementCommit(env.DB, payload.payload || {}, { householdId:'family', actorEmail:identity.email }));
+      return jsonResponse(await executeTransactionManagementCommit(env.DB, payload.payload || {}, { householdId:'family', actorEmail:identity.email,eligibility:oneOffEligibility,buildReplacement:buildOneOffReplacement }));
     }
     if (payload.apiAction === 'getOtherIncomeSources') return jsonResponse(await getOtherIncomeSources(env.DB,payload.payload||{}));
     if(payload.apiAction==='getFixedExpenses')return jsonResponse(await getFixedExpenses(env.DB));

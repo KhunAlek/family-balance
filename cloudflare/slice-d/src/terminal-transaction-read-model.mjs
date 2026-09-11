@@ -44,6 +44,12 @@ function disabledActions(code = READ_MODEL_REFUSAL_CODES.MANAGEMENT_NOT_ENABLED)
   const refusal = Object.freeze([code]);
   return { correct: false, delete: false, restore: false, undo: false, refusalCodes: refusal };
 }
+function persistedActions(kind,lifecycle,auditCount) {
+  if(kind!=='one_off_payment') return disabledActions();
+  return lifecycle==='deleted'
+    ? {correct:false,delete:false,restore:true,undo:auditCount>0,refusalCodes:[]}
+    : {correct:true,delete:true,restore:false,undo:auditCount>0,refusalCodes:[]};
+}
 
 function componentDto(component) {
   return { kind: text(component.component_kind), id: text(component.component_id), role: text(component.component_role) };
@@ -142,7 +148,8 @@ function resolveIdentityTransactions(tables) {
     const terminal = versions.get(text(transaction.terminal_version_id));
     if (!terminal) fail('MISSING_TERMINAL_VERSION', `Logical transaction ${logicalId} points to a missing terminal version.`);
     if (text(terminal.logical_transaction_id) !== logicalId || terminal !== chain.at(-1)) fail('CROSSED_TERMINAL_POINTER', `Logical transaction ${logicalId} terminal pointer is crossed or not latest.`);
-    if ((transaction.lifecycle_status === 'deleted') !== (terminal.operation_type === 'deleted')) fail('INVALID_LIFECYCLE_OPERATION', `Logical transaction ${logicalId} lifecycle conflicts with its terminal operation.`);
+    const terminalMeansDeleted=terminal.operation_type==='deleted'||(terminal.operation_type==='undone'&&chain.length>2&&chain.at(-3).operation_type==='deleted');
+    if ((transaction.lifecycle_status === 'deleted') !== terminalMeansDeleted) fail('INVALID_LIFECYCLE_OPERATION', `Logical transaction ${logicalId} lifecycle conflicts with its terminal operation.`);
     const auditChain = [];
     chain.forEach((version, index) => {
       usedVersions.add(text(version.version_id));
@@ -170,7 +177,7 @@ function resolveIdentityTransactions(tables) {
     const facts = reconstructTerminal(terminal, terminalComponents, indexes, householdId);
     result.push({ logicalTransactionId: logicalId, identitySource: 'persisted', lifecycle: text(transaction.lifecycle_status), ...facts,
       terminalVersion: { id: text(terminal.version_id), number: Number(terminal.version_number), operationType: text(terminal.operation_type) },
-      components: terminalComponents.map(componentDto), creationEvidence: creationEvidence(transaction), auditSummary: { operationCount: auditChain.length, operations: auditChain }, reconciliationState: terminalComponents.some(row => row.component_kind === 'balance_effect') ? 'typed_effect_linked' : 'not_linked', permittedActions: disabledActions() });
+      components: terminalComponents.map(componentDto), creationEvidence: creationEvidence(transaction), auditSummary: { operationCount: auditChain.length, operations: auditChain }, reconciliationState: terminalComponents.some(row => row.component_kind === 'balance_effect') ? 'typed_effect_linked' : 'not_linked', permittedActions:persistedActions(text(terminal.kind),text(transaction.lifecycle_status),auditChain.length) });
   }
   for (const version of tables.logical_transaction_versions) if (!tables.logical_transactions.some(tx => text(tx.logical_transaction_id) === text(version.logical_transaction_id))) fail('ORPHAN_VERSION', `Version ${version.version_id} has no logical transaction.`);
   for (const version of tables.logical_transaction_versions) if (!usedVersions.has(text(version.version_id))) fail('ORPHAN_VERSION', `Version ${version.version_id} is outside a resolved chain.`);

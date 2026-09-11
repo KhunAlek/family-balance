@@ -54,7 +54,7 @@ test('canonical model resolves terminal versions, complete allocations, audit, a
   assert.equal(current.auditSummary.operationCount, 1);
   assert.equal(current.auditSummary.operations[0].priorVersionId, 'tx-active-v1');
   assert.equal(current.permittedActions.correct, false);
-  assert.ok(current.permittedActions.refusalCodes.includes('MANAGEMENT_NOT_ENABLED_STEP_4'));
+  assert.ok(current.permittedActions.refusalCodes.includes('MANAGEMENT_NOT_ENABLED_STEP_7'));
   assert.equal(model.activeTransactions.some(item => item.logicalTransactionId === deleted.tx), false);
   assert.equal(model.deletedTransactions.some(item => item.logicalTransactionId === deleted.tx), true);
 });

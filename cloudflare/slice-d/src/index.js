@@ -21,6 +21,7 @@ import {
 import { runWeeklySnapshotJob } from './weekly-job.mjs';
 import { runPortableBackup } from './backup.mjs';
 import { runTransactionHistory, TransactionHistoryError } from './transaction-history.mjs';
+import { previewTransactionManagement, executeTransactionManagementCommit, TransactionManagementProtocolError } from './transaction-management-protocol.mjs';
 import { runBalanceHistory, BalanceHistoryError } from './balance-history.mjs';
 import {
   DAILY_BALANCE_CRON,
@@ -154,6 +155,12 @@ async function handleFinancialAction(payload, identity, env, options = {}) {
       const { response } = await runBalanceHistory(env.DB, payload.payload || {}, 'family');
       return jsonResponse(response);
     }
+    if (payload.apiAction === 'transactionManagementPreview') {
+      return jsonResponse(await previewTransactionManagement(env.DB, payload.payload || {}, 'family'));
+    }
+    if (payload.apiAction === 'transactionManagementCommit') {
+      return jsonResponse(await executeTransactionManagementCommit(env.DB, payload.payload || {}, { householdId:'family', actorEmail:identity.email }));
+    }
     if (payload.apiAction === 'getOtherIncomeSources') return jsonResponse(await getOtherIncomeSources(env.DB,payload.payload||{}));
     if(payload.apiAction==='getFixedExpenses')return jsonResponse(await getFixedExpenses(env.DB));
     if(payload.apiAction==='previewFixedExpense')return jsonResponse(await previewFixedExpense(env.DB,payload.payload||{}));
@@ -198,6 +205,9 @@ async function handleFinancialAction(payload, identity, env, options = {}) {
     }
     if (error instanceof BalanceHistoryError) {
       return jsonResponse({ ok: false, code: error.code, error: error.message, restartRequired: error.restartRequired }, error.code === 'STALE_BALANCE_HISTORY_QUERY' ? 409 : 400);
+    }
+    if (error instanceof TransactionManagementProtocolError) {
+      return jsonResponse({ ok:false, code:error.code, error:error.message }, error.status);
     }
     if (NOTIFICATION_ACTIONS.has(String(payload?.apiAction || ''))) {
       const message = String(error?.message || 'Notification action failed.');

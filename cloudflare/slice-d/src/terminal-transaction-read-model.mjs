@@ -4,7 +4,7 @@ import { classifyHistoricalRows } from './historical-preflight.mjs';
 export const TERMINAL_TRANSACTION_READ_MODEL_FORMAT = 'family-cash-flow-terminal-transactions-v1';
 
 export const READ_MODEL_REFUSAL_CODES = Object.freeze({
-  MANAGEMENT_NOT_ENABLED: 'MANAGEMENT_NOT_ENABLED_STEP_4',
+  MANAGEMENT_NOT_ENABLED: 'MANAGEMENT_NOT_ENABLED_STEP_7',
   AMBIGUOUS_LEGACY_ITEM: 'AMBIGUOUS_LEGACY_ITEM',
 });
 

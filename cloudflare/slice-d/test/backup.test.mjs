@@ -53,3 +53,49 @@ test('daily backup writes environment-specific portable JSON, preserves weekly s
   assert.equal(restored.prepare("SELECT COUNT(*) AS n FROM obligations WHERE recurrence_type='weekly' AND due_weekday=3 AND due_day IS NULL").get().n, 1);
   assert.equal(restored.prepare('PRAGMA foreign_key_check').all().length, 0);
 });
+
+test('portable backup and isolated restore round-trip transaction identity relationships and triggers', async () => {
+  const { db, raw } = createSeededSqliteD1();
+  for (const name of [
+    '0006_new_functionality.sql','0007_reporting_cycles.sql','0008_other_income.sql',
+    '0009_typed_payment_effect.sql','0010_historical_one_offs.sql','0011_fixed_expenses.sql',
+    '0012_fixed_expense_weekly.sql','0013_transaction_identity.sql',
+  ]) raw.exec(fs.readFileSync(new URL(`../migrations/${name}`, import.meta.url), 'utf8'));
+  raw.exec(`BEGIN TRANSACTION;
+    INSERT INTO logical_transactions(logical_transaction_id,household_id,lifecycle_status,created_actor_email,created_at_utc,creation_request_id,creation_write_token,creation_committed_revision)
+      VALUES('backup-tx','family','active','alex@example.com','2026-09-11T12:00:00.000Z','backup-create','backup-write-1',1);
+    INSERT INTO logical_transaction_versions VALUES('backup-v1','backup-tx',1,'one_off_payment','2026-09-11',1,'created',NULL);
+    INSERT INTO logical_transaction_components VALUES('backup-v1','one_off_payment','backup-payment-1','primary');
+    UPDATE logical_transactions SET terminal_version_id='backup-v1' WHERE logical_transaction_id='backup-tx';
+    INSERT INTO logical_transaction_versions VALUES('backup-v2','backup-tx',2,'one_off_payment','2026-09-10',2,'corrected','backup-op');
+    INSERT INTO logical_transaction_components VALUES('backup-v2','one_off_payment','backup-payment-2','primary');
+    INSERT INTO transaction_management_audit VALUES('backup-op','corrected','backup-tx','backup-v1','backup-v2','olga@example.com','2026-09-11T12:05:00.000Z','date_fix',NULL,'backup-request-2','bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',1,2,'backup-write-2','{"businessDate":"2026-09-10"}');
+    UPDATE logical_transactions SET terminal_version_id='backup-v2' WHERE logical_transaction_id='backup-tx';
+    COMMIT;`);
+
+  const bucket = new MemoryBucket();
+  const output = await runPortableBackup(db, bucket, {
+    environment: 'staging', retentionDays: 35, createdAt: '2026-09-11T13:00:00.000Z',
+  });
+  const stored = JSON.parse(bucket.objects.get(output.key).value);
+  assert.equal(await verifyPortableBackup(stored), true);
+  assert.deepEqual(stored.integrity.rowCounts.logical_transactions, 1);
+  assert.deepEqual(stored.integrity.rowCounts.logical_transaction_versions, 2);
+  assert.deepEqual(stored.integrity.rowCounts.logical_transaction_components, 2);
+  assert.deepEqual(stored.integrity.rowCounts.transaction_management_audit, 1);
+
+  const restoreSql = await buildRestoreSql(stored, { includeSchema: true });
+  assert.match(restoreSql, /^BEGIN TRANSACTION;/);
+  assert.match(restoreSql, /COMMIT;\n$/);
+  const restored = new DatabaseSync(':memory:');
+  restored.exec('PRAGMA foreign_keys=ON;');
+  restored.exec(restoreSql);
+  for (const table of ['logical_transactions','logical_transaction_versions','logical_transaction_components','transaction_management_audit']) {
+    assert.deepEqual(
+      restored.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all(),
+      raw.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all(),
+    );
+  }
+  assert.equal(restored.prepare('PRAGMA foreign_key_check').all().length, 0);
+  assert.throws(() => restored.prepare("UPDATE transaction_management_audit SET reason_code='x' WHERE operation_id='backup-op'").run(), /immutable/i);
+});

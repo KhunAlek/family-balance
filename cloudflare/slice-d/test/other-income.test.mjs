@@ -8,7 +8,7 @@ import {buildPortableBackup,verifyPortableBackup} from '../src/backup.mjs';
 import {buildRestoreSql} from '../tools/portable-restore.mjs';
 const nowIso='2026-09-06T12:00:00.000Z';
 const rows=(raw,t)=>raw.prepare(`SELECT * FROM ${t} ORDER BY rowid`).all();
-function fixture(t){const f=createSeededSqliteD1();t.after(()=>f.raw.close());for(const n of ['0006_new_functionality.sql','0007_reporting_cycles.sql','0008_other_income.sql','0009_typed_payment_effect.sql','0010_historical_one_offs.sql','0011_fixed_expenses.sql','0012_fixed_expense_weekly.sql','0013_transaction_identity.sql','0014_one_off_management_lifecycle.sql','0015_other_income_receipt_parent.sql','0016_obligation_payment_management.sql'])f.raw.exec(fs.readFileSync(new URL('../migrations/'+n,import.meta.url),'utf8'));return f;}
+function fixture(t){const f=createSeededSqliteD1();t.after(()=>f.raw.close());for(const n of ['0006_new_functionality.sql','0007_reporting_cycles.sql','0008_other_income.sql','0009_typed_payment_effect.sql','0010_historical_one_offs.sql','0011_fixed_expenses.sql','0012_fixed_expense_weekly.sql','0013_transaction_identity.sql','0014_one_off_management_lifecycle.sql','0015_other_income_receipt_parent.sql','0016_obligation_payment_management.sql','0017_ktb_transfer_management.sql'])f.raw.exec(fs.readFileSync(new URL('../migrations/'+n,import.meta.url),'utf8'));return f;}
 const write=(db,action,payload,extra={})=>executeOtherIncomeWrite(db,{action,payload,nowIso,...extra});
 const add=(db,name='Tutoring',requestId='add')=>write(db,'addOtherIncomeSource',{name,requestId});
 const stable=['salary_cycle_state','salary_cycle_sources','weekly_snapshots','goals','ledger_movements','obligation_payments'];

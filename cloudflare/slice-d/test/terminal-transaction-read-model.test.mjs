@@ -5,7 +5,7 @@ import { BACKUP_TABLES } from '../src/backup.mjs';
 import { buildTerminalTransactionReadModel, runTerminalTransactionReadModel, serializeTerminalTransactionReadModel } from '../src/terminal-transaction-read-model.mjs';
 import { createSeededSqliteD1 } from '../../slice-c/test/sqlite-d1.mjs';
 
-const migrations = ['0006_new_functionality.sql','0007_reporting_cycles.sql','0008_other_income.sql','0009_typed_payment_effect.sql','0010_historical_one_offs.sql','0011_fixed_expenses.sql','0012_fixed_expense_weekly.sql','0013_transaction_identity.sql','0014_one_off_management_lifecycle.sql','0015_other_income_receipt_parent.sql','0016_obligation_payment_management.sql'];
+const migrations = ['0006_new_functionality.sql','0007_reporting_cycles.sql','0008_other_income.sql','0009_typed_payment_effect.sql','0010_historical_one_offs.sql','0011_fixed_expenses.sql','0012_fixed_expense_weekly.sql','0013_transaction_identity.sql','0014_one_off_management_lifecycle.sql','0015_other_income_receipt_parent.sql','0016_obligation_payment_management.sql','0017_ktb_transfer_management.sql'];
 function fixture(t) {
   const value = createSeededSqliteD1(); t.after(() => value.raw.close());
   for (const name of migrations) value.raw.exec(fs.readFileSync(new URL(`../migrations/${name}`, import.meta.url), 'utf8'));
@@ -100,7 +100,7 @@ test('missing, crossed, duplicate, unsupported, and incomplete chains fail close
     value.logical_transactions[0].terminal_version_id = 'other-v1';
   }, 'CROSSED_TERMINAL_POINTER');
   check(value => { value.logical_transaction_versions.push({ ...value.logical_transaction_versions[0] }); }, 'DUPLICATE_VERSION_ID');
-  check(value => { value.logical_transaction_versions[0].kind = 'ktb_transfer'; }, 'UNSUPPORTED_TRANSACTION_KIND');
+  check(value => { value.logical_transaction_versions[0].kind = 'ktb_transfer'; }, 'INCOMPLETE_TYPED_COMPONENTS');
   check(value => { value.logical_transaction_components = value.logical_transaction_components.filter(item => item.component_kind !== 'one_off_payment_allocation'); }, 'INCOMPLETE_TYPED_COMPONENTS');
   check(value => { value.logical_transaction_components.push({ ...value.logical_transaction_components[0], version_id: value.logical_transaction_components[0].version_id }); }, 'DUPLICATE_COMPONENT_OWNERSHIP');
 });

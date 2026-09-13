@@ -193,7 +193,18 @@ function planKTBTransfer(ctx) {
   if(!source||!destination||source===destination)fail('Choose two different KTB accounts.');
   const movement=validateMovementDate(ctx.payload.date,ctx.snapshot,ctx.nowIso);let alex=movement.latest.alex,olga=movement.latest.olga;
   if(source==='Alex'){if(amount>alex+0.001)fail('Transfer amount exceeds Alex KTB balance.');alex=round2(alex-amount);olga=round2(olga+amount)}else{if(amount>olga+0.001)fail('Transfer amount exceeds Olga KTB balance.');olga=round2(olga-amount);alex=round2(alex+amount)}
-  return {statements:[balanceInsert(ctx,1,{date:movement.date,alex,olga,oneOffName:`KTB transfer ${source} to ${destination}`})],response:{amount,source,destination,balances:{alex,olga},combined:round2(alex+olga)}};
+  const statements=[balanceInsert(ctx,1,{date:movement.date,alex,olga,oneOffName:`KTB transfer ${source} to ${destination}`})];
+  let logicalTransactionId;
+  if(ctx.snapshot.ktbTransferManagementEnabled){
+    const transferId=`${ctx.writeToken}:ktb-transfer`,versionId=`${ctx.writeToken}:ktb-transfer-version`;logicalTransactionId=`${ctx.writeToken}:ktb-transfer-transaction`;
+    statements.push(statement("INSERT INTO ktb_transfers(transfer_id,household_id,business_date,amount_satang,source_account,destination_account,balance_effect_id) SELECT ?,?,?,?,?,?,balance_row_id FROM balance_history WHERE household_id=? AND source_sheet='Cloudflare' AND source_row=?",transferId,ctx.householdId,movement.date,toSatang(amount),source,destination,ctx.householdId,ctx.nextRevision*100+1));
+    const evidence=ctx.actorEmail?[ctx.actorEmail,ctx.nowIso,ctx.payload.requestId,ctx.writeToken,ctx.nextRevision]:[null,null,null,null,null];
+    statements.push(statement('INSERT INTO logical_transactions(logical_transaction_id,household_id,lifecycle_status,created_actor_email,created_at_utc,creation_request_id,creation_write_token,creation_committed_revision) VALUES(?,?,?,?,?,?,?,?)',logicalTransactionId,ctx.householdId,'active',...evidence));
+    statements.push(statement("INSERT INTO logical_transaction_versions(version_id,logical_transaction_id,version_number,kind,business_date,committed_revision,operation_type,management_operation_id) VALUES(?,?,1,'ktb_transfer',?,?,'created',NULL)",versionId,logicalTransactionId,movement.date,ctx.nextRevision));
+    statements.push(statement("INSERT INTO logical_transaction_components VALUES(?,'balance_effect',(SELECT CAST(balance_effect_id AS TEXT) FROM ktb_transfers WHERE transfer_id=?),'cash_effect')",versionId,transferId));
+    statements.push(statement('UPDATE logical_transactions SET terminal_version_id=? WHERE logical_transaction_id=?',versionId,logicalTransactionId));
+  }
+  return {statements,response:{amount,source,destination,balances:{alex,olga},combined:round2(alex+olga),...(logicalTransactionId?{logicalTransactionId}:{})}};
 }
 function planAddGoal(ctx) {
   const name=String(ctx.payload.name||'').trim(),targetAmount=positiveAmount(ctx.payload.targetAmount,'Target amount');

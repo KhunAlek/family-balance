@@ -45,7 +45,7 @@ function disabledActions(code = READ_MODEL_REFUSAL_CODES.MANAGEMENT_NOT_ENABLED)
   return { correct: false, delete: false, restore: false, undo: false, refusalCodes: refusal };
 }
 function persistedActions(kind,lifecycle,auditCount) {
-  if(kind!=='one_off_payment'&&kind!=='other_income_receipt'&&kind!=='obligation_payment') return disabledActions();
+  if(kind!=='one_off_payment'&&kind!=='other_income_receipt'&&kind!=='obligation_payment'&&kind!=='ktb_transfer') return disabledActions();
   return lifecycle==='deleted'
     ? {correct:false,delete:false,restore:true,undo:auditCount>0,refusalCodes:[]}
     : {correct:true,delete:true,restore:false,undo:auditCount>0,refusalCodes:[]};
@@ -72,7 +72,17 @@ function factualIndexes(tables) {
     categories: indexUnique(tables.one_off_categories, 'category_id', 'DUPLICATE_TYPED_FACT'),
     allocations,
     obligationAllocations:new Map(tables.obligation_payment_allocations.map(row=>[`${row.payment_id}:${row.account}`,row])),
+    ktbTransfers:indexUnique(tables.ktb_transfers,'transfer_id','DUPLICATE_TYPED_FACT'),
   };
+}
+
+function reconstructKtbTransfer(base,components,indexes,householdId){
+  const effects=components.filter(x=>x.component_kind==='balance_effect'&&x.component_role==='cash_effect');
+  if(effects.length!==1||components.length!==1)fail('INCOMPLETE_TYPED_COMPONENTS','KTB transfer requires one cash effect with one typed parent.');
+  const effect=indexes.balances.get(text(effects[0].component_id)),matches=[...indexes.ktbTransfers.values()].filter(x=>text(x.balance_effect_id)===text(effect?.balance_row_id)),transfer=matches[0];
+  if(matches.length!==1)fail('INVALID_TYPED_TRANSFER','KTB transfer cash effect has no unique typed parent.');
+  if(!transfer||text(transfer.household_id)!==householdId||!effect||text(transfer.balance_effect_id)!==text(effect.balance_row_id)||text(transfer.business_date)!==base.businessDate||!positiveInteger(transfer.amount_satang)||!['Alex','Olga'].includes(transfer.source_account)||!['Alex','Olga'].includes(transfer.destination_account)||transfer.source_account===transfer.destination_account)fail('INVALID_TYPED_TRANSFER','KTB transfer typed facts are invalid.');
+  return{...base,totalSatang:Number(transfer.amount_satang),direction:'internal_movement',allocations:[{account:text(transfer.source_account),amountSatang:-Number(transfer.amount_satang)},{account:text(transfer.destination_account),amountSatang:Number(transfer.amount_satang)}],source:text(transfer.source_account),payee:text(transfer.destination_account)};
 }
 
 function reconstructObligation(base,components,indexes,householdId){
@@ -130,6 +140,7 @@ function reconstructTerminal(version, components, indexes, householdId) {
   if (version.kind === 'one_off_payment') return reconstructOneOff(base, components, indexes, householdId);
   if (version.kind === 'other_income_receipt' || version.kind === 'salary_receipt') return reconstructIncome(base, components, indexes, householdId);
   if(version.kind==='obligation_payment')return reconstructObligation(base,components,indexes,householdId);
+  if(version.kind==='ktb_transfer')return reconstructKtbTransfer(base,components,indexes,householdId);
   fail('UNSUPPORTED_TRANSACTION_KIND', `Transaction kind ${version.kind} is not reconstructable from current typed relationships.`);
 }
 

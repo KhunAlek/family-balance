@@ -1,6 +1,6 @@
 export async function loadFinancialSnapshot(db, householdId = 'family') {
   if (!db || typeof db.prepare !== 'function') throw new Error('D1 binding is unavailable.');
-  const [schema]=await db.batch([db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('logical_transactions','logical_transaction_versions','logical_transaction_components','obligation_payment_allocations')")]);
+  const [schema]=await db.batch([db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('logical_transactions','logical_transaction_versions','logical_transaction_components','obligation_payment_allocations','ktb_transfers')")]);
   const schemaNames=new Set((schema.results||[]).map(row=>row.name)),identityEnabled=['logical_transactions','logical_transaction_versions','logical_transaction_components'].every(name=>schemaNames.has(name));
   const statements = [
     db.prepare('SELECT config_key,value_text,value_integer,value_satang FROM configuration WHERE household_id=? ORDER BY config_key').bind(householdId),
@@ -51,6 +51,7 @@ export async function loadFinancialSnapshot(db, householdId = 'family') {
     correctionAudits: rows(11),
     obligationOccurrences: rows(13),
     ...(rows(14).length?{obligationPaymentManagementEnabled:true}:{}),
+    ...(schemaNames.has('ktb_transfers')?{ktbTransferManagementEnabled:true}:{}),
     logicalTransactions:rows(15),logicalTransactionVersions:rows(16),logicalTransactionComponents:rows(17)
   };
 }

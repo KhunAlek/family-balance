@@ -10,7 +10,7 @@ import { buildRestoreSql } from '../tools/portable-restore.mjs';
 import { signSession } from '../src/auth.mjs';
 import { handleFetch } from '../src/index.js';
 
-const migrations=['0006_new_functionality.sql','0007_reporting_cycles.sql','0008_other_income.sql','0009_typed_payment_effect.sql','0010_historical_one_offs.sql','0011_fixed_expenses.sql','0012_fixed_expense_weekly.sql','0013_transaction_identity.sql','0014_one_off_management_lifecycle.sql','0015_other_income_receipt_parent.sql'];
+const migrations=['0006_new_functionality.sql','0007_reporting_cycles.sql','0008_other_income.sql','0009_typed_payment_effect.sql','0010_historical_one_offs.sql','0011_fixed_expenses.sql','0012_fixed_expense_weekly.sql','0013_transaction_identity.sql','0014_one_off_management_lifecycle.sql','0015_other_income_receipt_parent.sql','0016_obligation_payment_management.sql'];
 function fixture(t) {
   const value=createSeededSqliteD1(); t.after(()=>value.raw.close());
   for(const name of migrations)value.raw.exec(fs.readFileSync(new URL(`../migrations/${name}`,import.meta.url),'utf8'));

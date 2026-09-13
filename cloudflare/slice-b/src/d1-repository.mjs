@@ -1,5 +1,7 @@
 export async function loadFinancialSnapshot(db, householdId = 'family') {
   if (!db || typeof db.prepare !== 'function') throw new Error('D1 binding is unavailable.');
+  const [schema]=await db.batch([db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('logical_transactions','logical_transaction_versions','logical_transaction_components','obligation_payment_allocations')")]);
+  const schemaNames=new Set((schema.results||[]).map(row=>row.name)),identityEnabled=['logical_transactions','logical_transaction_versions','logical_transaction_components'].every(name=>schemaNames.has(name));
   const statements = [
     db.prepare('SELECT config_key,value_text,value_integer,value_satang FROM configuration WHERE household_id=? ORDER BY config_key').bind(householdId),
     db.prepare('SELECT current_cycle_start,next_salary_date,salary_receipt_cutover_date,variables_target_satang,ef_cycle_commitment_satang FROM salary_cycle_state WHERE household_id=?').bind(householdId),
@@ -14,7 +16,11 @@ export async function loadFinancialSnapshot(db, householdId = 'family') {
     db.prepare('SELECT cycle_start,source FROM salary_cycle_sources WHERE household_id=? ORDER BY cycle_start,source').bind(householdId),
     db.prepare("SELECT correction_id,entity_type,entity_id,before_json,after_json,reason,actor_email,corrected_at,base_revision,write_token FROM correction_audit WHERE household_id=? AND entity_type='ledger_movement' ORDER BY corrected_at,correction_id").bind(householdId),
     db.prepare("SELECT name FROM sqlite_master WHERE type IN ('table','trigger') AND name IN ('reporting_salary_cycles','other_income_sources','immutable_one_off_payment','fixed_expense_management_enabled')"),
-    db.prepare('SELECT * FROM obligation_occurrences WHERE household_id=? ORDER BY due_date,occurrence_id').bind(householdId)
+    db.prepare('SELECT * FROM obligation_occurrences WHERE household_id=? ORDER BY due_date,occurrence_id').bind(householdId),
+    db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='obligation_payment_allocations'"),
+    identityEnabled?db.prepare('SELECT * FROM logical_transactions WHERE household_id=? ORDER BY logical_transaction_id').bind(householdId):db.prepare('SELECT NULL AS logical_transaction_id WHERE 0'),
+    identityEnabled?db.prepare('SELECT * FROM logical_transaction_versions ORDER BY logical_transaction_id,version_number'):db.prepare('SELECT NULL AS version_id WHERE 0'),
+    identityEnabled?db.prepare('SELECT * FROM logical_transaction_components ORDER BY version_id,component_kind,component_id'):db.prepare('SELECT NULL AS version_id WHERE 0')
   ];
   const results = await db.batch(statements);
   const rows = index => results[index]?.results || [];
@@ -43,6 +49,8 @@ export async function loadFinancialSnapshot(db, householdId = 'family') {
     weeklySnapshots: rows(9),
     salaryCycleSources: rows(10),
     correctionAudits: rows(11),
-    obligationOccurrences: rows(13)
+    obligationOccurrences: rows(13),
+    ...(rows(14).length?{obligationPaymentManagementEnabled:true}:{}),
+    logicalTransactions:rows(15),logicalTransactionVersions:rows(16),logicalTransactionComponents:rows(17)
   };
 }

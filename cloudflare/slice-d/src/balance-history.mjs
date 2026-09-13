@@ -120,7 +120,7 @@ function effectDto(row, linked, receiptsByBalanceRow) {
   const valid = !!transaction;
   return {
     entryType: 'transaction_balance_effect', balanceRowId: Number(row.balance_row_id), businessDate: text(row.business_date), orderingKey: orderKey(row),
-    immutable: true, typedEvidence: row.one_off_payment_id !== null && row.one_off_payment_id !== undefined
+    immutable: true, typedEvidence: row.obligation_payment_id!==null&&row.obligation_payment_id!==undefined?{kind:'obligation_payment_id',ids:[text(row.obligation_payment_id)]}:row.one_off_payment_id !== null && row.one_off_payment_id !== undefined
       ? { kind: 'one_off_payment_id', ids: [text(row.one_off_payment_id)] }
       : { kind: 'income_receipt_source_balance_row_id', ids: [...receiptIds].sort(compare) },
     transactionLink: valid ? { status: 'linked', logicalTransactionId: transaction.logicalTransactionId, lifecycle: transaction.lifecycle, terminalVersionId: transaction.terminalVersion.id } : { status: 'unlinked', logicalTransactionId: null, reasonCode: 'NO_CANONICAL_TYPED_COMPONENT' },
@@ -181,7 +181,7 @@ export async function buildBalanceHistory(tables, payload = {}, householdId = 'f
     const key = text(receipt.source_balance_row_id), list = receiptsByBalanceRow.get(key) || [];
     list.push(text(receipt.receipt_id)); receiptsByBalanceRow.set(key, list);
   }
-  const isEffect = row => row.one_off_payment_id !== null && row.one_off_payment_id !== undefined || receiptsByBalanceRow.has(text(row.balance_row_id));
+  const isEffect = row => row.one_off_payment_id !== null && row.one_off_payment_id !== undefined || row.obligation_payment_id!==null&&row.obligation_payment_id!==undefined || receiptsByBalanceRow.has(text(row.balance_row_id));
   const observations = rows.filter(row => !isEffect(row));
   const effects = rows.filter(isEffect);
   const timeline = rows.map(row => isEffect(row) ? effectDto(row, linked, receiptsByBalanceRow) : observationDto(row));

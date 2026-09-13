@@ -45,7 +45,7 @@ function disabledActions(code = READ_MODEL_REFUSAL_CODES.MANAGEMENT_NOT_ENABLED)
   return { correct: false, delete: false, restore: false, undo: false, refusalCodes: refusal };
 }
 function persistedActions(kind,lifecycle,auditCount) {
-  if(kind!=='one_off_payment'&&kind!=='other_income_receipt') return disabledActions();
+  if(kind!=='one_off_payment'&&kind!=='other_income_receipt'&&kind!=='obligation_payment') return disabledActions();
   return lifecycle==='deleted'
     ? {correct:false,delete:false,restore:true,undo:auditCount>0,refusalCodes:[]}
     : {correct:true,delete:true,restore:false,undo:auditCount>0,refusalCodes:[]};
@@ -66,11 +66,23 @@ function factualIndexes(tables) {
     payments: indexUnique(tables.one_off_payments, 'one_off_payment_id', 'DUPLICATE_TYPED_FACT'),
     receipts: indexUnique(tables.income_receipts, 'receipt_id', 'DUPLICATE_TYPED_FACT'),
     obligationPayments: indexUnique(tables.obligation_payments, 'payment_id', 'DUPLICATE_TYPED_FACT'),
+    obligationOccurrences: indexUnique(tables.obligation_occurrences,'occurrence_id','DUPLICATE_TYPED_FACT'),
     ledger: indexUnique(tables.ledger_movements, 'ledger_id', 'DUPLICATE_TYPED_FACT'),
     balances: indexUnique(tables.balance_history, 'balance_row_id', 'DUPLICATE_TYPED_FACT'),
     categories: indexUnique(tables.one_off_categories, 'category_id', 'DUPLICATE_TYPED_FACT'),
     allocations,
+    obligationAllocations:new Map(tables.obligation_payment_allocations.map(row=>[`${row.payment_id}:${row.account}`,row])),
   };
+}
+
+function reconstructObligation(base,components,indexes,householdId){
+  const primary=components.filter(x=>x.component_kind==='obligation_payment'&&x.component_role==='primary'),effects=components.filter(x=>x.component_kind==='balance_effect'&&x.component_role==='cash_effect');
+  if(primary.length!==1||effects.length!==1||components.length!==2)fail('INCOMPLETE_TYPED_COMPONENTS','Obligation payment requires one payment and one typed cash effect.');
+  const payment=indexes.obligationPayments.get(text(primary[0].component_id)),occurrence=payment&&indexes.obligationOccurrences.get(text(payment.occurrence_id)),rows=[...indexes.obligationAllocations.values()].filter(x=>text(x.payment_id)===text(payment?.payment_id)),effect=indexes.balances.get(text(effects[0].component_id));
+  if(!payment||text(payment.household_id)!==householdId||!occurrence||text(occurrence.household_id)!==householdId||text(payment.payment_date)!==base.businessDate)fail('MISSING_TYPED_FACT','Obligation payment or occurrence is unavailable.');
+  if(rows.some(x=>!x||text(x.payment_id)!==text(payment.payment_id)||!positiveInteger(x.amount_satang))||new Set(rows.map(x=>text(x.account))).size!==rows.length||rows.reduce((s,x)=>s+Number(x.amount_satang),0)!==Number(payment.actual_amount_satang))fail('INCOMPLETE_TYPED_COMPONENTS','Obligation payment allocations are invalid.');
+  if(!effect||text(effect.household_id)!==householdId||text(effect.obligation_payment_id)!==text(payment.payment_id))fail('INVALID_BALANCE_EFFECT','Obligation payment cash effect is invalid.');
+  return {...base,description:payment.note??null,payee:text(payment.obligation_name),category:occurrence.category?{id:null,name:text(occurrence.category)}:null,totalSatang:Number(payment.actual_amount_satang),direction:'money_out',allocations:rows.map(x=>({account:text(x.account),amountSatang:Number(x.amount_satang)})).sort((a,b)=>compare(a.account,b.account)),occurrence:{id:text(occurrence.occurrence_id),dueDate:text(occurrence.due_date),expectedAmountSatang:Number(occurrence.expected_amount_satang)}};
 }
 
 function commonBase(kind, businessDate, revision) {
@@ -117,6 +129,7 @@ function reconstructTerminal(version, components, indexes, householdId) {
   const base = commonBase(text(version.kind), text(version.business_date), version.committed_revision);
   if (version.kind === 'one_off_payment') return reconstructOneOff(base, components, indexes, householdId);
   if (version.kind === 'other_income_receipt' || version.kind === 'salary_receipt') return reconstructIncome(base, components, indexes, householdId);
+  if(version.kind==='obligation_payment')return reconstructObligation(base,components,indexes,householdId);
   fail('UNSUPPORTED_TRANSACTION_KIND', `Transaction kind ${version.kind} is not reconstructable from current typed relationships.`);
 }
 

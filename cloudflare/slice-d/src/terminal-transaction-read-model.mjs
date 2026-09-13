@@ -45,7 +45,7 @@ function disabledActions(code = READ_MODEL_REFUSAL_CODES.MANAGEMENT_NOT_ENABLED)
   return { correct: false, delete: false, restore: false, undo: false, refusalCodes: refusal };
 }
 function persistedActions(kind,lifecycle,auditCount) {
-  if(kind!=='one_off_payment') return disabledActions();
+  if(kind!=='one_off_payment'&&kind!=='other_income_receipt') return disabledActions();
   return lifecycle==='deleted'
     ? {correct:false,delete:false,restore:true,undo:auditCount>0,refusalCodes:[]}
     : {correct:true,delete:true,restore:false,undo:auditCount>0,refusalCodes:[]};
@@ -101,12 +101,14 @@ function reconstructOneOff(base, components, indexes, householdId) {
 
 function reconstructIncome(base, components, indexes, householdId) {
   const receipts = components.filter(item => item.component_kind === 'income_receipt' && item.component_role === 'receipt');
-  if (!receipts.length || receipts.length !== components.length) fail('INCOMPLETE_TYPED_COMPONENTS', `${base.kind} requires only one or more receipt components.`);
+  const effects = components.filter(item => item.component_kind === 'balance_effect' && item.component_role === 'cash_effect');
+  if (!receipts.length || (effects.length!==0&&effects.length!==receipts.length) || receipts.length+effects.length !== components.length) fail('INCOMPLETE_TYPED_COMPONENTS', `${base.kind} requires receipt components and, when linked, one cash effect per receipt.`);
   const rows = receipts.map(component => indexes.receipts.get(text(component.component_id)));
   if (rows.some(row => !row || text(row.household_id) !== householdId || text(row.business_date) !== base.businessDate || !positiveInteger(row.amount_satang))) fail('MISSING_TYPED_FACT', `${base.kind} has a missing or conflicting receipt.`);
   if (new Set(rows.map(row => text(row.lands_in))).size !== rows.length || new Set(rows.map(row => text(row.source))).size !== 1) fail('INCOMPLETE_TYPED_COMPONENTS', `${base.kind} receipts do not form one complete action.`);
   const isOther = rows.every(row => row.other_income_source_id !== null && row.other_income_source_id !== undefined);
   if ((base.kind === 'other_income_receipt') !== isOther) fail('INVALID_TYPED_FACT', `${base.kind} receipt class conflicts with its terminal version.`);
+  for(const effect of effects){const row=indexes.balances.get(text(effect.component_id));if(!row||text(row.household_id)!==householdId||!rows.some(receipt=>text(receipt.source_balance_row_id)===text(row.balance_row_id)))fail('INVALID_BALANCE_EFFECT',`${base.kind} has an invalid typed cash effect.`);}
   return { ...base, source: text(rows[0].source), totalSatang: rows.reduce((sum, row) => sum + Number(row.amount_satang), 0), direction: 'money_in', allocations: rows.map(row => ({ account: text(row.lands_in), amountSatang: Number(row.amount_satang) })).sort((a, b) => compare(a.account, b.account)) };
 }
 

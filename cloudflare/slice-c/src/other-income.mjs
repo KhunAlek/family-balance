@@ -61,15 +61,30 @@ export async function executeIncomeReceipt(db,options){
   const id=ctx.payload.otherIncomeSourceId;
   const definition=ctx.snapshot.incomeDefinitions.find(d=>d.source===ctx.payload.incomeSource);
   if(!id&&definition&&definition.pay_day!=='Variable')return planFinancialWrite(ctx);
+  if(!id)fail('Choose an explicit other-income source.');
   const data=await loadOtherIncome(primary(db),ctx.householdId),date=reportingDate(ctx.payload.date||bangkokBusinessDate(new Date(ctx.nowIso)));
-  const source=id?data.sources.find(s=>s.other_income_source_id===id):data.sources.find(s=>s.name===ctx.payload.incomeSource);
+  const source=data.sources.find(s=>s.other_income_source_id===id);
   if(!source||!otherIncomeActive(source,data.versions,date))fail('Other-income source is not active on the receipt date.');
   if(ctx.payload.incomeSource&&ctx.payload.incomeSource!==source.name)fail('Other-income source name and identity do not match.');
   const plan=await planFinancialWrite({...ctx,otherIncomeSource:source,payload:{...ctx.payload,incomeSource:source.name}});
   plan.statements.push(statement('UPDATE income_receipts SET other_income_source_id=? WHERE household_id=? AND receipt_id IN (?,?)',source.other_income_source_id,ctx.householdId,ctx.writeToken+':income:alex',ctx.writeToken+':income:olga'));
+  const allocations=[['Alex',ctx.payload.incomeAlexAmount,ctx.writeToken+':income:alex'],['Olga',ctx.payload.incomeOlgaAmount,ctx.writeToken+':income:olga']].filter(([,amount])=>Number(amount)>0).map(([account,amount,receiptId],index)=>({account,amountSatang:Math.round(Number(amount)*100),receiptId,sourceRow:ctx.nextRevision*100+index+1}));
+  const parentId=ctx.writeToken+':other-income-receipt',logicalId=ctx.writeToken+':other-income-transaction',versionId=ctx.writeToken+':other-income-version';
+  const totalSatang=allocations.reduce((sum,row)=>sum+row.amountSatang,0);
+  plan.statements.push(statement('INSERT INTO other_income_receipt_parents(other_income_receipt_id,household_id,other_income_source_id,business_date,total_satang,created_at_utc,request_id) VALUES(?,?,?,?,?,?,?)',parentId,ctx.householdId,source.other_income_source_id,date,totalSatang,ctx.nowIso,ctx.payload.requestId));
+  for(const row of allocations) plan.statements.push(statement('INSERT INTO other_income_receipt_allocations(other_income_receipt_id,receipt_id,account,amount_satang) VALUES(?,?,?,?)',parentId,row.receiptId,row.account,row.amountSatang));
+  const evidence=ctx.actorEmail?[ctx.actorEmail,ctx.nowIso,ctx.payload.requestId,ctx.writeToken,ctx.nextRevision]:[null,null,null,null,null];
+  plan.statements.push(statement('INSERT INTO logical_transactions(logical_transaction_id,household_id,lifecycle_status,created_actor_email,created_at_utc,creation_request_id,creation_write_token,creation_committed_revision) VALUES(?,?,?,?,?,?,?,?)',logicalId,ctx.householdId,'active',...evidence));
+  plan.statements.push(statement('INSERT INTO logical_transaction_versions(version_id,logical_transaction_id,version_number,kind,business_date,committed_revision,operation_type,management_operation_id) VALUES(?,?,1,?,?,?,\'created\',NULL)',versionId,logicalId,'other_income_receipt',date,ctx.nextRevision));
+  for(const row of allocations){
+   plan.statements.push(statement('INSERT INTO logical_transaction_components(version_id,component_kind,component_id,component_role) VALUES(?,\'income_receipt\',?,\'receipt\')',versionId,row.receiptId));
+   plan.statements.push(statement("INSERT INTO logical_transaction_components(version_id,component_kind,component_id,component_role) SELECT ?,'balance_effect',CAST(balance_row_id AS TEXT),'cash_effect' FROM balance_history WHERE household_id=? AND source_sheet='Cloudflare' AND source_row=?",versionId,ctx.householdId,row.sourceRow));
+  }
+  plan.statements.push(statement('UPDATE logical_transactions SET terminal_version_id=? WHERE logical_transaction_id=?',versionId,logicalId));
+  plan.response.logicalTransactionId=logicalId;
   return plan;
  };
- if(options.payload?.otherIncomeSourceId && options.payload?.requestId){
+ if(options.payload?.otherIncomeSourceId){
   const {requestId,...values}=options.payload;
   return executeRequestReceiptWrite(db,options,values,planWrite);
  }

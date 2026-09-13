@@ -84,7 +84,7 @@ export async function executeIncomeReceipt(db,options){
   plan.response.logicalTransactionId=logicalId;
   return plan;
  };
- if(options.payload?.otherIncomeSourceId){
+ if(options.payload?.requestId){
   const {requestId,...values}=options.payload;
   return executeRequestReceiptWrite(db,options,values,planWrite);
  }

@@ -24,6 +24,7 @@ export const BACKUP_TABLES = Object.freeze([
   'goals',
   'ledger_movements',
   'fund_movements',
+  'salary_receipt_parents',
   'weekly_snapshots',
   'financial_write_claims',
   'correction_audit',
@@ -42,6 +43,7 @@ const OTHER_INCOME_RECEIPT_TABLES=['other_income_receipt_parents','other_income_
 const OBLIGATION_PAYMENT_TABLES=['obligation_payment_allocations'];
 const KTB_TRANSFER_TABLES=['ktb_transfers'];
 const FUND_MOVEMENT_TABLES=['fund_movements'];
+const SALARY_RECEIPT_TABLES=['salary_receipt_parents'];
 const TRANSACTION_IDENTITY_TABLES = [
   'logical_transactions',
   'logical_transaction_versions',
@@ -111,7 +113,8 @@ export async function buildPortableBackup(db, options = {}) {
   if(obligationPaymentTableCount!==0 && (obligationPaymentTableCount!==OBLIGATION_PAYMENT_TABLES.length || identityTableCount!==TRANSACTION_IDENTITY_TABLES.length))throw new Error('Obligation-payment management schema is incomplete.');
   const [ktbInventory]=await db.batch([db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='ktb_transfers'")]);const ktbTableCount=rows(ktbInventory).length;if(ktbTableCount&&identityTableCount!==TRANSACTION_IDENTITY_TABLES.length)throw new Error('KTB-transfer management schema is incomplete.');
   const [fundInventory]=await db.batch([db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='fund_movements'")]);const fundTableCount=rows(fundInventory).length;if(fundTableCount&&identityTableCount!==TRANSACTION_IDENTITY_TABLES.length)throw new Error('Fund-movement management schema is incomplete.');
-  const includedTables = BACKUP_TABLES.filter(table => (categoryTableCount || !CATEGORY_TABLES.includes(table)) && (reportingTableCount || !REPORTING_TABLES.includes(table)) && (incomeTableCount || !OTHER_INCOME_TABLES.includes(table)) && (incomeReceiptTableCount || !OTHER_INCOME_RECEIPT_TABLES.includes(table)) && (obligationPaymentTableCount || !OBLIGATION_PAYMENT_TABLES.includes(table)) && (ktbTableCount || !KTB_TRANSFER_TABLES.includes(table)) && (fundTableCount || !FUND_MOVEMENT_TABLES.includes(table)) && (identityTableCount || !TRANSACTION_IDENTITY_TABLES.includes(table)));
+  const [salaryInventory]=await db.batch([db.prepare("SELECT name FROM sqlite_master WHERE (type='table' AND name='salary_receipt_parents') OR (type='trigger' AND name IN ('salary_receipt_parent_validate','salary_receipt_parent_immutable','salary_receipt_parent_delete_forbidden','salary_income_definition_update_forbidden','salary_income_definition_delete_forbidden'))")]);const salaryNames=new Set(rows(salaryInventory).map(row=>row.name)),salaryTableCount=salaryNames.has('salary_receipt_parents')?1:0;if(salaryTableCount&&identityTableCount!==TRANSACTION_IDENTITY_TABLES.length)throw new Error('Salary-receipt management schema is incomplete.');if(salaryTableCount&&salaryNames.size!==6)throw new Error('Salary-receipt management schema is incomplete.');
+  const includedTables = BACKUP_TABLES.filter(table => (categoryTableCount || !CATEGORY_TABLES.includes(table)) && (reportingTableCount || !REPORTING_TABLES.includes(table)) && (incomeTableCount || !OTHER_INCOME_TABLES.includes(table)) && (incomeReceiptTableCount || !OTHER_INCOME_RECEIPT_TABLES.includes(table)) && (obligationPaymentTableCount || !OBLIGATION_PAYMENT_TABLES.includes(table)) && (ktbTableCount || !KTB_TRANSFER_TABLES.includes(table)) && (fundTableCount || !FUND_MOVEMENT_TABLES.includes(table)) && (salaryTableCount || !SALARY_RECEIPT_TABLES.includes(table)) && (identityTableCount || !TRANSACTION_IDENTITY_TABLES.includes(table)));
   const statements = [
     db.prepare(`SELECT type,name,tbl_name,sql FROM sqlite_master WHERE sql IS NOT NULL AND type IN ('table','index','trigger') AND tbl_name IN (${schemaTableList}) AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' ORDER BY CASE type WHEN 'table' THEN 1 WHEN 'index' THEN 2 WHEN 'trigger' THEN 3 ELSE 4 END,name`),
     ...includedTables.map(table => db.prepare(`SELECT * FROM ${table} ORDER BY rowid`)),

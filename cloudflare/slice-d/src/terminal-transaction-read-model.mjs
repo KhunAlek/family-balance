@@ -45,7 +45,7 @@ function disabledActions(code = READ_MODEL_REFUSAL_CODES.MANAGEMENT_NOT_ENABLED)
   return { correct: false, delete: false, restore: false, undo: false, refusalCodes: refusal };
 }
 function persistedActions(kind,lifecycle,auditCount) {
-  if(kind!=='one_off_payment'&&kind!=='other_income_receipt'&&kind!=='obligation_payment'&&kind!=='ktb_transfer'&&kind!=='ef_movement'&&kind!=='goal_movement') return disabledActions();
+  if(kind!=='one_off_payment'&&kind!=='other_income_receipt'&&kind!=='obligation_payment'&&kind!=='ktb_transfer'&&kind!=='ef_movement'&&kind!=='goal_movement'&&kind!=='salary_receipt') return disabledActions();
   return lifecycle==='deleted'
     ? {correct:false,delete:false,restore:true,undo:auditCount>0,refusalCodes:[]}
     : {correct:true,delete:true,restore:false,undo:auditCount>0,refusalCodes:[]};
@@ -74,6 +74,7 @@ function factualIndexes(tables) {
     obligationAllocations:new Map(tables.obligation_payment_allocations.map(row=>[`${row.payment_id}:${row.account}`,row])),
     ktbTransfers:indexUnique(tables.ktb_transfers,'transfer_id','DUPLICATE_TYPED_FACT'),
     fundMovements:indexUnique(tables.fund_movements,'fund_movement_id','DUPLICATE_TYPED_FACT'),
+    salaryParents:indexUnique(tables.salary_receipt_parents,'salary_receipt_parent_id','DUPLICATE_TYPED_FACT'),
   };
 }
 
@@ -139,6 +140,12 @@ function reconstructIncome(base, components, indexes, householdId) {
   if (new Set(rows.map(row => text(row.lands_in))).size !== rows.length || new Set(rows.map(row => text(row.source))).size !== 1) fail('INCOMPLETE_TYPED_COMPONENTS', `${base.kind} receipts do not form one complete action.`);
   const isOther = rows.every(row => row.other_income_source_id !== null && row.other_income_source_id !== undefined);
   if ((base.kind === 'other_income_receipt') !== isOther) fail('INVALID_TYPED_FACT', `${base.kind} receipt class conflicts with its terminal version.`);
+  if(base.kind==='salary_receipt'){
+    const ids=new Set(rows.map(row=>text(row.receipt_id))),parents=[...indexes.salaryParents.values()].filter(parent=>[parent.alex_receipt_id,parent.olga_receipt_id].filter(Boolean).some(id=>ids.has(text(id))));
+    if(parents.length!==1)fail('INCOMPLETE_TYPED_COMPONENTS','Salary receipts require one immutable typed parent.');
+    const parent=parents[0],parentIds=[parent.alex_receipt_id,parent.olga_receipt_id].filter(Boolean).map(text);
+    if(text(parent.household_id)!==householdId||text(parent.business_date)!==base.businessDate||text(parent.source)!==text(rows[0].source)||parentIds.length!==ids.size||parentIds.some(id=>!ids.has(id))||Number(parent.total_satang)!==rows.reduce((sum,row)=>sum+Number(row.amount_satang),0))fail('INCOMPLETE_TYPED_COMPONENTS','Salary parent and receipt facts disagree.');
+  }
   for(const effect of effects){const row=indexes.balances.get(text(effect.component_id));if(!row||text(row.household_id)!==householdId||!rows.some(receipt=>text(receipt.source_balance_row_id)===text(row.balance_row_id)))fail('INVALID_BALANCE_EFFECT',`${base.kind} has an invalid typed cash effect.`);}
   return { ...base, source: text(rows[0].source), totalSatang: rows.reduce((sum, row) => sum + Number(row.amount_satang), 0), direction: 'money_in', allocations: rows.map(row => ({ account: text(row.lands_in), amountSatang: Number(row.amount_satang) })).sort((a, b) => compare(a.account, b.account)) };
 }

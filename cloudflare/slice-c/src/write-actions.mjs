@@ -122,6 +122,7 @@ function planIncomeReceipt(ctx) {
   const olgaAmount = nonNegativeAmount(payload.incomeOlgaAmount || 0, 'Amounts');
   const total = round2(alexAmount + olgaAmount);
   if (total <= 0) fail('At least one account amount must be greater than zero.');
+  if(!Number.isSafeInteger(toSatang(alexAmount))||!Number.isSafeInteger(toSatang(olgaAmount))||!Number.isSafeInteger(toSatang(total)))fail('Amounts must be safe integer satang.');
   const source = String(payload.incomeSource || '').trim();
   if (!source) fail('Income source is required.');
   const definition = configuredIncome(snapshot, source);
@@ -148,7 +149,25 @@ function planIncomeReceipt(ctx) {
   }
   const transition = ctx.otherIncomeSource ? { advanced:false, statements:[] } : planSalaryReceiptTransition(snapshot,movement.date,source,ctx.householdId);
   statements.push(...transition.statements);
-  return { statements, response:{ date:movement.date,alexBalance:alex,olgaBalance:olga,source,totalAmount:total,salaryCycleAdvanced:!!transition.advanced,nextSalaryDateRequired:!!transition.advanced } };
+  const response={ date:movement.date,alexBalance:alex,olgaBalance:olga,source,totalAmount:total,salaryCycleAdvanced:!!transition.advanced,nextSalaryDateRequired:!!transition.advanced };
+  if(snapshot.salaryReceiptManagementEnabled&&!ctx.otherIncomeSource){
+    if(!ctx.actorEmail)fail('Authenticated actor identity is required.');
+    if(typeof ctx.payload.requestId!=='string'||!ctx.payload.requestId.trim())fail('A stable request ID is required.');
+    if(!definition||definition.pay_day==='Variable')fail('SALARY_SOURCE_HISTORY_UNAVAILABLE');
+    const alexReceipt=alexAmount>0?`${ctx.writeToken}:income:alex`:null,olgaReceipt=olgaAmount>0?`${ctx.writeToken}:income:olga`:null;
+    const parentId=`${ctx.writeToken}:salary-parent`,logicalId=`${ctx.writeToken}:salary-transaction`,versionId=`${ctx.writeToken}:salary-version`;
+    const cycleStart=transition.newCycleStart||transition.cycleStart||isoDate(snapshot.salaryCycle?.current_cycle_start)||movement.date;
+    const prePlanning={currentCycleStart:isoDate(snapshot.salaryCycle?.current_cycle_start),nextSalaryDate:isoDate(snapshot.salaryCycle?.next_salary_date),variablesTargetSatang:snapshot.salaryCycle?.variables_target_satang??null,efCommitmentSatang:snapshot.salaryCycle?.ef_cycle_commitment_satang??null,goalCommitments:Object.fromEntries((snapshot.goals||[]).map(goal=>[goal.name,goal.cycle_commitment_satang??0]))};
+    const postPlanning=transition.advanced?{currentCycleStart:cycleStart,nextSalaryDate:null,variablesTargetSatang:null,efCommitmentSatang:ctx.snapshot.config?.ef_monthly_claim_cap_satang??1500000,goalCommitments:Object.fromEntries((snapshot.goals||[]).map(goal=>[goal.name,0]))}:prePlanning;
+    statements.push(statement(`INSERT INTO salary_receipt_parents(salary_receipt_parent_id,household_id,business_date,source,total_satang,alex_receipt_id,olga_receipt_id,cycle_start,opened_cycle,preceding_cycle_start,recorded_next_salary_date_before,source_evidence_revision,source_evidence_recorded_at_utc,pre_planning_json,post_planning_json)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,parentId,ctx.householdId,movement.date,source,toSatang(total),alexReceipt,olgaReceipt,cycleStart,transition.advanced?1:0,transition.advanced?isoDate(snapshot.salaryCycle?.current_cycle_start):null,isoDate(snapshot.salaryCycle?.next_salary_date),ctx.nextRevision,ctx.nowIso,JSON.stringify(prePlanning),JSON.stringify(postPlanning)));
+    statements.push(statement('INSERT INTO logical_transactions(logical_transaction_id,household_id,lifecycle_status,created_actor_email,created_at_utc,creation_request_id,creation_write_token,creation_committed_revision) VALUES(?,?,?,?,?,?,?,?)',logicalId,ctx.householdId,'active',ctx.actorEmail,ctx.nowIso,ctx.payload.requestId,ctx.writeToken,ctx.nextRevision));
+    statements.push(statement("INSERT INTO logical_transaction_versions(version_id,logical_transaction_id,version_number,kind,business_date,committed_revision,operation_type,management_operation_id) VALUES(?,?,1,'salary_receipt',?,?,'created',NULL)",versionId,logicalId,movement.date,ctx.nextRevision));
+    for(const [receiptId,sourceRow] of [[alexReceipt,ctx.nextRevision*100+1],[olgaReceipt,ctx.nextRevision*100+(alexAmount>0?2:1)]])if(receiptId){statements.push(statement("INSERT INTO logical_transaction_components(version_id,component_kind,component_id,component_role) VALUES(?,'income_receipt',?,'receipt')",versionId,receiptId));statements.push(statement("INSERT INTO logical_transaction_components(version_id,component_kind,component_id,component_role) SELECT ?,'balance_effect',CAST(balance_row_id AS TEXT),'cash_effect' FROM balance_history WHERE household_id=? AND source_sheet='Cloudflare' AND source_row=?",versionId,ctx.householdId,sourceRow));}
+    statements.push(statement('UPDATE logical_transactions SET terminal_version_id=? WHERE logical_transaction_id=?',versionId,logicalId));
+    response.logicalTransactionId=logicalId;
+  }
+  return { statements, response };
 }
 
 function planSetNextSalaryDate(ctx) {

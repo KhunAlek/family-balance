@@ -8,7 +8,7 @@ import {buildPortableBackup,verifyPortableBackup} from '../src/backup.mjs';
 import {buildRestoreSql} from '../tools/portable-restore.mjs';
 const nowIso='2026-09-06T12:00:00.000Z';
 const rows=(raw,t)=>raw.prepare(`SELECT * FROM ${t} ORDER BY rowid`).all();
-function fixture(t){const f=createSeededSqliteD1();t.after(()=>f.raw.close());for(const n of ['0006_new_functionality.sql','0007_reporting_cycles.sql','0008_other_income.sql','0009_typed_payment_effect.sql','0010_historical_one_offs.sql','0011_fixed_expenses.sql','0012_fixed_expense_weekly.sql','0013_transaction_identity.sql','0014_one_off_management_lifecycle.sql','0015_other_income_receipt_parent.sql','0016_obligation_payment_management.sql','0017_ktb_transfer_management.sql','0018_fund_movement_management.sql'])f.raw.exec(fs.readFileSync(new URL('../migrations/'+n,import.meta.url),'utf8'));return f;}
+function fixture(t){const f=createSeededSqliteD1();t.after(()=>f.raw.close());for(const n of ['0006_new_functionality.sql','0007_reporting_cycles.sql','0008_other_income.sql','0009_typed_payment_effect.sql','0010_historical_one_offs.sql','0011_fixed_expenses.sql','0012_fixed_expense_weekly.sql','0013_transaction_identity.sql','0014_one_off_management_lifecycle.sql','0015_other_income_receipt_parent.sql','0016_obligation_payment_management.sql','0017_ktb_transfer_management.sql','0018_fund_movement_management.sql','0019_salary_receipt_management.sql'])f.raw.exec(fs.readFileSync(new URL('../migrations/'+n,import.meta.url),'utf8'));return f;}
 const write=(db,action,payload,extra={})=>executeOtherIncomeWrite(db,{action,payload,nowIso,...extra});
 const add=(db,name='Tutoring',requestId='add')=>write(db,'addOtherIncomeSource',{name,requestId});
 const stable=['salary_cycle_state','salary_cycle_sources','weekly_snapshots','goals','ledger_movements','obligation_payments'];
@@ -99,7 +99,7 @@ test('migrated schema retains qualifying salary reset while same-named explicit 
  const before=preserved(raw);
  await executeIncomeReceipt(db,{action:'incomeReceipt',nowIso,payload:{otherIncomeSourceId:sourceId,requestId:'same-name-other',incomeSource:salary,incomeAlexAmount:100,date:'2026-09-06'}});
  assert.deepEqual(preserved(raw),before);
- const result=await executeIncomeReceipt(db,{action:'incomeReceipt',nowIso,payload:{incomeSource:salary,incomeAlexAmount:100,date:'2026-09-06'}});
+ const result=await executeIncomeReceipt(db,{action:'incomeReceipt',actorEmail:'alex@example.com',nowIso,payload:{requestId:'typed-salary-reset',incomeSource:salary,incomeAlexAmount:100,date:'2026-09-06'}});
  assert.equal(result.salaryCycleAdvanced,true);assert.equal(Object.hasOwn(result,'variablesTargetRequired'),false);
  const state=rows(raw,'salary_cycle_state')[0];assert.equal(state.current_cycle_start,'2026-09-06');assert.equal(state.next_salary_date,null);assert.equal(state.variables_target_satang,null);
  assert.ok(rows(raw,'weekly_snapshots').length>before.weekly_snapshots.length);

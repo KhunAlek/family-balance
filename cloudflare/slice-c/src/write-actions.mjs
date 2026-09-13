@@ -86,6 +86,19 @@ function ledgerInsert(ctx, sequence, { date, account, direction, amount }) {
     ctx.householdId, date, id.sheetOrder, account, direction, toSatang(amount), id.sourceRow
   );
 }
+function typedFundStatements(ctx,{date,fundName,direction,amount,ktbAccount,purpose=null}){
+  if(!ctx.snapshot.fundMovementManagementEnabled)return{statements:[],logicalTransactionId:null};
+  const fundId=`${ctx.writeToken}:fund`,logicalTransactionId=`${ctx.writeToken}:fund-transaction`,versionId=`${ctx.writeToken}:fund-version`,fundKind=fundName==='EF'?'EF':'Goal';
+  const statements=[statement(`INSERT INTO fund_movements(fund_movement_id,household_id,fund_kind,goal_name,business_date,direction,amount_satang,ktb_account,withdrawal_purpose,ledger_effect_id,balance_effect_id)
+    SELECT ?,?,?,?,?,?,?,?,?,l.ledger_id,b.balance_row_id FROM ledger_movements l JOIN balance_history b ON b.household_id=l.household_id WHERE l.household_id=? AND l.source_sheet='Cloudflare' AND l.source_row=? AND b.source_sheet='Cloudflare' AND b.source_row=?`,fundId,ctx.householdId,fundKind,fundKind==='Goal'?fundName:null,date,direction,toSatang(amount),ktbAccount,purpose,ctx.householdId,ctx.nextRevision*100+1,ctx.nextRevision*100+2)];
+  const evidence=ctx.actorEmail?[ctx.actorEmail,ctx.nowIso,ctx.payload.requestId,ctx.writeToken,ctx.nextRevision]:[null,null,null,null,null];
+  statements.push(statement('INSERT INTO logical_transactions(logical_transaction_id,household_id,lifecycle_status,created_actor_email,created_at_utc,creation_request_id,creation_write_token,creation_committed_revision) VALUES(?,?,?,?,?,?,?,?)',logicalTransactionId,ctx.householdId,'active',...evidence));
+  statements.push(statement("INSERT INTO logical_transaction_versions(version_id,logical_transaction_id,version_number,kind,business_date,committed_revision,operation_type,management_operation_id) VALUES(?,?,1,?,?,?,'created',NULL)",versionId,logicalTransactionId,fundKind==='EF'?'ef_movement':'goal_movement',date,ctx.nextRevision));
+  statements.push(statement("INSERT INTO logical_transaction_components VALUES(?,'ledger_movement',(SELECT CAST(ledger_effect_id AS TEXT) FROM fund_movements WHERE fund_movement_id=?),'fund_effect')",versionId,fundId));
+  statements.push(statement("INSERT INTO logical_transaction_components VALUES(?,'balance_effect',(SELECT CAST(balance_effect_id AS TEXT) FROM fund_movements WHERE fund_movement_id=?),'cash_effect')",versionId,fundId));
+  statements.push(statement('UPDATE logical_transactions SET terminal_version_id=? WHERE logical_transaction_id=?',versionId,logicalTransactionId));
+  return{statements,logicalTransactionId};
+}
 function configuredIncome(snapshot, source) {
   return (snapshot.incomeDefinitions || []).find(item => String(item.source || '').trim() === source) || null;
 }
@@ -173,7 +186,8 @@ function planEFWithdrawal(ctx) {
   const movement=validateMovementDate(ctx.payload.date,ctx.snapshot,ctx.nowIso),efBalance=accountLedgerBalance(ctx.snapshot.ledger||[],'EF');
   if(amount>efBalance+0.001)fail('Withdrawal amount exceeds the Emergency Fund balance.');
   let alex=movement.latest.alex,olga=movement.latest.olga;if(destination==='Alex')alex=round2(alex+amount);else olga=round2(olga+amount);
-  return {statements:[ledgerInsert(ctx,1,{date:movement.date,account:'EF',direction:'Withdrawal',amount}),balanceInsert(ctx,2,{date:movement.date,alex,olga,oneOffName:'Withdraw from EF',oneOffAmount:amount,oneOffAccount:destination})],response:{amount,destination,efBalance:round2(efBalance-amount),balances:{alex,olga}}};
+  const typed=typedFundStatements(ctx,{date:movement.date,fundName:'EF',direction:'Withdrawal',amount,ktbAccount:destination});
+  return {statements:[ledgerInsert(ctx,1,{date:movement.date,account:'EF',direction:'Withdrawal',amount}),balanceInsert(ctx,2,{date:movement.date,alex,olga,oneOffName:'Withdraw from EF',oneOffAmount:amount,oneOffAccount:destination}),...typed.statements],response:{amount,destination,efBalance:round2(efBalance-amount),balances:{alex,olga},...(typed.logicalTransactionId?{logicalTransactionId:typed.logicalTransactionId}:{})}};
 }
 function planGoalWithdrawal(ctx) {
   const amount=positiveAmount(ctx.payload.amount,'Withdrawal amount'),destination=normalizeAccount(ctx.payload.destinationAccount),name=String(ctx.payload.goalName||'').trim(),purpose=String(ctx.payload.purpose||'').trim();
@@ -185,8 +199,9 @@ function planGoalWithdrawal(ctx) {
   let alex=movement.latest.alex,olga=movement.latest.olga;if(destination==='Alex')alex=round2(alex+amount);else olga=round2(olga+amount);
   const movementLabel=purpose==='useForGoal'?`Use Goal funds: ${name}`:`Withdraw from Goal for another reason: ${name}`;
   const statements=[ledgerInsert(ctx,1,{date:movement.date,account:name,direction:'Withdrawal',amount}),balanceInsert(ctx,2,{date:movement.date,alex,olga,oneOffName:movementLabel,oneOffAmount:amount,oneOffAccount:destination})];
+  const typed=typedFundStatements(ctx,{date:movement.date,fundName:name,direction:'Withdrawal',amount,ktbAccount:destination,purpose});statements.push(...typed.statements);
   const completed=purpose==='useForGoal'&&balance+0.001>=target;if(completed&&goal.status!=='done')statements.push(statement('UPDATE goals SET status=? WHERE household_id=? AND name=?','done',ctx.householdId,name));
-  return{statements,response:{goalName:name,amount,destination,purpose,goalBalance:round2(balance-amount),status:completed?'done':goal.status,balances:{alex,olga}}};
+  return{statements,response:{goalName:name,amount,destination,purpose,goalBalance:round2(balance-amount),status:completed?'done':goal.status,balances:{alex,olga},...(typed.logicalTransactionId?{logicalTransactionId:typed.logicalTransactionId}:{})}};
 }
 function planKTBTransfer(ctx) {
   const amount=positiveAmount(ctx.payload.amount,'Transfer amount'),source=normalizeAccount(ctx.payload.sourceAccount),destination=normalizeAccount(ctx.payload.destinationAccount);
@@ -229,7 +244,8 @@ function planDedicatedTransfer(ctx) {
   if(amount>round2(safeLimit)+0.001)fail(`This transfer is above the current safe limit of ${round2(safeLimit)} THB.`);
   let alex=movement.latest.alex,olga=movement.latest.olga;
   if(source==='Alex'){if(amount>alex+0.001)fail('Transfer amount exceeds Alex KTB balance.');alex=round2(alex-amount)}else{if(amount>olga+0.001)fail('Transfer amount exceeds Olga KTB balance.');olga=round2(olga-amount)}
-  return {statements:[ledgerInsert(ctx,1,{date:movement.date,account:destinationName,direction:'Contribution',amount}),balanceInsert(ctx,2,{date:movement.date,alex,olga,oneOffName:destinationType==='EF'?'Transfer to EF':`Transfer to Goal: ${destinationName}`,oneOffAmount:amount,oneOffAccount:source})],response:{destination:destinationName,amount,balances:{alex,olga}}};
+  const typed=typedFundStatements(ctx,{date:movement.date,fundName:destinationName,direction:'Contribution',amount,ktbAccount:source});
+  return {statements:[ledgerInsert(ctx,1,{date:movement.date,account:destinationName,direction:'Contribution',amount}),balanceInsert(ctx,2,{date:movement.date,alex,olga,oneOffName:destinationType==='EF'?'Transfer to EF':`Transfer to Goal: ${destinationName}`,oneOffAmount:amount,oneOffAccount:source}),...typed.statements],response:{destination:destinationName,amount,balances:{alex,olga},...(typed.logicalTransactionId?{logicalTransactionId:typed.logicalTransactionId}:{})}};
 }
 
 function occurrenceExists(snapshot,name,dueDate){const start=isoDate(snapshot.salaryCycle?.current_cycle_start),next=isoDate(snapshot.salaryCycle?.next_salary_date);if(!start||!next)return false;if(snapshot.fixedExpenseEnabled)return(snapshot.obligationOccurrences||[]).some(x=>x.cycle_start===start&&x.obligation_name===name&&x.due_date===dueDate);return enumerateObligationOccurrences(snapshot.obligations||[],start,next).some(item=>item.name===name&&isoDate(item.dueDate)===dueDate)}

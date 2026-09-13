@@ -113,14 +113,14 @@ function transactionByEffect(canonical, tables) {
   return result;
 }
 
-function effectDto(row, linked, receiptsByBalanceRow, transfersByBalanceRow) {
+function effectDto(row, linked, receiptsByBalanceRow, transfersByBalanceRow,fundsByBalanceRow) {
   const link = linked.get(text(row.balance_row_id));
   const transaction = link?.transaction;
   const receiptIds = receiptsByBalanceRow.get(text(row.balance_row_id)) || [];
   const valid = !!transaction;
   return {
     entryType: 'transaction_balance_effect', balanceRowId: Number(row.balance_row_id), businessDate: text(row.business_date), orderingKey: orderKey(row),
-    immutable: true, typedEvidence: transfersByBalanceRow.has(text(row.balance_row_id))?{kind:'ktb_transfer_balance_effect_id',ids:[text(transfersByBalanceRow.get(text(row.balance_row_id)).transfer_id)]}:row.obligation_payment_id!==null&&row.obligation_payment_id!==undefined?{kind:'obligation_payment_id',ids:[text(row.obligation_payment_id)]}:row.one_off_payment_id !== null && row.one_off_payment_id !== undefined
+    immutable: true, typedEvidence: fundsByBalanceRow.has(text(row.balance_row_id))?{kind:'fund_movement_balance_effect_id',ids:[text(fundsByBalanceRow.get(text(row.balance_row_id)).fund_movement_id)]}:transfersByBalanceRow.has(text(row.balance_row_id))?{kind:'ktb_transfer_balance_effect_id',ids:[text(transfersByBalanceRow.get(text(row.balance_row_id)).transfer_id)]}:row.obligation_payment_id!==null&&row.obligation_payment_id!==undefined?{kind:'obligation_payment_id',ids:[text(row.obligation_payment_id)]}:row.one_off_payment_id !== null && row.one_off_payment_id !== undefined
       ? { kind: 'one_off_payment_id', ids: [text(row.one_off_payment_id)] }
       : { kind: 'income_receipt_source_balance_row_id', ids: [...receiptIds].sort(compare) },
     transactionLink: valid ? { status: 'linked', logicalTransactionId: transaction.logicalTransactionId, lifecycle: transaction.lifecycle, terminalVersionId: transaction.terminalVersion.id } : { status: 'unlinked', logicalTransactionId: null, reasonCode: 'NO_CANONICAL_TYPED_COMPONENT' },
@@ -178,14 +178,15 @@ export async function buildBalanceHistory(tables, payload = {}, householdId = 'f
   const rows = tables.balance_history.filter(row => text(row.household_id) === householdId).sort(compareRows);
   const receiptsByBalanceRow = new Map();
   const transfersByBalanceRow=new Map(tables.ktb_transfers.map(row=>[text(row.balance_effect_id),row]));
+  const fundsByBalanceRow=new Map(tables.fund_movements.map(row=>[text(row.balance_effect_id),row]));
   for (const receipt of tables.income_receipts.filter(row => text(row.household_id) === householdId && row.source_balance_row_id !== null && row.source_balance_row_id !== undefined)) {
     const key = text(receipt.source_balance_row_id), list = receiptsByBalanceRow.get(key) || [];
     list.push(text(receipt.receipt_id)); receiptsByBalanceRow.set(key, list);
   }
-  const isEffect = row => transfersByBalanceRow.has(text(row.balance_row_id)) || row.one_off_payment_id !== null && row.one_off_payment_id !== undefined || row.obligation_payment_id!==null&&row.obligation_payment_id!==undefined || receiptsByBalanceRow.has(text(row.balance_row_id));
+  const isEffect = row => fundsByBalanceRow.has(text(row.balance_row_id)) || transfersByBalanceRow.has(text(row.balance_row_id)) || row.one_off_payment_id !== null && row.one_off_payment_id !== undefined || row.obligation_payment_id!==null&&row.obligation_payment_id!==undefined || receiptsByBalanceRow.has(text(row.balance_row_id));
   const observations = rows.filter(row => !isEffect(row));
   const effects = rows.filter(isEffect);
-  const timeline = rows.map(row => isEffect(row) ? effectDto(row, linked, receiptsByBalanceRow,transfersByBalanceRow) : observationDto(row));
+  const timeline = rows.map(row => isEffect(row) ? effectDto(row, linked, receiptsByBalanceRow,transfersByBalanceRow,fundsByBalanceRow) : observationDto(row));
   let offset = 0;
   if (cursor) {
     const index = timeline.findIndex(item => JSON.stringify(item.orderingKey) === JSON.stringify(cursor.after));

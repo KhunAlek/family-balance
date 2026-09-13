@@ -14,6 +14,7 @@ const PRIMARY_KEYS = Object.freeze({
   obligation_occurrences: ['occurrence_id'], obligation_payments: ['payment_id'], goals: ['household_id', 'name'],
   obligation_payment_allocations:['payment_id','account'],
   ktb_transfers:['transfer_id'],
+  fund_movements:['fund_movement_id'],
   ledger_movements: ['ledger_id'], weekly_snapshots: ['household_id', 'week_start'],
   financial_write_claims: ['household_id', 'base_revision'], correction_audit: ['correction_id'],
   household_revisions: ['household_id'], salary_cycle_sources: ['household_id', 'cycle_start', 'source'],
@@ -32,6 +33,7 @@ const NON_TRANSACTION_REASONS = Object.freeze({
   obligation_occurrences: 'OBLIGATION_CONFIGURATION', goals: 'GOAL_CONFIGURATION',
   obligation_payment_allocations:'TYPED_OBLIGATION_PAYMENT_RELATIONSHIP',
   ktb_transfers:'TYPED_KTB_TRANSFER_RELATIONSHIP',
+  fund_movements:'TYPED_FUND_MOVEMENT_RELATIONSHIP',
   weekly_snapshots: 'IMMUTABLE_REPORTING_SNAPSHOT', financial_write_claims: 'REVISION_CLAIM_AUDIT',
   correction_audit: 'LEGACY_CORRECTION_AUDIT', household_revisions: 'REVISION_STATE',
   salary_cycle_sources: 'SALARY_CYCLE_CONFIGURATION', logical_transactions: 'EXISTING_IDENTITY_MATERIAL',
@@ -161,7 +163,7 @@ export function classifyHistoricalRows(tables) {
     ambiguousLegacyItems.push({ itemId: id, relatedItemIds: [], reasonCode: 'MISSING_DURABLE_CASH_EFFECT_RELATIONSHIP', missingDurableEvidence: 'The payment has no typed relationship to its cash effect.' });
   }
   for (const row of tables.ledger_movements) {
-    const id = itemId('ledger_movements', row); take(id);
+    const id = itemId('ledger_movements', row); if(owned.has(id))continue; take(id);
     ambiguousLegacyItems.push({ itemId: id, relatedItemIds: [], reasonCode: 'MISSING_DURABLE_COUNTERPART_RELATIONSHIP', missingDurableEvidence: 'The movement has no typed relationship to its KTB counterpart.' });
   }
   for (const [table, reasonCode] of Object.entries(NON_TRANSACTION_REASONS)) for (const row of tables[table]) {

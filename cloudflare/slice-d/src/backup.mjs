@@ -23,6 +23,7 @@ export const BACKUP_TABLES = Object.freeze([
   'salary_cycle_state',
   'goals',
   'ledger_movements',
+  'fund_movements',
   'weekly_snapshots',
   'financial_write_claims',
   'correction_audit',
@@ -40,6 +41,7 @@ const OTHER_INCOME_TABLES=['other_income_sources','other_income_source_versions'
 const OTHER_INCOME_RECEIPT_TABLES=['other_income_receipt_parents','other_income_receipt_allocations'];
 const OBLIGATION_PAYMENT_TABLES=['obligation_payment_allocations'];
 const KTB_TRANSFER_TABLES=['ktb_transfers'];
+const FUND_MOVEMENT_TABLES=['fund_movements'];
 const TRANSACTION_IDENTITY_TABLES = [
   'logical_transactions',
   'logical_transaction_versions',
@@ -108,7 +110,8 @@ export async function buildPortableBackup(db, options = {}) {
   const obligationPaymentTableCount=rows(obligationPaymentInventory).length;
   if(obligationPaymentTableCount!==0 && (obligationPaymentTableCount!==OBLIGATION_PAYMENT_TABLES.length || identityTableCount!==TRANSACTION_IDENTITY_TABLES.length))throw new Error('Obligation-payment management schema is incomplete.');
   const [ktbInventory]=await db.batch([db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='ktb_transfers'")]);const ktbTableCount=rows(ktbInventory).length;if(ktbTableCount&&identityTableCount!==TRANSACTION_IDENTITY_TABLES.length)throw new Error('KTB-transfer management schema is incomplete.');
-  const includedTables = BACKUP_TABLES.filter(table => (categoryTableCount || !CATEGORY_TABLES.includes(table)) && (reportingTableCount || !REPORTING_TABLES.includes(table)) && (incomeTableCount || !OTHER_INCOME_TABLES.includes(table)) && (incomeReceiptTableCount || !OTHER_INCOME_RECEIPT_TABLES.includes(table)) && (obligationPaymentTableCount || !OBLIGATION_PAYMENT_TABLES.includes(table)) && (ktbTableCount || !KTB_TRANSFER_TABLES.includes(table)) && (identityTableCount || !TRANSACTION_IDENTITY_TABLES.includes(table)));
+  const [fundInventory]=await db.batch([db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='fund_movements'")]);const fundTableCount=rows(fundInventory).length;if(fundTableCount&&identityTableCount!==TRANSACTION_IDENTITY_TABLES.length)throw new Error('Fund-movement management schema is incomplete.');
+  const includedTables = BACKUP_TABLES.filter(table => (categoryTableCount || !CATEGORY_TABLES.includes(table)) && (reportingTableCount || !REPORTING_TABLES.includes(table)) && (incomeTableCount || !OTHER_INCOME_TABLES.includes(table)) && (incomeReceiptTableCount || !OTHER_INCOME_RECEIPT_TABLES.includes(table)) && (obligationPaymentTableCount || !OBLIGATION_PAYMENT_TABLES.includes(table)) && (ktbTableCount || !KTB_TRANSFER_TABLES.includes(table)) && (fundTableCount || !FUND_MOVEMENT_TABLES.includes(table)) && (identityTableCount || !TRANSACTION_IDENTITY_TABLES.includes(table)));
   const statements = [
     db.prepare(`SELECT type,name,tbl_name,sql FROM sqlite_master WHERE sql IS NOT NULL AND type IN ('table','index','trigger') AND tbl_name IN (${schemaTableList}) AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' ORDER BY CASE type WHEN 'table' THEN 1 WHEN 'index' THEN 2 WHEN 'trigger' THEN 3 ELSE 4 END,name`),
     ...includedTables.map(table => db.prepare(`SELECT * FROM ${table} ORDER BY rowid`)),
@@ -204,8 +207,9 @@ export async function verifyPortableBackup(backup) {
   const obligationPaymentSchemaCount=backup.schema.filter(item=>item.type==='table'&&OBLIGATION_PAYMENT_TABLES.includes(item.name)).length;
   if(obligationPaymentSchemaCount!==0&&(obligationPaymentSchemaCount!==OBLIGATION_PAYMENT_TABLES.length||identitySchemaCount!==TRANSACTION_IDENTITY_TABLES.length))return false;
   const ktbSchemaCount=backup.schema.filter(item=>item.type==='table'&&KTB_TRANSFER_TABLES.includes(item.name)).length;if(ktbSchemaCount&&(ktbSchemaCount!==1||identitySchemaCount!==TRANSACTION_IDENTITY_TABLES.length))return false;
+  const fundSchemaCount=backup.schema.filter(item=>item.type==='table'&&FUND_MOVEMENT_TABLES.includes(item.name)).length;if(fundSchemaCount&&(fundSchemaCount!==1||identitySchemaCount!==TRANSACTION_IDENTITY_TABLES.length))return false;
   for (const table of BACKUP_TABLES) {
-    if ((!categorySchemaCount && CATEGORY_TABLES.includes(table)) || (!reportingSchemaCount && REPORTING_TABLES.includes(table)) || (!incomeSchemaCount && OTHER_INCOME_TABLES.includes(table)) || (!incomeReceiptSchemaCount && OTHER_INCOME_RECEIPT_TABLES.includes(table)) || (!obligationPaymentSchemaCount&&OBLIGATION_PAYMENT_TABLES.includes(table)) || (!ktbSchemaCount&&KTB_TRANSFER_TABLES.includes(table)) || (!identitySchemaCount && TRANSACTION_IDENTITY_TABLES.includes(table))) {
+    if ((!categorySchemaCount && CATEGORY_TABLES.includes(table)) || (!reportingSchemaCount && REPORTING_TABLES.includes(table)) || (!incomeSchemaCount && OTHER_INCOME_TABLES.includes(table)) || (!incomeReceiptSchemaCount && OTHER_INCOME_RECEIPT_TABLES.includes(table)) || (!obligationPaymentSchemaCount&&OBLIGATION_PAYMENT_TABLES.includes(table)) || (!ktbSchemaCount&&KTB_TRANSFER_TABLES.includes(table)) || (!fundSchemaCount&&FUND_MOVEMENT_TABLES.includes(table)) || (!identitySchemaCount && TRANSACTION_IDENTITY_TABLES.includes(table))) {
       if (backup.tables[table] !== undefined && (!Array.isArray(backup.tables[table]) || backup.tables[table].length)) return false;
     } else if (!Array.isArray(backup.tables[table])) return false;
   }

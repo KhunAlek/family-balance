@@ -1,6 +1,6 @@
 export async function loadFinancialSnapshot(db, householdId = 'family') {
   if (!db || typeof db.prepare !== 'function') throw new Error('D1 binding is unavailable.');
-  const [schema]=await db.batch([db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('logical_transactions','logical_transaction_versions','logical_transaction_components','obligation_payment_allocations','ktb_transfers')")]);
+  const [schema]=await db.batch([db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('logical_transactions','logical_transaction_versions','logical_transaction_components','obligation_payment_allocations','ktb_transfers','fund_movements')")]);
   const schemaNames=new Set((schema.results||[]).map(row=>row.name)),identityEnabled=['logical_transactions','logical_transaction_versions','logical_transaction_components'].every(name=>schemaNames.has(name));
   const statements = [
     db.prepare('SELECT config_key,value_text,value_integer,value_satang FROM configuration WHERE household_id=? ORDER BY config_key').bind(householdId),
@@ -31,6 +31,8 @@ export async function loadFinancialSnapshot(db, householdId = 'family') {
     if (item.value_text !== null && item.value_text !== undefined) config[item.config_key] = item.value_text;
   }
   const salaryCycle = rows(1)[0] || {};
+  const transactions=rows(15),versions=rows(16),components=rows(17),claimedLedger=new Set(components.filter(x=>x.component_kind==='ledger_movement').map(x=>String(x.component_id))),activeTerminals=new Set(transactions.filter(x=>x.lifecycle_status==='active').map(x=>String(x.terminal_version_id))),activeLedger=new Set(components.filter(x=>activeTerminals.has(String(x.version_id))&&x.component_kind==='ledger_movement').map(x=>String(x.component_id)));
+  const effectiveLedger=rows(8).filter(x=>!claimedLedger.has(String(x.ledger_id))||activeLedger.has(String(x.ledger_id)));
   return {
     householdId,
     ...(rows(12).some(r=>r.name==='reporting_salary_cycles') ? { reportingEnabled: true } : {}),
@@ -45,13 +47,14 @@ export async function loadFinancialSnapshot(db, householdId = 'family') {
     obligations: rows(5),
     obligationPayments: rows(6),
     goals: rows(7),
-    ledger: rows(8),
+    ledger: effectiveLedger,
     weeklySnapshots: rows(9),
     salaryCycleSources: rows(10),
     correctionAudits: rows(11),
     obligationOccurrences: rows(13),
     ...(rows(14).length?{obligationPaymentManagementEnabled:true}:{}),
     ...(schemaNames.has('ktb_transfers')?{ktbTransferManagementEnabled:true}:{}),
-    logicalTransactions:rows(15),logicalTransactionVersions:rows(16),logicalTransactionComponents:rows(17)
+    ...(schemaNames.has('fund_movements')?{fundMovementManagementEnabled:true}:{}),
+    logicalTransactions:transactions,logicalTransactionVersions:versions,logicalTransactionComponents:components
   };
 }

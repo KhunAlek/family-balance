@@ -26,6 +26,7 @@ import { oneOffEligibility, buildOneOffPreview, buildOneOffReplacement } from '.
 import { otherIncomeEligibility, buildOtherIncomePreview, buildOtherIncomeReplacement } from './other-income-management.mjs';
 import {obligationEligibility,buildObligationPreview,buildObligationReplacement} from './obligation-payment-management.mjs';
 import {ktbTransferEligibility,buildKtbTransferPreview,buildKtbTransferReplacement} from './ktb-transfer-management.mjs';
+import {fundMovementEligibility,buildFundMovementPreview,buildFundMovementReplacement} from './fund-movement-management.mjs';
 import { runBalanceHistory, BalanceHistoryError } from './balance-history.mjs';
 import {
   DAILY_BALANCE_CRON,
@@ -160,13 +161,13 @@ async function handleFinancialAction(payload, identity, env, options = {}) {
       return jsonResponse(response);
     }
     if (payload.apiAction === 'transactionManagementPreview') {
-      const eligibility=async context=>context.transaction.kind==='ktb_transfer'?ktbTransferEligibility(context):context.transaction.kind==='obligation_payment'?obligationEligibility(context):context.transaction.kind==='other_income_receipt'?otherIncomeEligibility(context):oneOffEligibility(context);
-      const buildPreview=async context=>context.transaction.kind==='ktb_transfer'?buildKtbTransferPreview(context):context.transaction.kind==='obligation_payment'?buildObligationPreview(context):context.transaction.kind==='other_income_receipt'?buildOtherIncomePreview(context):buildOneOffPreview(context);
+      const eligibility=async context=>['ef_movement','goal_movement'].includes(context.transaction.kind)?fundMovementEligibility(context):context.transaction.kind==='ktb_transfer'?ktbTransferEligibility(context):context.transaction.kind==='obligation_payment'?obligationEligibility(context):context.transaction.kind==='other_income_receipt'?otherIncomeEligibility(context):oneOffEligibility(context);
+      const buildPreview=async context=>['ef_movement','goal_movement'].includes(context.transaction.kind)?buildFundMovementPreview(context):context.transaction.kind==='ktb_transfer'?buildKtbTransferPreview(context):context.transaction.kind==='obligation_payment'?buildObligationPreview(context):context.transaction.kind==='other_income_receipt'?buildOtherIncomePreview(context):buildOneOffPreview(context);
       return jsonResponse(await previewTransactionManagement(env.DB, payload.payload || {}, 'family', {eligibility,buildPreview}));
     }
     if (payload.apiAction === 'transactionManagementCommit') {
-      const eligibility=async context=>context.transaction.kind==='ktb_transfer'?ktbTransferEligibility(context):context.transaction.kind==='obligation_payment'?obligationEligibility(context):context.transaction.kind==='other_income_receipt'?otherIncomeEligibility(context):oneOffEligibility(context);
-      const buildReplacement=async context=>context.transaction.kind==='ktb_transfer'?buildKtbTransferReplacement(context):context.transaction.kind==='obligation_payment'?buildObligationReplacement(context):context.transaction.kind==='other_income_receipt'?buildOtherIncomeReplacement(context):buildOneOffReplacement(context);
+      const eligibility=async context=>['ef_movement','goal_movement'].includes(context.transaction.kind)?fundMovementEligibility(context):context.transaction.kind==='ktb_transfer'?ktbTransferEligibility(context):context.transaction.kind==='obligation_payment'?obligationEligibility(context):context.transaction.kind==='other_income_receipt'?otherIncomeEligibility(context):oneOffEligibility(context);
+      const buildReplacement=async context=>['ef_movement','goal_movement'].includes(context.transaction.kind)?buildFundMovementReplacement(context):context.transaction.kind==='ktb_transfer'?buildKtbTransferReplacement(context):context.transaction.kind==='obligation_payment'?buildObligationReplacement(context):context.transaction.kind==='other_income_receipt'?buildOtherIncomeReplacement(context):buildOneOffReplacement(context);
       return jsonResponse(await executeTransactionManagementCommit(env.DB, payload.payload || {}, { householdId:'family', actorEmail:identity.email,eligibility,buildReplacement }));
     }
     if (payload.apiAction === 'getOtherIncomeSources') return jsonResponse(await getOtherIncomeSources(env.DB,payload.payload||{}));

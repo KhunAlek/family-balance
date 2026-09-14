@@ -29,6 +29,15 @@ function insertCreatedIdentity(raw, suffix = 'active') {
   raw.exec('COMMIT');
   return { tx, version, payment };
 }
+function insertHistoricalSalary(raw, suffix = 'legacy-salary') {
+  const source = raw.prepare("SELECT source FROM income_definitions WHERE household_id='family' AND pay_day<>'Variable' ORDER BY source LIMIT 1").get().source;
+  const baseRevision = raw.prepare("SELECT COALESCE(MAX(base_revision),0)+100 AS value FROM financial_write_claims WHERE household_id='family'").get().value;
+  const token = `write-${suffix}`;
+  const receipt = `${token}:income:alex`;
+  raw.prepare('INSERT INTO financial_write_claims VALUES(?,?,?,?)').run('family', baseRevision, token, '2026-09-11T09:00:00.000Z');
+  raw.prepare('INSERT INTO income_receipts(receipt_id,household_id,source,business_date,amount_satang,lands_in,source_balance_row_id) VALUES(?,?,?,?,?,?,NULL)').run(receipt, 'family', source, '2026-09-10', 10000, 'Alex KTB');
+  return { source, receipt, token, committedRevision: baseRevision + 1 };
+}
 function appendVersion(raw, identity, operationType, suffix, lifecycle = 'active') {
   const payment = `${identity.payment}-${suffix}`, version = `${identity.tx}-v${suffix}`, operation = `${identity.tx}-op${suffix}`;
   insertPayment(raw, payment, '2026-09-09', 20000, 'Olga');
@@ -68,6 +77,33 @@ test('legacy groups adapt deterministically while ambiguity, observations, and e
   assert.ok(model.counts.balanceObservations > 0);
   assert.ok(model.exclusions.nonTransactionItemCount > 0);
   assert.equal(model.activeTransactions.some(item => item.kind === 'balance_observation'), false);
+});
+
+test('historical salary receipts without a typed parent remain visible but management-disabled', async t => {
+  const { db, raw } = fixture(t);
+  const salary = insertHistoricalSalary(raw);
+  const { model } = await runTerminalTransactionReadModel(db);
+  const transaction = model.activeTransactions.find(item => item.logicalTransactionId.includes(salary.token));
+  assert.equal(transaction.identitySource, 'historical_adapter');
+  assert.equal(transaction.kind, 'salary_receipt');
+  assert.equal(transaction.source, salary.source);
+  assert.equal(transaction.totalSatang, 10000);
+  assert.equal(transaction.committedRevision, salary.committedRevision);
+  assert.equal(transaction.permittedActions.correct, false);
+  assert.equal(transaction.permittedActions.delete, false);
+  assert.equal(transaction.permittedActions.restore, false);
+});
+
+test('persisted salary identities without an immutable typed parent still fail closed', t => {
+  const { raw } = fixture(t);
+  const salary = insertHistoricalSalary(raw, 'persisted-salary');
+  raw.exec('BEGIN');
+  raw.prepare('INSERT INTO logical_transactions VALUES(?,?,?,NULL,?,?,?,?,?)').run('tx-persisted-salary', 'family', 'active', 'alex@example.com', '2026-09-11T10:00:00.000Z', 'create-persisted-salary', salary.token, salary.committedRevision);
+  raw.prepare('INSERT INTO logical_transaction_versions VALUES(?,?,?,?,?,?,?,NULL)').run('tx-persisted-salary-v1', 'tx-persisted-salary', 1, 'salary_receipt', '2026-09-10', salary.committedRevision, 'created');
+  raw.prepare('INSERT INTO logical_transaction_components VALUES(?,?,?,?)').run('tx-persisted-salary-v1', 'income_receipt', salary.receipt, 'receipt');
+  raw.prepare("UPDATE logical_transactions SET terminal_version_id='tx-persisted-salary-v1' WHERE logical_transaction_id='tx-persisted-salary'").run();
+  raw.exec('COMMIT');
+  assert.throws(() => buildTerminalTransactionReadModel(snapshot(raw)), error => error.code === 'INCOMPLETE_TYPED_COMPONENTS');
 });
 
 test('repeated and shuffled complete inputs serialize byte-for-byte identically', async t => {

@@ -131,7 +131,7 @@ function reconstructOneOff(base, components, indexes, householdId) {
     totalSatang: Number(payment.amount_satang), direction: 'money_out', allocations: rows.map(row => ({ account: text(row.account), amountSatang: Number(row.amount_satang) })).sort((a, b) => compare(a.account, b.account)) };
 }
 
-function reconstructIncome(base, components, indexes, householdId) {
+function reconstructIncome(base, components, indexes, householdId, { allowHistoricalSalaryWithoutParent = false } = {}) {
   const receipts = components.filter(item => item.component_kind === 'income_receipt' && item.component_role === 'receipt');
   const effects = components.filter(item => item.component_kind === 'balance_effect' && item.component_role === 'cash_effect');
   if (!receipts.length || (effects.length!==0&&effects.length!==receipts.length) || receipts.length+effects.length !== components.length) fail('INCOMPLETE_TYPED_COMPONENTS', `${base.kind} requires receipt components and, when linked, one cash effect per receipt.`);
@@ -140,7 +140,7 @@ function reconstructIncome(base, components, indexes, householdId) {
   if (new Set(rows.map(row => text(row.lands_in))).size !== rows.length || new Set(rows.map(row => text(row.source))).size !== 1) fail('INCOMPLETE_TYPED_COMPONENTS', `${base.kind} receipts do not form one complete action.`);
   const isOther = rows.every(row => row.other_income_source_id !== null && row.other_income_source_id !== undefined);
   if ((base.kind === 'other_income_receipt') !== isOther) fail('INVALID_TYPED_FACT', `${base.kind} receipt class conflicts with its terminal version.`);
-  if(base.kind==='salary_receipt'){
+  if(base.kind==='salary_receipt'&&!allowHistoricalSalaryWithoutParent){
     const ids=new Set(rows.map(row=>text(row.receipt_id))),parents=[...indexes.salaryParents.values()].filter(parent=>[parent.alex_receipt_id,parent.olga_receipt_id].filter(Boolean).some(id=>ids.has(text(id))));
     if(parents.length!==1)fail('INCOMPLETE_TYPED_COMPONENTS','Salary receipts require one immutable typed parent.');
     const parent=parents[0],parentIds=[parent.alex_receipt_id,parent.olga_receipt_id].filter(Boolean).map(text);
@@ -150,11 +150,11 @@ function reconstructIncome(base, components, indexes, householdId) {
   return { ...base, source: text(rows[0].source), sourceId: isOther ? text(rows[0].other_income_source_id) : null, totalSatang: rows.reduce((sum, row) => sum + Number(row.amount_satang), 0), direction: 'money_in', allocations: rows.map(row => ({ account: text(row.lands_in), amountSatang: Number(row.amount_satang) })).sort((a, b) => compare(a.account, b.account)) };
 }
 
-function reconstructTerminal(version, components, indexes, householdId) {
+function reconstructTerminal(version, components, indexes, householdId, options) {
   if (!positiveInteger(version.committed_revision)) fail('INVALID_COMMITTED_REVISION', `Version ${version.version_id} has an invalid committed revision.`);
   const base = commonBase(text(version.kind), text(version.business_date), version.committed_revision);
   if (version.kind === 'one_off_payment') return reconstructOneOff(base, components, indexes, householdId);
-  if (version.kind === 'other_income_receipt' || version.kind === 'salary_receipt') return reconstructIncome(base, components, indexes, householdId);
+  if (version.kind === 'other_income_receipt' || version.kind === 'salary_receipt') return reconstructIncome(base, components, indexes, householdId, options);
   if(version.kind==='obligation_payment')return reconstructObligation(base,components,indexes,householdId);
   if(version.kind==='ktb_transfer')return reconstructKtbTransfer(base,components,indexes,householdId);
   if(version.kind==='ef_movement'||version.kind==='goal_movement')return reconstructFundMovement(base,components,indexes,householdId);
@@ -238,7 +238,13 @@ function legacyDto(group, tables, indexes) {
     date = rows[0]?.business_date;
     const proof = group.evidence.find(item => item.type === 'committed_revision'); revision = proof?.committedRevision ?? null;
   }
-  const facts = reconstructTerminal({ kind: group.kind, business_date: date, committed_revision: revision || 1 }, components, indexes, text((group.kind === 'one_off_payment' ? indexes.payments.get(text(components.find(item => item.component_kind === 'one_off_payment')?.component_id)) : indexes.receipts.get(text(components[0]?.component_id)))?.household_id));
+  const facts = reconstructTerminal(
+    { kind: group.kind, business_date: date, committed_revision: revision || 1 },
+    components,
+    indexes,
+    text((group.kind === 'one_off_payment' ? indexes.payments.get(text(components.find(item => item.component_kind === 'one_off_payment')?.component_id)) : indexes.receipts.get(text(components[0]?.component_id)))?.household_id),
+    { allowHistoricalSalaryWithoutParent: group.kind === 'salary_receipt' }
+  );
   return { logicalTransactionId: text(group.logicalTransactionId), identitySource: 'historical_adapter', lifecycle: 'active', ...facts,
     committedRevision: revision === null ? null : Number(revision), terminalVersion: { id: null, number: null, operationType: 'historical_import' }, components: components.map(componentDto).sort((a, b) => compare(`${a.kind}:${a.id}:${a.role}`, `${b.kind}:${b.id}:${b.role}`)), creationEvidence: { availability: 'not_recorded', actorEmail: null, committedAtUtc: null, requestId: null, writeToken: null, committedRevision: null }, auditSummary: { operationCount: 0, operations: [] }, reconciliationState: components.some(row => row.component_kind === 'balance_effect') ? 'typed_effect_linked' : 'not_linked', permittedActions: disabledActions() };
 }

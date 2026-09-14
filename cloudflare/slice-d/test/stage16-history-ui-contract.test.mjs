@@ -32,6 +32,13 @@ test('financial consequences precede technical details and immutable observation
   assert.match(js,/manage the linked transaction rather than changing this row/);
 });
 
+test('management preview shows the signed server impact without exposing raw JSON',()=>{
+  assert.match(js,/impactConsequences\(preview\.impact\)/);
+  assert.match(js,/amount>0\?'enters ':'leaves '/);
+  assert.doesNotMatch(js,/eligible\?esc\(consequence\(selected\)\)/);
+  assert.doesNotMatch(js,/JSON\.stringify\(preview\.impact/);
+});
+
 test('all enabled families receive contextual correction semantics and salary replacement is absent',()=>{
   for(const kind of ['one_off_payment','other_income_receipt','salary_receipt','obligation_payment','ktb_transfer','ef_movement','goal_movement']) assert.match(js,new RegExp(kind));
   for(const operation of ['corrected','deleted','restored','undone']) assert.match(js,new RegExp(operation));

@@ -80,6 +80,7 @@ test('deleting a promoted historical expense returns its exact allocation to cas
   const latestAfter = rows(raw, 'balance_history').filter(item => item.alex_balance_satang !== null && item.olga_balance_satang !== null).at(-1);
   const allocated = account => originalAllocations.find(item => item.account === account)?.amount_satang || 0;
 
+  assert.deepEqual(preview.impact.cashChangeSatang, { alexSatang: allocated('Alex'), olgaSatang: allocated('Olga') });
   assert.deepEqual(replay, first);
   assert.equal(latestAfter.alex_balance_satang, latestBefore.alex_balance_satang + allocated('Alex'));
   assert.equal(latestAfter.olga_balance_satang, latestBefore.olga_balance_satang + allocated('Olga'));

@@ -87,6 +87,74 @@ function rows(result) {
   return result?.results || [];
 }
 
+function hasExactTableInventory(tables) {
+  if (!tables || typeof tables !== 'object' || Array.isArray(tables)) return false;
+  const names = Object.keys(tables).sort();
+  return names.length === BACKUP_TABLES.length
+    && names.every((name, index) => name === [...BACKUP_TABLES].sort()[index]);
+}
+
+function hasExactRowCounts(tables, rowCounts) {
+  if (!rowCounts || typeof rowCounts !== 'object' || Array.isArray(rowCounts)) return false;
+  const names = Object.keys(rowCounts).sort();
+  const expected = [...BACKUP_TABLES].sort();
+  return names.length === expected.length
+    && names.every((name, index) => name === expected[index])
+    && BACKUP_TABLES.every(table => Number.isSafeInteger(rowCounts[table])
+      && rowCounts[table] >= 0
+      && rowCounts[table] === tables[table].length);
+}
+
+function hasValidIdentityRelationships(tables) {
+  const transactions = new Map(tables.logical_transactions.map(row => [String(row.logical_transaction_id), row]));
+  const versions = new Map(tables.logical_transaction_versions.map(row => [String(row.version_id), row]));
+  const audits = new Map(tables.transaction_management_audit.map(row => [String(row.operation_id), row]));
+  if (transactions.size !== tables.logical_transactions.length
+    || versions.size !== tables.logical_transaction_versions.length
+    || audits.size !== tables.transaction_management_audit.length) return false;
+
+  const versionNumbers = new Set();
+  for (const version of versions.values()) {
+    const transactionId = String(version.logical_transaction_id);
+    if (!transactions.has(transactionId)) return false;
+    const sequenceKey = `${transactionId}\u0000${version.version_number}`;
+    if (versionNumbers.has(sequenceKey)) return false;
+    versionNumbers.add(sequenceKey);
+    if (version.operation_type === 'created') {
+      if (version.management_operation_id !== null && version.management_operation_id !== undefined) return false;
+    } else {
+      const audit = audits.get(String(version.management_operation_id));
+      if (!audit || String(audit.logical_transaction_id) !== transactionId
+        || String(audit.resulting_version_id) !== String(version.version_id)
+        || String(audit.operation_type) !== String(version.operation_type)) return false;
+    }
+  }
+  for (const transaction of transactions.values()) {
+    const terminal = versions.get(String(transaction.terminal_version_id));
+    if (!terminal || String(terminal.logical_transaction_id) !== String(transaction.logical_transaction_id)) return false;
+    if (terminal.operation_type === 'deleted' && transaction.lifecycle_status !== 'deleted') return false;
+    if (['created','corrected','restored','replaced'].includes(terminal.operation_type) && transaction.lifecycle_status !== 'active') return false;
+    const familyVersions = [...versions.values()].filter(row => String(row.logical_transaction_id) === String(transaction.logical_transaction_id));
+    if (!familyVersions.length || Math.max(...familyVersions.map(row => Number(row.version_number))) !== Number(terminal.version_number)) return false;
+  }
+  for (const component of tables.logical_transaction_components) {
+    if (!versions.has(String(component.version_id))) return false;
+  }
+  for (const audit of audits.values()) {
+    const transactionId = String(audit.logical_transaction_id);
+    const prior = versions.get(String(audit.prior_version_id));
+    const resulting = versions.get(String(audit.resulting_version_id));
+    if (!transactions.has(transactionId) || !prior || !resulting
+      || String(prior.logical_transaction_id) !== transactionId
+      || String(resulting.logical_transaction_id) !== transactionId
+      || Number(resulting.version_number) !== Number(prior.version_number) + 1
+      || String(resulting.management_operation_id) !== String(audit.operation_id)
+      || String(resulting.operation_type) !== String(audit.operation_type)
+      || Number(resulting.committed_revision) !== Number(audit.committed_revision)) return false;
+  }
+  return true;
+}
+
 export async function buildPortableBackup(db, options = {}) {
   if (!db || typeof db.prepare !== 'function') throw new Error('D1 binding is unavailable.');
   const createdAt = new Date(options.createdAt ?? Date.now()).toISOString();
@@ -196,7 +264,12 @@ export async function runPortableBackup(db, bucket, options = {}) {
 
 export async function verifyPortableBackup(backup) {
   if (!backup || backup.format !== BACKUP_FORMAT || !Array.isArray(backup.schema) || !backup.tables || !backup.integrity) return false;
+  if (backup.integrity.algorithm !== 'SHA-256') return false;
   if (!backup.schema.every(validSchemaItem)) return false;
+  const schemaKeys = backup.schema.map(item => `${item.type}\u0000${item.name}`);
+  if (new Set(schemaKeys).size !== schemaKeys.length) return false;
+  if (!hasExactTableInventory(backup.tables) || !BACKUP_TABLES.every(table => Array.isArray(backup.tables[table]))) return false;
+  if (!hasExactRowCounts(backup.tables, backup.integrity.rowCounts)) return false;
   const categorySchemaCount = backup.schema.filter(item => item.type === 'table' && CATEGORY_TABLES.includes(item.name)).length;
   if (categorySchemaCount !== 0 && categorySchemaCount !== CATEGORY_TABLES.length) return false;
   const reportingSchemaCount=backup.schema.filter(item=>item.type==='table' && REPORTING_TABLES.includes(item.name)).length;
@@ -211,12 +284,16 @@ export async function verifyPortableBackup(backup) {
   if(obligationPaymentSchemaCount!==0&&(obligationPaymentSchemaCount!==OBLIGATION_PAYMENT_TABLES.length||identitySchemaCount!==TRANSACTION_IDENTITY_TABLES.length))return false;
   const ktbSchemaCount=backup.schema.filter(item=>item.type==='table'&&KTB_TRANSFER_TABLES.includes(item.name)).length;if(ktbSchemaCount&&(ktbSchemaCount!==1||identitySchemaCount!==TRANSACTION_IDENTITY_TABLES.length))return false;
   const fundSchemaCount=backup.schema.filter(item=>item.type==='table'&&FUND_MOVEMENT_TABLES.includes(item.name)).length;if(fundSchemaCount&&(fundSchemaCount!==1||identitySchemaCount!==TRANSACTION_IDENTITY_TABLES.length))return false;
+  const salarySchemaNames=new Set(backup.schema.filter(item=>item.tbl_name==='salary_receipt_parents'||['salary_income_definition_update_forbidden','salary_income_definition_delete_forbidden'].includes(item.name)).map(item=>item.name));
+  const salarySchemaCount=salarySchemaNames.has('salary_receipt_parents')?1:0;
+  if(salarySchemaCount&&(identitySchemaCount!==TRANSACTION_IDENTITY_TABLES.length||salarySchemaNames.size!==6||!['salary_receipt_parent_validate','salary_receipt_parent_immutable','salary_receipt_parent_delete_forbidden','salary_income_definition_update_forbidden','salary_income_definition_delete_forbidden'].every(name=>salarySchemaNames.has(name))))return false;
   for (const table of BACKUP_TABLES) {
-    if ((!categorySchemaCount && CATEGORY_TABLES.includes(table)) || (!reportingSchemaCount && REPORTING_TABLES.includes(table)) || (!incomeSchemaCount && OTHER_INCOME_TABLES.includes(table)) || (!incomeReceiptSchemaCount && OTHER_INCOME_RECEIPT_TABLES.includes(table)) || (!obligationPaymentSchemaCount&&OBLIGATION_PAYMENT_TABLES.includes(table)) || (!ktbSchemaCount&&KTB_TRANSFER_TABLES.includes(table)) || (!fundSchemaCount&&FUND_MOVEMENT_TABLES.includes(table)) || (!identitySchemaCount && TRANSACTION_IDENTITY_TABLES.includes(table))) {
+    if ((!categorySchemaCount && CATEGORY_TABLES.includes(table)) || (!reportingSchemaCount && REPORTING_TABLES.includes(table)) || (!incomeSchemaCount && OTHER_INCOME_TABLES.includes(table)) || (!incomeReceiptSchemaCount && OTHER_INCOME_RECEIPT_TABLES.includes(table)) || (!obligationPaymentSchemaCount&&OBLIGATION_PAYMENT_TABLES.includes(table)) || (!ktbSchemaCount&&KTB_TRANSFER_TABLES.includes(table)) || (!fundSchemaCount&&FUND_MOVEMENT_TABLES.includes(table)) || (!salarySchemaCount&&SALARY_RECEIPT_TABLES.includes(table)) || (!identitySchemaCount && TRANSACTION_IDENTITY_TABLES.includes(table))) {
       if (backup.tables[table] !== undefined && (!Array.isArray(backup.tables[table]) || backup.tables[table].length)) return false;
     } else if (!Array.isArray(backup.tables[table])) return false;
   }
   const expectedTables = await sha256Hex(JSON.stringify(backup.tables));
   const expectedPayload = await sha256Hex(JSON.stringify({ schema: backup.schema, tables: backup.tables }));
-  return expectedTables === backup.integrity.tablesSha256 && expectedPayload === backup.integrity.payloadSha256;
+  if (expectedTables !== backup.integrity.tablesSha256 || expectedPayload !== backup.integrity.payloadSha256) return false;
+  return !identitySchemaCount || hasValidIdentityRelationships(backup.tables);
 }

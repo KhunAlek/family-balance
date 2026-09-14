@@ -16,6 +16,14 @@ class MemoryBucket {
   async delete(keys) { for (const key of Array.isArray(keys) ? keys : [keys]) { this.objects.delete(key); this.deleted.push(key); } }
 }
 
+async function reseal(backup) {
+  const encoder = new TextEncoder();
+  const digest = async value => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(value))), byte => byte.toString(16).padStart(2, '0')).join('');
+  backup.integrity.tablesSha256 = await digest(JSON.stringify(backup.tables));
+  backup.integrity.payloadSha256 = await digest(JSON.stringify({ schema: backup.schema, tables: backup.tables }));
+  return backup;
+}
+
 test('daily backup writes environment-specific portable JSON, preserves weekly scheduling through restore, and prunes expired objects', async () => {
   const { db, raw } = createSeededSqliteD1();
   for (const name of ['0006_new_functionality.sql','0007_reporting_cycles.sql','0010_historical_one_offs.sql','0011_fixed_expenses.sql','0012_fixed_expense_weekly.sql']) raw.exec(fs.readFileSync(new URL(`../migrations/${name}`, import.meta.url), 'utf8'));
@@ -36,6 +44,16 @@ test('daily backup writes environment-specific portable JSON, preserves weekly s
   assert.equal(stored.integrity.rowCounts.households, 1);
   assert.ok(stored.integrity.rowCounts.balance_history > 0);
   assert.equal(stored.tables.obligations.some(row => row.recurrence_type === 'weekly' && row.due_weekday === 3 && row.due_day === null), true);
+  const brokenCount = structuredClone(stored);
+  brokenCount.integrity.rowCounts.balance_history += 1;
+  assert.equal(await verifyPortableBackup(brokenCount), false);
+  const wrongAlgorithm = structuredClone(stored);
+  wrongAlgorithm.integrity.algorithm = 'SHA-1';
+  assert.equal(await verifyPortableBackup(wrongAlgorithm), false);
+  const extraTable = structuredClone(stored);
+  extraTable.tables.unrecognized_financial_facts = [];
+  await reseal(extraTable);
+  assert.equal(await verifyPortableBackup(extraTable), false);
   const tamperedSchema = structuredClone(stored);
   tamperedSchema.schema[0].sql = 'DROP TABLE households';
   assert.equal(await verifyPortableBackup(tamperedSchema), false);
@@ -98,4 +116,38 @@ test('portable backup and isolated restore round-trip transaction identity relat
   }
   assert.equal(restored.prepare('PRAGMA foreign_key_check').all().length, 0);
   assert.throws(() => restored.prepare("UPDATE transaction_management_audit SET reason_code='x' WHERE operation_id='backup-op'").run(), /immutable/i);
+
+  const orphanedVersion = structuredClone(stored);
+  orphanedVersion.tables.logical_transaction_versions[0].logical_transaction_id = 'missing-transaction';
+  await reseal(orphanedVersion);
+  assert.equal(await verifyPortableBackup(orphanedVersion), false);
+
+  const crossedTerminal = structuredClone(stored);
+  crossedTerminal.tables.logical_transactions[0].terminal_version_id = 'missing-version';
+  await reseal(crossedTerminal);
+  assert.equal(await verifyPortableBackup(crossedTerminal), false);
+
+  const projectionDisagreement = structuredClone(stored);
+  projectionDisagreement.tables.logical_transactions[0].lifecycle_status = 'deleted';
+  await reseal(projectionDisagreement);
+  assert.equal(await verifyPortableBackup(projectionDisagreement), false);
+});
+
+test('portable verification rejects a rehashed partial salary schema family', async () => {
+  const { db, raw } = createSeededSqliteD1();
+  for (const name of [
+    '0006_new_functionality.sql','0007_reporting_cycles.sql','0008_other_income.sql',
+    '0009_typed_payment_effect.sql','0010_historical_one_offs.sql','0011_fixed_expenses.sql',
+    '0012_fixed_expense_weekly.sql','0013_transaction_identity.sql','0014_one_off_management_lifecycle.sql',
+    '0015_other_income_receipt_parent.sql','0016_obligation_payment_management.sql',
+    '0017_ktb_transfer_management.sql','0018_fund_movement_management.sql','0019_salary_receipt_management.sql',
+  ]) raw.exec(fs.readFileSync(new URL(`../migrations/${name}`, import.meta.url), 'utf8'));
+  const bucket = new MemoryBucket();
+  const output = await runPortableBackup(db, bucket, { environment: 'test', retentionDays: 1, createdAt: '2026-08-14T12:00:00.000Z' });
+  const backup = JSON.parse(bucket.objects.get(output.key).value);
+  assert.equal(await verifyPortableBackup(backup), true);
+  backup.schema = backup.schema.filter(item => item.name !== 'salary_receipt_parent_delete_forbidden');
+  await reseal(backup);
+  assert.equal(await verifyPortableBackup(backup), false);
+  await assert.rejects(buildRestoreSql(backup, { includeSchema: true }), /integrity verification failed/i);
 });

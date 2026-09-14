@@ -147,7 +147,7 @@ function reconstructIncome(base, components, indexes, householdId) {
     if(text(parent.household_id)!==householdId||text(parent.business_date)!==base.businessDate||text(parent.source)!==text(rows[0].source)||parentIds.length!==ids.size||parentIds.some(id=>!ids.has(id))||Number(parent.total_satang)!==rows.reduce((sum,row)=>sum+Number(row.amount_satang),0))fail('INCOMPLETE_TYPED_COMPONENTS','Salary parent and receipt facts disagree.');
   }
   for(const effect of effects){const row=indexes.balances.get(text(effect.component_id));if(!row||text(row.household_id)!==householdId||!rows.some(receipt=>text(receipt.source_balance_row_id)===text(row.balance_row_id)))fail('INVALID_BALANCE_EFFECT',`${base.kind} has an invalid typed cash effect.`);}
-  return { ...base, source: text(rows[0].source), totalSatang: rows.reduce((sum, row) => sum + Number(row.amount_satang), 0), direction: 'money_in', allocations: rows.map(row => ({ account: text(row.lands_in), amountSatang: Number(row.amount_satang) })).sort((a, b) => compare(a.account, b.account)) };
+  return { ...base, source: text(rows[0].source), sourceId: isOther ? text(rows[0].other_income_source_id) : null, totalSatang: rows.reduce((sum, row) => sum + Number(row.amount_satang), 0), direction: 'money_in', allocations: rows.map(row => ({ account: text(row.lands_in), amountSatang: Number(row.amount_satang) })).sort((a, b) => compare(a.account, b.account)) };
 }
 
 function reconstructTerminal(version, components, indexes, householdId) {

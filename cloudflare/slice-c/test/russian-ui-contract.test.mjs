@@ -53,6 +53,7 @@ test('phase two translates remaining surfaces while preserving user-entered name
   assert.equal(language.translate('Deactivate “Подработка” from 7 сент. Existing receipts stay unchanged.'), 'Отключить «Подработка» с 7 сент. Существующие поступления останутся без изменений.');
   assert.equal(language.translate(' Available pace today'), ' Доступный темп на сегодня');
   assert.equal(language.translate('\n  Available pace today  '), '\n  Доступный темп на сегодня  ');
+  assert.equal(language.translate('A subdivision of Available until the next salary—not additional money or a separate limit.'), 'Распределение доступной суммы до следующей зарплаты — это не дополнительные деньги и не отдельный лимит.');
   assert.equal(language.translate('Моя цель'), 'Моя цель');
 });
 

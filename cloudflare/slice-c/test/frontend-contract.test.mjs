@@ -34,12 +34,15 @@ test('Position and Pace consume the same canonical Available pace without client
   assert.doesNotMatch(app1, /data\.positionPace/);
 });
 
-test('active frontend exposes Available pace and no Variables-target behavior', () => {
+test('active frontend exposes compact Available pace guidance and no Variables-target behavior', () => {
+  const pacePanel = html.match(/data-tab-panel="pace"[\s\S]*?<\/section>/)[0];
   assert.match(html, /<h2>Available pace<\/h2>/);
   assert.match(html, /Available pace through Sunday/);
   assert.match(html, /Available pace today/);
   assert.match(html, /A subdivision of Available until the next salary—not additional money or a separate limit\./);
-  assert.match(html, /Pace divides today’s Available across the remaining days until salary\. Spending changes future pace because it changes the real account balance\./);
+  assert.doesNotMatch(pacePanel, /Current guidance|pace-summary|pace-rule|View weekly detail/);
+  assert.match(pacePanel, /pace-guidance-stats[\s\S]*Current Available[\s\S]*Next salary[\s\S]*Remaining runway days/);
+  assert.match(pacePanel, /pace-week-list/);
   for (const source of [html, app1, app3, app4]) {
     assert.doesNotMatch(source, /Variables target|variablesTargetRequired|variablesTarget|setVariablesTarget|Target not set|target pace|recommended pace|target remaining|target exceeded|Variables pace/i);
   }

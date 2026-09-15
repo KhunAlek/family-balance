@@ -31,11 +31,13 @@ test('approved information-led action placement is present', () => {
   assert.doesNotMatch(html, /class="action-center"/);
 });
 
-test('phone landing panels hide inactive content and reserve scrolling for details', () => {
+test('phone landing panels hide inactive content while compact Pace remains scroll-safe', () => {
   assert.match(responsive, /\.primary-tab-panel\[hidden\]\{display:none!important\}/);
   assert.match(responsive, /\.primary-tab-panel\{[^}]*overflow:hidden/);
   assert.match(responsive, /\.detail-view[^}]*overflow-y:auto/);
-  assert.match(responsive, /\.detail-view \.week-grid\{display:grid;grid-template-columns:1fr;overflow:visible/);
+  assert.match(positionPaceCss, /#weekly\{overflow-y:auto/);
+  assert.match(html, /data-tab-panel="pace"[\s\S]*pace-week-list[^>]*id="weeklyVarCards"/);
+  assert.doesNotMatch(html, /id="weeklyDetails"|View weekly detail/);
 });
 
 test('Position shows the explicit next salary date', () => {
@@ -48,6 +50,19 @@ test('Position Pace card is directly below Available, responsive, labelled and n
   assert.match(html, /id="positionPaceCard"[^>]*data-tab="pace"/);
   assert.match(positionPaceCss, /position-pace-card/);
   assert.match(positionPaceCss, /grid-template-columns:1fr 1fr/);
+});
+
+test('Available pace is phone-first, compact, and bounded on laptop', () => {
+  const pacePanel = html.match(/data-tab-panel="pace"[\s\S]*?<\/section>/)[0];
+  assert.match(pacePanel, /pace-guidance-compact/);
+  assert.match(pacePanel, /pace-guidance-stats[\s\S]*pace-current-fact/);
+  assert.match(positionPaceCss, /#weekly\{max-width:760px\}/);
+  assert.match(positionPaceCss, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+  assert.match(positionPaceCss, /\.pace-week-row\{[^}]*min-height:58px/);
+  assert.match(positionPaceCss, /@media\(max-width:760px\)[\s\S]*\.pace-week-row\{min-height:52px/);
+  assert.match(app1, /card\.className='pace-week-row '/);
+  assert.match(app1, /c\.isClosed\?'Closed':'Upcoming'/);
+  assert.match(app1, /c\.isCurrent&&hasSpent\?fmtMoney\(c\.spent,currency\)\+' factual spending to date'/);
 });
 
 test('secondary account actions live in a focused detail view', () => {
@@ -72,7 +87,7 @@ test('KTB transfer uses explicit direction choices and close signs out before re
 
 test('detail navigation is labelled Back rather than Close', () => {
   const detailButtons = html.match(/<button type="button" data-close-detail>← Back<\/button>/g) || [];
-  assert.equal(detailButtons.length, 5);
+  assert.equal(detailButtons.length, 4);
   assert.doesNotMatch(html, /data-close-detail>Close<\/button>/);
   assert.match(html, /id="actionDrawerClose">← Back<\/button>/);
   assert.match(html, /id="movementCancel">← Back<\/button>/);

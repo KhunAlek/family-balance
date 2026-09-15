@@ -26,8 +26,8 @@ test('history uses authoritative read routes and revision-bound management proto
   assert.match(js,/The change was not confirmed/);
 });
 
-test('financial consequences precede technical details and immutable observations have no mutation controls',()=>{
-  assert.match(js,/Financial consequences[\s\S]*Technical details/);
+test('immutable balance observations explain their meaning and expose no mutation controls',()=>{
+  assert.match(js,/Financial meaning[\s\S]*Technical details/);
   assert.match(js,/This immutable observation anchors the recorded account position/);
   assert.match(js,/manage the linked transaction rather than changing this row/);
 });
@@ -37,6 +37,13 @@ test('management preview shows the signed server impact without exposing raw JSO
   assert.match(js,/amount>0\?'enters ':'leaves '/);
   assert.doesNotMatch(js,/eligible\?esc\(consequence\(selected\)\)/);
   assert.doesNotMatch(js,/JSON\.stringify\(preview\.impact/);
+});
+
+test('transaction detail clearly describes the recorded fact and exposes no internal JSON',()=>{
+  assert.match(js,/Recorded transaction/);
+  assert.match(js,/recordedConsequence\(t\)/);
+  assert.match(js,/paid from /);
+  assert.doesNotMatch(js,/JSON\.stringify\(\{logicalTransactionId:t\.logicalTransactionId/);
 });
 
 test('all enabled families receive contextual correction semantics and salary replacement is absent',()=>{

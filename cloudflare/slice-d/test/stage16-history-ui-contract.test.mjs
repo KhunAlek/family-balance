@@ -39,6 +39,16 @@ test('management preview shows the signed server impact without exposing raw JSO
   assert.doesNotMatch(js,/JSON\.stringify\(preview\.impact/);
 });
 
+test('audit toggle merges deleted records and labels corrected active records',()=>{
+  assert.match(js,/result\.audit\?\.deletedTransactions\|\|\[\]/);
+  assert.match(js,/historyItems\(result\)/);
+  assert.match(js,/Corrections \/ deleted/);
+  assert.match(js,/operationCount\|\|0\)>0/);
+  assert.match(js,/· Deleted/);
+  assert.match(js,/· Corrected/);
+  assert.match(js,/historyAudit'\)\.onchange=\(\)=>load\(false\)/);
+});
+
 test('transaction detail clearly describes the recorded fact and exposes no internal JSON',()=>{
   assert.match(js,/Recorded transaction/);
   assert.match(js,/recordedConsequence\(t\)/);

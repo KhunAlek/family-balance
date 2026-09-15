@@ -51,6 +51,8 @@ test('phase two translates remaining surfaces while preserving user-entered name
   assert.equal(language.translate('Final payment — Close this bill'), 'Окончательный платёж — закрыть счёт');
   assert.equal(language.translate('Add “Отпуск 2027” as an active category.'), 'Добавить «Отпуск 2027» как активную категорию.');
   assert.equal(language.translate('Deactivate “Подработка” from 7 сент. Existing receipts stay unchanged.'), 'Отключить «Подработка» с 7 сент. Существующие поступления останутся без изменений.');
+  assert.equal(language.translate(' Available pace today'), ' Доступный темп на сегодня');
+  assert.equal(language.translate('\n  Available pace today  '), '\n  Доступный темп на сегодня  ');
   assert.equal(language.translate('Моя цель'), 'Моя цель');
 });
 

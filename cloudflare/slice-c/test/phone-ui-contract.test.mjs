@@ -71,9 +71,10 @@ test('KTB transfer uses explicit direction choices and close signs out before re
   assert.match(app2, /async function logoutAndClose\(\)\{await logout\(\);window\.close\(\)\}/);
 });
 
-test('detail navigation is labelled Back rather than Close', () => {
+test('remaining detail navigation is labelled Back while Pace has no separate detail view', () => {
   const detailButtons = html.match(/<button type="button" data-close-detail>← Back<\/button>/g) || [];
-  assert.equal(detailButtons.length, 5);
+  assert.equal(detailButtons.length, 4);
+  assert.doesNotMatch(html, /id="weeklyDetails"|View weekly detail/);
   assert.doesNotMatch(html, /data-close-detail>Close<\/button>/);
   assert.match(html, /id="actionDrawerClose">← Back<\/button>/);
   assert.match(html, /id="movementCancel">← Back<\/button>/);

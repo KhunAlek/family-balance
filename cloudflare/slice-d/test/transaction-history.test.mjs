@@ -75,15 +75,30 @@ test('cursor is opaque, query-bound, revision-bound, stable, and paginates witho
   assert.equal(serializeTransactionHistory(first), serializeTransactionHistory(repeated));
 });
 
-test('audit visibility is separate and never contaminates financial totals', async t => {
+test('audit visibility merges active and deleted before ordering and never contaminates financial totals', async t => {
   const { raw } = fixture(t); insertPayment(raw, 'active', '2026-09-10', 10000); deletePayment(raw, 'deleted', '2026-09-10', 90000);
   const tables = snapshot(raw);
   const normal = await buildTransactionHistory(tables, { period: 'all', text: 'unique' });
   const audit = await buildTransactionHistory(tables, { period: 'all', text: 'unique', showAudit: true });
   assert.equal(normal.audit, undefined); assert.equal(normal.totals.moneyOutSatang, 10000);
-  assert.equal(audit.audit.deletedTransactions.length, 1); assert.ok(audit.audit.ambiguousLegacyItems.length > 0);
+  assert.deepEqual(audit.transactions.map(item => item.lifecycle), ['deleted', 'active']);
+  assert.equal(audit.pagination.resultCount, 2); assert.equal(audit.audit.deletedTransactionCount, 1);
+  assert.equal(audit.audit.auditOperationCount, 1); assert.ok(audit.audit.ambiguousLegacyItems.length > 0);
   assert.deepEqual(audit.totals, normal.totals);
-  assert.equal(audit.audit.deletedTransactions[0].permittedActions.delete, false);
+  assert.equal(audit.transactions[0].permittedActions.delete, false);
+});
+
+test('audit pagination crosses deleted and active records without duplicates or count drift', async t => {
+  const { raw } = fixture(t); insertPayment(raw, 'active-page', '2026-09-10', 10000); deletePayment(raw, 'deleted-page', '2026-09-10', 90000);
+  const tables = snapshot(raw), query = { period: 'all', text: 'unique', showAudit: true, pageSize: 1 };
+  const first = await buildTransactionHistory(tables, query);
+  const second = await buildTransactionHistory(tables, { ...query, cursor: first.pagination.nextCursor });
+  assert.equal(first.pagination.resultCount, 2); assert.equal(first.pagination.hasMore, true);
+  assert.equal(second.pagination.resultCount, 2); assert.equal(second.pagination.hasMore, false);
+  assert.deepEqual([first.transactions[0].lifecycle, second.transactions[0].lifecycle], ['deleted', 'active']);
+  assert.notEqual(first.transactions[0].logicalTransactionId, second.transactions[0].logicalTransactionId);
+  assert.deepEqual(first.totals, { resultCount: 1, moneyInSatang: 0, moneyOutSatang: 10000 });
+  assert.deepEqual(second.totals, first.totals);
 });
 
 test('invalid periods, ranges, amounts, audit filters, reads, and canonical failures make zero writes', async t => {

@@ -188,14 +188,15 @@ export async function buildTransactionHistory(tables, payload = {}, householdId 
   const canonical = buildTerminalTransactionReadModel(tables);
   const active = canonical.activeTransactions.filter(item => matches(item, period, query)).sort(orderTransactions);
   const deleted = query.showAudit ? canonical.deletedTransactions.filter(item => matches(item, period, query)).sort(orderTransactions) : [];
+  const visible = query.showAudit ? [...active, ...deleted].sort(orderTransactions) : active;
   let offset = 0;
   if (cursor) {
-    const index = active.findIndex(item => JSON.stringify(cursorKey(item)) === JSON.stringify(cursor.after));
+    const index = visible.findIndex(item => JSON.stringify(cursorKey(item)) === JSON.stringify(cursor.after));
     if (index < 0) fail('INVALID_CURSOR', 'History cursor position is no longer valid.', { restartRequired: true });
     offset = index + 1;
   }
-  const transactions = active.slice(offset, offset + query.pageSize);
-  const hasMore = offset + transactions.length < active.length;
+  const transactions = visible.slice(offset, offset + query.pageSize);
+  const hasMore = offset + transactions.length < visible.length;
   const nextCursor = hasMore ? base64UrlEncode(JSON.stringify({ v: 1, revision, queryHash, after: cursorKey(transactions.at(-1)) })) : null;
   const totals = { resultCount: active.length, moneyInSatang: 0, moneyOutSatang: 0 };
   for (const item of active) {
@@ -206,8 +207,14 @@ export async function buildTransactionHistory(tables, payload = {}, householdId 
   const detailPool = query.showAudit ? [...active, ...deleted] : active;
   const detail = query.detailLogicalTransactionId === null ? null : detailPool.find(item => item.logicalTransactionId === query.detailLogicalTransactionId) || null;
   if (query.detailLogicalTransactionId !== null && !detail) fail('TRANSACTION_NOT_FOUND', 'Transaction is not visible in this query.');
-  const response = { ok: true, format: TRANSACTION_HISTORY_FORMAT, householdRevision: revision, queryHash, period, ordering: { businessDate: 'desc', committedRevision: 'desc_nulls_last', logicalTransactionId: 'desc' }, totals, transactions, pagination: { pageSize: query.pageSize, hasMore, nextCursor }, detail };
-  if (query.showAudit) response.audit = { deletedTransactions: deleted, ambiguousLegacyItems: canonical.ambiguousLegacyItems };
+  const response = { ok: true, format: TRANSACTION_HISTORY_FORMAT, householdRevision: revision, queryHash, period, ordering: { businessDate: 'desc', committedRevision: 'desc_nulls_last', logicalTransactionId: 'desc' }, totals, transactions, pagination: { pageSize: query.pageSize, resultCount: visible.length, hasMore, nextCursor }, detail };
+  if (query.showAudit) response.audit = {
+    deletedTransactions: [],
+    deletedTransactionCount: deleted.length,
+    correctedTransactionCount: active.filter(item => Number(item.auditSummary?.operationCount || 0) > 0).length,
+    auditOperationCount: visible.reduce((sum, item) => sum + Number(item.auditSummary?.operationCount || 0), 0),
+    ambiguousLegacyItems: canonical.ambiguousLegacyItems,
+  };
   return response;
 }
 

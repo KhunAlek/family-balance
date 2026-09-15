@@ -8,3 +8,6 @@
 .position-pace-card b{margin-top:5px;font-size:21px}
 .position-pace-card:focus-visible{outline:3px solid #116b68;outline-offset:2px}
 @media(max-width:760px){.position-pace-card{margin-top:8px}.position-pace-card>span{padding:10px 12px}.position-pace-card small{font-size:10px;line-height:1.25}.position-pace-card b{font-size:16px;white-space:nowrap}.position-pace-card .position-pace-explanation{font-size:11px}}
+.pace-weeks-head{margin-top:16px}.pace-week-grid{margin-bottom:12px}
+@media(max-width:760px){#weekly{overflow-y:auto;padding-bottom:88px}.pace-week-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;overflow:visible;scroll-snap-type:none}.pace-week-grid .week-card{width:100%;min-width:0;min-height:0;padding:10px;scroll-snap-align:none}.pace-week-grid .week-card.current{padding:9px}.pace-week-grid .week-card.closed{padding-top:8px}.pace-week-grid .week-top{display:grid;gap:2px}.pace-week-grid .week-value{font-size:17px;margin:8px 0 2px;white-space:normal}.pace-week-grid .week-desc{font-size:9px;min-height:0}.pace-week-grid .meter,.pace-week-grid .week-meta{display:none}}
+@media(max-width:420px){.pace-week-grid{grid-template-columns:1fr}}

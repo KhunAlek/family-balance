@@ -40,7 +40,8 @@ test('management preview shows the signed server impact without exposing raw JSO
 });
 
 test('audit toggle merges deleted records and labels corrected active records',()=>{
-  assert.match(js,/result\.audit\?\.deletedTransactions\|\|\[\]/);
+  assert.match(js,/historyItems\(result\)\{return \[\.\.\.\(result\.transactions\|\|\[\]\)\]\}/);
+  assert.match(js,/page\.pagination\?\.resultCount/);
   assert.match(js,/historyItems\(result\)/);
   assert.match(js,/Corrections \/ deleted/);
   assert.match(js,/operationCount\|\|0\)>0/);
@@ -54,6 +55,28 @@ test('transaction detail clearly describes the recorded fact and exposes no inte
   assert.match(js,/recordedConsequence\(t\)/);
   assert.match(js,/paid from /);
   assert.doesNotMatch(js,/JSON\.stringify\(\{logicalTransactionId:t\.logicalTransactionId/);
+});
+
+test('guided correction exposes one selected detail or the complete same-type form without internal labels',()=>{
+  for(const phrase of ['What needs correcting?','Date','Amount','Account','Category','Description','More than one detail','Transaction type stays unchanged.']) assert.match(js,new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+  assert.match(js,/const t=selected,all=choice==='more',show=name=>all\|\|choice===name/);
+  assert.doesNotMatch(js,/Category ID|Source ID|Occurrence ID|Component ID/);
+  assert.match(js,/classList\.add\('management-active'\)/);
+  assert.match(js,/historyManagementHeading[\s\S]*\.focus\(\)/);
+  assert.match(js,/querySelector\('\[data-management=/);
+});
+
+test('view-only reasons and complete audit are localized presentation data, never raw refusal output',()=>{
+  for(const phrase of ['This historical transaction is view-only','This historical item is view-only','This transaction is safely view-only','Complete audit history','Bangkok time','Reason:','Before','After','Revision ']) assert.match(js,new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+  assert.doesNotMatch(js,/refusalCodes\|\|\[\]\)\.join/);
+  assert.match(i18n,/Эта историческая транзакция доступна только для просмотра/);
+  assert.match(i18n,/Эта историческая запись доступна только для просмотра/);
+});
+
+test('Pace is one unified screen with weekly cards immediately below current guidance',()=>{
+  assert.match(html,/id="paceWeeklyValue"[\s\S]*id="paceAvailable"[\s\S]*id="weeklyVarCards"/);
+  assert.doesNotMatch(html,/View weekly detail|id="weeklyDetails"/);
+  assert.match(css,/management-active/);
 });
 
 test('all enabled families receive contextual correction semantics and salary replacement is absent',()=>{

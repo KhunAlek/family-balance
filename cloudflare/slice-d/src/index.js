@@ -20,6 +20,15 @@ import {
 } from './auth.mjs';
 import { runWeeklySnapshotJob } from './weekly-job.mjs';
 import { runPortableBackup } from './backup.mjs';
+import { runTransactionHistory, TransactionHistoryError } from './transaction-history.mjs';
+import { previewTransactionManagement, executeTransactionManagementCommit, TransactionManagementProtocolError } from './transaction-management-protocol.mjs';
+import { oneOffEligibility, buildOneOffPreview, buildOneOffReplacement } from './one-off-payment-management.mjs';
+import { otherIncomeEligibility, buildOtherIncomePreview, buildOtherIncomeReplacement } from './other-income-management.mjs';
+import {obligationEligibility,buildObligationPreview,buildObligationReplacement} from './obligation-payment-management.mjs';
+import {ktbTransferEligibility,buildKtbTransferPreview,buildKtbTransferReplacement} from './ktb-transfer-management.mjs';
+import {fundMovementEligibility,buildFundMovementPreview,buildFundMovementReplacement} from './fund-movement-management.mjs';
+import {salaryReceiptEligibility,buildSalaryReceiptPreview,buildSalaryReceiptReplacement} from './salary-receipt-management.mjs';
+import { runBalanceHistory, BalanceHistoryError } from './balance-history.mjs';
 import {
   DAILY_BALANCE_CRON,
   WEEKLY_EF_CRON,
@@ -144,6 +153,24 @@ async function handleFinancialAction(payload, identity, env, options = {}) {
       return jsonResponse(await getOneOffReport(env.DB, payload.payload || {}));
     }
     if (payload.apiAction === 'getOneOffPayments') return jsonResponse(await getOneOffPayments(env.DB,payload.payload||{}));
+    if (payload.apiAction === 'transactionHistory') {
+      const { response } = await runTransactionHistory(env.DB, payload.payload || {}, 'family');
+      return jsonResponse(response);
+    }
+    if (payload.apiAction === 'balanceHistory') {
+      const { response } = await runBalanceHistory(env.DB, payload.payload || {}, 'family');
+      return jsonResponse(response);
+    }
+    if (payload.apiAction === 'transactionManagementPreview') {
+      const eligibility=async context=>context.transaction.kind==='salary_receipt'?salaryReceiptEligibility(context):['ef_movement','goal_movement'].includes(context.transaction.kind)?fundMovementEligibility(context):context.transaction.kind==='ktb_transfer'?ktbTransferEligibility(context):context.transaction.kind==='obligation_payment'?obligationEligibility(context):context.transaction.kind==='other_income_receipt'?otherIncomeEligibility(context):oneOffEligibility(context);
+      const buildPreview=async context=>context.transaction.kind==='salary_receipt'?buildSalaryReceiptPreview(context):['ef_movement','goal_movement'].includes(context.transaction.kind)?buildFundMovementPreview(context):context.transaction.kind==='ktb_transfer'?buildKtbTransferPreview(context):context.transaction.kind==='obligation_payment'?buildObligationPreview(context):context.transaction.kind==='other_income_receipt'?buildOtherIncomePreview(context):buildOneOffPreview(context);
+      return jsonResponse(await previewTransactionManagement(env.DB, payload.payload || {}, 'family', {eligibility,buildPreview}));
+    }
+    if (payload.apiAction === 'transactionManagementCommit') {
+      const eligibility=async context=>context.transaction.kind==='salary_receipt'?salaryReceiptEligibility(context):['ef_movement','goal_movement'].includes(context.transaction.kind)?fundMovementEligibility(context):context.transaction.kind==='ktb_transfer'?ktbTransferEligibility(context):context.transaction.kind==='obligation_payment'?obligationEligibility(context):context.transaction.kind==='other_income_receipt'?otherIncomeEligibility(context):oneOffEligibility(context);
+      const buildReplacement=async context=>context.transaction.kind==='salary_receipt'?buildSalaryReceiptReplacement(context):['ef_movement','goal_movement'].includes(context.transaction.kind)?buildFundMovementReplacement(context):context.transaction.kind==='ktb_transfer'?buildKtbTransferReplacement(context):context.transaction.kind==='obligation_payment'?buildObligationReplacement(context):context.transaction.kind==='other_income_receipt'?buildOtherIncomeReplacement(context):buildOneOffReplacement(context);
+      return jsonResponse(await executeTransactionManagementCommit(env.DB, payload.payload || {}, { householdId:'family', actorEmail:identity.email,eligibility,buildReplacement }));
+    }
     if (payload.apiAction === 'getOtherIncomeSources') return jsonResponse(await getOtherIncomeSources(env.DB,payload.payload||{}));
     if(payload.apiAction==='getFixedExpenses')return jsonResponse(await getFixedExpenses(env.DB));
     if(payload.apiAction==='previewFixedExpense')return jsonResponse(await previewFixedExpense(env.DB,payload.payload||{}));
@@ -183,6 +210,15 @@ async function handleFinancialAction(payload, identity, env, options = {}) {
     throw new ResponseError(404, 'Unknown API action.');
   } catch (error) {
     if (error instanceof ResponseError) throw error;
+    if (error instanceof TransactionHistoryError) {
+      return jsonResponse({ ok: false, code: error.code, error: error.message, restartRequired: error.restartRequired }, error.code === 'STALE_HISTORY_QUERY' ? 409 : 400);
+    }
+    if (error instanceof BalanceHistoryError) {
+      return jsonResponse({ ok: false, code: error.code, error: error.message, restartRequired: error.restartRequired }, error.code === 'STALE_BALANCE_HISTORY_QUERY' ? 409 : 400);
+    }
+    if (error instanceof TransactionManagementProtocolError) {
+      return jsonResponse({ ok:false, code:error.code, error:error.message }, error.status);
+    }
     if (NOTIFICATION_ACTIONS.has(String(payload?.apiAction || ''))) {
       const message = String(error?.message || 'Notification action failed.');
       console.warn(JSON.stringify({ event: 'notification_action_failure', apiAction: String(payload?.apiAction || ''), message }));

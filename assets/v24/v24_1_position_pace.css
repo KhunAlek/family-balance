@@ -8,7 +8,6 @@
 .position-pace-card b{margin-top:5px;font-size:21px}
 .position-pace-card:focus-visible{outline:3px solid #116b68;outline-offset:2px}
 @media(max-width:760px){.position-pace-card{margin-top:8px}.position-pace-card>span{padding:10px 12px}.position-pace-card small{font-size:10px;line-height:1.25}.position-pace-card b{font-size:16px;white-space:nowrap}.position-pace-card .position-pace-explanation{font-size:11px}}
-
 #weekly{max-width:760px}
 .pace-guidance-compact{padding:18px 20px;border:1px solid #a87900;border-radius:18px;background:#f5c84c;color:#382900;box-shadow:var(--shadow-soft)}
 .pace-guidance-compact .pace-primary-label{display:block;color:inherit;font-size:10px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}

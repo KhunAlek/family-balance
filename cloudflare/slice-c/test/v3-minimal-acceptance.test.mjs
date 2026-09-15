@@ -472,16 +472,15 @@ test('V3-M34 — Goal outstanding limit rejection', async () => {
   assert.equal(s.goals[0].cycle_commitment_satang,0);
 });
 
-test('V3-M35 — Goal target reduction cannot strand larger commitment', async () => {
+test('V3-M35 — Goal target changes are unavailable through legacy correction', async () => {
   const s=snapshot({goals:[goal('A',10000,3000)],ledger:[ledgerRow(1,'2026-07-20','A','Contribution',7000)]});
-  await rejected(planFinancialWrite(writeContext('correctRecord',{entityType:'goal',entityId:'A',reason:'lower target',correctedValues:{targetAmount:9000}},s)),/Reduce the cycle commitment first/);
+  await rejected(planFinancialWrite(writeContext('correctRecord',{entityType:'goal',entityId:'A',reason:'lower target',correctedValues:{targetAmount:9000}},s)),/Goal configuration is unavailable/);
   assert.equal(s.goals[0].cycle_commitment_satang,toSatang(3000));
 });
 
-test('V3-M36 — Goal status change does not silently erase commitment', async () => {
+test('V3-M36 — disabled Goal correction does not silently erase commitment', async () => {
   const s=snapshot({goals:[goal('A',10000,3000)]});
-  const plan=await planFinancialWrite(writeContext('correctRecord',{entityType:'goal',entityId:'A',reason:'archive display',correctedValues:{status:'done'}},s));
-  assert.equal(plan.statements.some(x=>/cycle_commitment_satang/.test(x.sql)),false);
+  await rejected(planFinancialWrite(writeContext('correctRecord',{entityType:'goal',entityId:'A',reason:'archive display',correctedValues:{status:'done'}},s)),/Goal configuration is unavailable/);
   const after=clone(s);after.goals[0].status='done';
   const p=buildPlanningState(after,'2026-08-20');
   approx(p.commitments.goalsOutstanding,3000);

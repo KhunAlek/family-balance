@@ -7,25 +7,35 @@ function canonical(value) {
   return value;
 }
 
+export async function semanticPayloadHash(action,payload) {
+  const bytes=new TextEncoder().encode(JSON.stringify(canonical({action,payload})));
+  const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',bytes));
+  return Array.from(digest,b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+export async function loadRequestReceipt(db,{householdId='family',requestId,action,semanticHash}) {
+  const row=await primary(db).prepare('SELECT action,semantic_payload_hash,response_json FROM new_function_request_receipts WHERE household_id=? AND request_id=?').bind(householdId,requestId).first();
+  if (!row) return null;
+  if (row.action!==action||row.semantic_payload_hash!==semanticHash) throw new FinancialWriteValidationError('This request ID was already used with different details.');
+  return JSON.parse(row.response_json);
+}
+
 // Request receipts are scoped to the authorized new mutation family and the
 // owner-approved reporting correction. The revision protocol stays unchanged.
 export async function executeRequestReceiptWrite(db,options,semantic,planWrite,encoding=null) {
   const {householdId='family',action,payload={}}=options;
   const requestId=payload.requestId;
   if (typeof requestId!=='string'||!/^[a-zA-Z0-9:_-]{1,128}$/.test(requestId)) throw new FinancialWriteValidationError('A stable request ID is required.');
-  const bytes=new TextEncoder().encode(encoding || JSON.stringify(canonical({action,payload:semantic})));
-  const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',bytes));
-  const hash=Array.from(digest,b=>b.toString(16).padStart(2,'0')).join('');
+  const hash=encoding
+    ? Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(encoding))),b=>b.toString(16).padStart(2,'0')).join('')
+    : await semanticPayloadHash(action,semantic);
   async function replay() {
-    const row=await primary(db).prepare('SELECT action,semantic_payload_hash,response_json FROM new_function_request_receipts WHERE household_id=? AND request_id=?').bind(householdId,requestId).first();
-    if (!row) return null;
-    if (row.action!==action||row.semantic_payload_hash!==hash) throw new FinancialWriteValidationError('This request ID was already used with different details.');
-    return JSON.parse(row.response_json);
+    return loadRequestReceipt(db,{householdId,requestId,action,semanticHash:hash});
   }
   const original=await replay();if(original)return original;
   try {
     return await executeRevisionClaimWrite(db,{...options,householdId,planWrite:async ctx=>{
-      const plan=await planWrite(ctx);
+      const plan=await planWrite({...ctx,semanticPayloadHash:hash});
       const response={ok:true,action,baseRevision:ctx.baseRevision,revision:ctx.nextRevision,writeToken:ctx.writeToken,...plan.response};
       plan.statements.push(statement('INSERT INTO new_function_request_receipts(household_id,request_id,action,semantic_payload_hash,committed_revision,response_json) VALUES(?,?,?,?,?,?)',householdId,requestId,action,hash,ctx.nextRevision,JSON.stringify(response)));
       return plan;

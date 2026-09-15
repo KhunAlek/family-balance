@@ -1,5 +1,7 @@
 export async function loadFinancialSnapshot(db, householdId = 'family') {
   if (!db || typeof db.prepare !== 'function') throw new Error('D1 binding is unavailable.');
+  const [schema]=await db.batch([db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('logical_transactions','logical_transaction_versions','logical_transaction_components','obligation_payment_allocations','ktb_transfers','fund_movements','salary_receipt_parents')")]);
+  const schemaNames=new Set((schema.results||[]).map(row=>row.name)),identityEnabled=['logical_transactions','logical_transaction_versions','logical_transaction_components'].every(name=>schemaNames.has(name));
   const statements = [
     db.prepare('SELECT config_key,value_text,value_integer,value_satang FROM configuration WHERE household_id=? ORDER BY config_key').bind(householdId),
     db.prepare('SELECT current_cycle_start,next_salary_date,salary_receipt_cutover_date,variables_target_satang,ef_cycle_commitment_satang FROM salary_cycle_state WHERE household_id=?').bind(householdId),
@@ -14,7 +16,11 @@ export async function loadFinancialSnapshot(db, householdId = 'family') {
     db.prepare('SELECT cycle_start,source FROM salary_cycle_sources WHERE household_id=? ORDER BY cycle_start,source').bind(householdId),
     db.prepare("SELECT correction_id,entity_type,entity_id,before_json,after_json,reason,actor_email,corrected_at,base_revision,write_token FROM correction_audit WHERE household_id=? AND entity_type='ledger_movement' ORDER BY corrected_at,correction_id").bind(householdId),
     db.prepare("SELECT name FROM sqlite_master WHERE type IN ('table','trigger') AND name IN ('reporting_salary_cycles','other_income_sources','immutable_one_off_payment','fixed_expense_management_enabled')"),
-    db.prepare('SELECT * FROM obligation_occurrences WHERE household_id=? ORDER BY due_date,occurrence_id').bind(householdId)
+    db.prepare('SELECT * FROM obligation_occurrences WHERE household_id=? ORDER BY due_date,occurrence_id').bind(householdId),
+    db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='obligation_payment_allocations'"),
+    identityEnabled?db.prepare('SELECT * FROM logical_transactions WHERE household_id=? ORDER BY logical_transaction_id').bind(householdId):db.prepare('SELECT NULL AS logical_transaction_id WHERE 0'),
+    identityEnabled?db.prepare('SELECT * FROM logical_transaction_versions ORDER BY logical_transaction_id,version_number'):db.prepare('SELECT NULL AS version_id WHERE 0'),
+    identityEnabled?db.prepare('SELECT * FROM logical_transaction_components ORDER BY version_id,component_kind,component_id'):db.prepare('SELECT NULL AS version_id WHERE 0')
   ];
   const results = await db.batch(statements);
   const rows = index => results[index]?.results || [];
@@ -25,6 +31,8 @@ export async function loadFinancialSnapshot(db, householdId = 'family') {
     if (item.value_text !== null && item.value_text !== undefined) config[item.config_key] = item.value_text;
   }
   const salaryCycle = rows(1)[0] || {};
+  const transactions=rows(15),versions=rows(16),components=rows(17),claimedLedger=new Set(components.filter(x=>x.component_kind==='ledger_movement').map(x=>String(x.component_id))),activeTerminals=new Set(transactions.filter(x=>x.lifecycle_status==='active').map(x=>String(x.terminal_version_id))),activeLedger=new Set(components.filter(x=>activeTerminals.has(String(x.version_id))&&x.component_kind==='ledger_movement').map(x=>String(x.component_id)));
+  const effectiveLedger=rows(8).filter(x=>!claimedLedger.has(String(x.ledger_id))||activeLedger.has(String(x.ledger_id)));
   return {
     householdId,
     ...(rows(12).some(r=>r.name==='reporting_salary_cycles') ? { reportingEnabled: true } : {}),
@@ -39,10 +47,15 @@ export async function loadFinancialSnapshot(db, householdId = 'family') {
     obligations: rows(5),
     obligationPayments: rows(6),
     goals: rows(7),
-    ledger: rows(8),
+    ledger: effectiveLedger,
     weeklySnapshots: rows(9),
     salaryCycleSources: rows(10),
     correctionAudits: rows(11),
-    obligationOccurrences: rows(13)
+    obligationOccurrences: rows(13),
+    ...(rows(14).length?{obligationPaymentManagementEnabled:true}:{}),
+    ...(schemaNames.has('ktb_transfers')?{ktbTransferManagementEnabled:true}:{}),
+    ...(schemaNames.has('fund_movements')?{fundMovementManagementEnabled:true}:{}),
+    ...(schemaNames.has('salary_receipt_parents')?{salaryReceiptManagementEnabled:true}:{}),
+    logicalTransactions:transactions,logicalTransactionVersions:versions,logicalTransactionComponents:components
   };
 }

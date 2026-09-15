@@ -6,6 +6,7 @@ const html = fs.readFileSync(new URL('../../../index.html', import.meta.url), 'u
 const app1 = fs.readFileSync(new URL('../../../assets/v24/v24_1_app1.js', import.meta.url), 'utf8');
 const app2 = fs.readFileSync(new URL('../../../assets/v24/v24_1_app2.js', import.meta.url), 'utf8');
 const responsive = fs.readFileSync(new URL('../../../assets/v24/v24_1_tabs.css', import.meta.url), 'utf8');
+const coreResponsive = fs.readFileSync(new URL('../../../assets/v24/v24_1_responsive.css', import.meta.url), 'utf8');
 const positionPaceCss = fs.readFileSync(new URL('../../../assets/v24/v24_1_position_pace.css', import.meta.url), 'utf8');
 const correction = fs.readFileSync(new URL('../../../assets/v24/v24_1_correction.js', import.meta.url), 'utf8');
 
@@ -85,9 +86,10 @@ test('KTB transfer uses explicit direction choices and close signs out before re
   assert.match(app2, /async function logoutAndClose\(\)\{await logout\(\);window\.close\(\)\}/);
 });
 
-test('detail navigation is labelled Back rather than Close', () => {
+test('remaining detail navigation is labelled Back while Pace has no separate detail view', () => {
   const detailButtons = html.match(/<button type="button" data-close-detail>← Back<\/button>/g) || [];
   assert.equal(detailButtons.length, 4);
+  assert.doesNotMatch(html, /id="weeklyDetails"|View weekly detail/);
   assert.doesNotMatch(html, /data-close-detail>Close<\/button>/);
   assert.match(html, /id="actionDrawerClose">← Back<\/button>/);
   assert.match(html, /id="movementCancel">← Back<\/button>/);
@@ -99,6 +101,11 @@ test('correction entry is contextual rather than injected into the action direct
   assert.doesNotMatch(correction, /action-center/);
   assert.match(correction, /recordsCorrectionBtn/);
   assert.doesNotMatch(html, /class="action-tile"[^>]*>Correct record/);
+  assert.match(html, /id="recordsCorrectionBtn">Salary-cycle correction<\/button>/);
+  assert.match(correction, /Other corrections are safely unavailable here/);
+  assert.doesNotMatch(correction, /\n\s+(balance|obligationPayment|ledgerMovement|goal):\[/);
+  assert.match(responsive, /html,body\{min-height:100%;overflow-x:hidden\}/);
+  assert.match(coreResponsive, /\.correction-safety,\.correction-safety li\{max-width:100%;overflow-wrap:anywhere\}/);
 });
 
 test('commitments total is a typographic summary rather than another card', () => {

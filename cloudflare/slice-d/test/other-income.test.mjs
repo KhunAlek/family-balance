@@ -8,7 +8,7 @@ import {buildPortableBackup,verifyPortableBackup} from '../src/backup.mjs';
 import {buildRestoreSql} from '../tools/portable-restore.mjs';
 const nowIso='2026-09-06T12:00:00.000Z';
 const rows=(raw,t)=>raw.prepare(`SELECT * FROM ${t} ORDER BY rowid`).all();
-function fixture(t){const f=createSeededSqliteD1();t.after(()=>f.raw.close());for(const n of ['0006_new_functionality.sql','0007_reporting_cycles.sql','0008_other_income.sql'])f.raw.exec(fs.readFileSync(new URL('../migrations/'+n,import.meta.url),'utf8'));return f;}
+function fixture(t){const f=createSeededSqliteD1();t.after(()=>f.raw.close());for(const n of ['0006_new_functionality.sql','0007_reporting_cycles.sql','0008_other_income.sql','0009_typed_payment_effect.sql','0010_historical_one_offs.sql','0011_fixed_expenses.sql','0012_fixed_expense_weekly.sql','0013_transaction_identity.sql','0014_one_off_management_lifecycle.sql','0015_other_income_receipt_parent.sql','0016_obligation_payment_management.sql','0017_ktb_transfer_management.sql','0018_fund_movement_management.sql','0019_salary_receipt_management.sql'])f.raw.exec(fs.readFileSync(new URL('../migrations/'+n,import.meta.url),'utf8'));return f;}
 const write=(db,action,payload,extra={})=>executeOtherIncomeWrite(db,{action,payload,nowIso,...extra});
 const add=(db,name='Tutoring',requestId='add')=>write(db,'addOtherIncomeSource',{name,requestId});
 const stable=['salary_cycle_state','salary_cycle_sources','weekly_snapshots','goals','ledger_movements','obligation_payments'];
@@ -43,7 +43,7 @@ test('normalized names remain reserved while inactive; lifecycle is date ordered
 test('past reactivation allows the dated receipt without salary transition or planning mutation',async t=>{
  const {db,raw}=fixture(t);const sourceId=(await add(db)).source.other_income_source_id;
  await write(db,'reactivateOtherIncomeSource',{sourceId,effectiveDate:'2026-08-01',requestId:'past'});
- const before=preserved(raw);const result=await executeIncomeReceipt(db,{action:'incomeReceipt',nowIso,payload:{otherIncomeSourceId:sourceId,incomeAlexAmount:125,incomeOlgaAmount:75,date:'2026-09-06'}});
+ const before=preserved(raw);const result=await executeIncomeReceipt(db,{action:'incomeReceipt',nowIso,payload:{otherIncomeSourceId:sourceId,requestId:'split-receipt',incomeAlexAmount:125,incomeOlgaAmount:75,date:'2026-09-06'}});
  assert.equal(result.salaryCycleAdvanced,false);assert.equal(Object.hasOwn(result,'variablesTargetRequired'),false);assert.deepEqual(preserved(raw),before);
  const actual=rows(raw,'income_receipts').filter(r=>r.other_income_source_id===sourceId);assert.equal(actual.length,2);assert.equal(actual.reduce((n,r)=>n+r.amount_satang,0),20000);
  assert.ok(actual.every(r=>r.source==='Tutoring'));
@@ -70,12 +70,12 @@ test('failed atomic creation leaves neither identity nor request receipt',async 
 });
 test('failed income receipt rolls back balance and source link together',async t=>{
  const {db,raw}=fixture(t);const sourceId=(await add(db)).source.other_income_source_id;const before=rows(raw,'balance_history'),receipts=rows(raw,'income_receipts');
- await assert.rejects(executeIncomeReceipt(db,{action:'incomeReceipt',nowIso,testOnlyForcedFailure:true,payload:{otherIncomeSourceId:sourceId,incomeAlexAmount:100,date:'2026-09-06'}}));
+ await assert.rejects(executeIncomeReceipt(db,{action:'incomeReceipt',nowIso,testOnlyForcedFailure:true,payload:{otherIncomeSourceId:sourceId,requestId:'failed-receipt',incomeAlexAmount:100,date:'2026-09-06'}}));
  assert.deepEqual(rows(raw,'balance_history'),before);assert.deepEqual(rows(raw,'income_receipts'),receipts);
 });
 test('portable recovery preserves lifecycle, receipt identities and retry evidence',async t=>{
  const {db,raw}=fixture(t);const sourceId=(await add(db)).source.other_income_source_id;
- await executeIncomeReceipt(db,{action:'incomeReceipt',nowIso,payload:{otherIncomeSourceId:sourceId,incomeAlexAmount:100,date:'2026-09-06'}});
+ await executeIncomeReceipt(db,{action:'incomeReceipt',nowIso,payload:{otherIncomeSourceId:sourceId,requestId:'restore-receipt',incomeAlexAmount:100,date:'2026-09-06'}});
  const {backup}=await buildPortableBackup(db,{environment:'test',createdAt:nowIso});assert.equal(await verifyPortableBackup(backup),true);
  const restored=new DatabaseSync(':memory:');t.after(()=>restored.close());restored.exec('PRAGMA foreign_keys=ON');restored.exec(await buildRestoreSql(backup,{includeSchema:true}));
  for(const table of ['other_income_sources','other_income_source_versions','income_receipts','new_function_request_receipts'])assert.deepEqual(rows(restored,table),rows(raw,table));
@@ -87,7 +87,7 @@ test('receipt racing deactivation cannot commit against stale lifecycle',async t
  let arrived=0,release;const gate=new Promise(resolve=>release=resolve);const pause=async()=>{if(++arrived===2)release();await gate;};
  const results=await Promise.allSettled([
   write(db,'deactivateOtherIncomeSource',{sourceId,effectiveDate:'2026-09-06',requestId:'race-off'},{testOnlyBeforeBatch:pause}),
-  executeIncomeReceipt(db,{action:'incomeReceipt',nowIso,testOnlyBeforeBatch:pause,payload:{otherIncomeSourceId:sourceId,incomeAlexAmount:100,date:'2026-09-06'}})
+  executeIncomeReceipt(db,{action:'incomeReceipt',nowIso,testOnlyBeforeBatch:pause,payload:{otherIncomeSourceId:sourceId,requestId:'race-receipt',incomeAlexAmount:100,date:'2026-09-06'}})
  ]);
  assert.equal(results.filter(r=>r.status==='fulfilled').length,1);assert.equal(results.find(r=>r.status==='rejected').reason.staleWriter,true);
  const active=(await getOtherIncomeSources(db,{date:'2026-09-06'})).sources.find(s=>s.other_income_source_id===sourceId).active;
@@ -97,9 +97,9 @@ test('migrated schema retains qualifying salary reset while same-named explicit 
  const {db,raw}=fixture(t);const salary=rows(raw,'income_definitions').find(s=>s.pay_day!=='Variable').source;
  const sourceId=(await add(db,salary)).source.other_income_source_id;
  const before=preserved(raw);
- await executeIncomeReceipt(db,{action:'incomeReceipt',nowIso,payload:{otherIncomeSourceId:sourceId,incomeSource:salary,incomeAlexAmount:100,date:'2026-09-06'}});
+ await executeIncomeReceipt(db,{action:'incomeReceipt',nowIso,payload:{otherIncomeSourceId:sourceId,requestId:'same-name-other',incomeSource:salary,incomeAlexAmount:100,date:'2026-09-06'}});
  assert.deepEqual(preserved(raw),before);
- const result=await executeIncomeReceipt(db,{action:'incomeReceipt',nowIso,payload:{incomeSource:salary,incomeAlexAmount:100,date:'2026-09-06'}});
+ const result=await executeIncomeReceipt(db,{action:'incomeReceipt',actorEmail:'alex@example.com',nowIso,payload:{requestId:'typed-salary-reset',incomeSource:salary,incomeAlexAmount:100,date:'2026-09-06'}});
  assert.equal(result.salaryCycleAdvanced,true);assert.equal(Object.hasOwn(result,'variablesTargetRequired'),false);
  const state=rows(raw,'salary_cycle_state')[0];assert.equal(state.current_cycle_start,'2026-09-06');assert.equal(state.next_salary_date,null);assert.equal(state.variables_target_satang,null);
  assert.ok(rows(raw,'weekly_snapshots').length>before.weekly_snapshots.length);

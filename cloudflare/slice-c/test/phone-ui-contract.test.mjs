@@ -112,10 +112,10 @@ test('all three feature cards share one gradient and curved-highlight treatment'
 });
 
 test('the complete Position hierarchy fits a 360 by 800 viewport above navigation', () => {
-  assert.match(mobilePositionCss, /--position-card-size:180px/);
-  assert.match(mobilePositionCss, /primary-tab-shell\{height:calc\(100dvh - 84px\);padding:10px 12px calc\(82px/);
-  const usableHeight = 800 - 84 - 10 - 82;
-  const hierarchyHeight = (180 * 3) + (10 * 3) + 54;
+  assert.match(mobilePositionCss, /--position-card-size:154px/);
+  assert.match(mobilePositionCss, /primary-tab-shell\{height:calc\(100dvh - 84px\);padding:10px 12px calc\(90px/);
+  const usableHeight = 800 - 84 - 10 - 90;
+  const hierarchyHeight = (154 * 3) + (10 * 3) + 54;
   assert.ok(hierarchyHeight <= usableHeight, `${hierarchyHeight}px hierarchy exceeds ${usableHeight}px usable height`);
 });
 
@@ -126,8 +126,9 @@ test('compact header actions remain accessible with no target warning', () => {
   assert.doesNotMatch(app1, /target_not_set|Variables target not set/i);
   assert.match(html, /Great\+Vibes/);
   assert.match(mobilePositionCss, /font-family:"Great Vibes",cursive/);
-  assert.match(mobilePositionCss, /font-size:39px/);
-  assert.match(mobilePositionCss, /transform:scaleX\(\.78\)/);
+  assert.match(mobilePositionCss, /font-size:clamp\(28px,8vw,34px\)/);
+  assert.match(mobilePositionCss, /\.greeting\{[^}]*overflow:hidden/);
+  assert.match(mobilePositionCss, /\.title-block\{[^}]*overflow:hidden/);
   assert.match(mobilePositionCss, /\.greeting p\{display:none\}/);
   assert.match(mobilePositionCss, /\.topbar-icon\{display:none!important\}/);
   assert.match(mobilePositionCss, /grid-template-columns:repeat\(3,44px\)/);

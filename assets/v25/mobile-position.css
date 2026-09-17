@@ -65,6 +65,8 @@
   .top-actions .icon-action:hover,.top-actions .icon-action:focus-visible{background:rgba(216,182,95,.12)}
   .top-actions .icon-action:focus-visible{outline:2px solid #f2d27c;outline-offset:-3px}
   .top-actions .icon-action svg{width:18px;height:18px;fill:none;stroke:#d8b65f;stroke-width:1.9;opacity:1}
+  .top-actions #notificationsBtn svg{transform:translateX(8px)}
+  .top-actions #logoutBtn svg{transform:translateX(-8px)}
 
   .primary-tab-shell{height:calc(100dvh - 84px);padding:10px 12px calc(90px + env(safe-area-inset-bottom))}
   #overview{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}

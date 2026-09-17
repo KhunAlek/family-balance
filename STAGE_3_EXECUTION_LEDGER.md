@@ -23,3 +23,15 @@ focused Step 1/2/preflight gate — `57752793e8bca797e22a3bf5ab1295888e576b9a` p
 complete Slice B/C/D pre-candidate regression — `57752793e8bca797e22a3bf5ab1295888e576b9a` plus scoped worktree changes — bundled Node `v24.19.0`; `node --test cloudflare/slice-b/test/*.test.mjs cloudflare/slice-c/test/*.test.mjs cloudflare/slice-d/test/*.test.mjs` — 265 tests passed, 0 failed
 
 edge-case coverage tightening — `57752793e8bca797e22a3bf5ab1295888e576b9a` plus scoped worktree changes — reviewed invalid typed-group accounting and added one-source-row-per-ambiguity behavior/test — malformed typed parent plus allocation remains two separately inventoried ambiguous items; no source-row count can be hidden inside one ambiguity entry
+
+## Candidate verification and handoff
+
+candidate creation — `bd369e00b16116c4be2ea70ea325efe6ac96747a` — staged exactly `STAGE_3_PREFLIGHT_DECISION_RECORD.md`, this ledger through pre-candidate verification, classifier, and focused tests; `git diff --cached --check`; `git commit -m "Add deterministic historical preflight candidate"`; `git rev-parse HEAD`; `git status --short` — local candidate commit created with four files; pre-existing modified/untracked owner artifacts remained excluded; no merge or deployment performed
+
+focused candidate acceptance — `bd369e00b16116c4be2ea70ea325efe6ac96747a` — `test "$(git rev-parse HEAD)" = bd369e00b16116c4be2ea70ea325efe6ac96747a && /Users/alexanderbystrov/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --test cloudflare/slice-d/test/historical-preflight.test.mjs cloudflare/slice-d/test/transaction-identity.test.mjs cloudflare/slice-d/test/backup.test.mjs cloudflare/slice-c/test/correction.test.mjs cloudflare/slice-c/test/correction-edge.test.mjs` — 19 tests passed, 0 failed under Node `v24.19.0`
+
+complete candidate regression — `bd369e00b16116c4be2ea70ea325efe6ac96747a` — `test "$(git rev-parse HEAD)" = bd369e00b16116c4be2ea70ea325efe6ac96747a && /Users/alexanderbystrov/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --test cloudflare/slice-b/test/*.test.mjs cloudflare/slice-c/test/*.test.mjs cloudflare/slice-d/test/*.test.mjs` — 265 tests passed, 0 failed under Node `v24.19.0`
+
+result and Step 4 handoff authoring — `bd369e00b16116c4be2ea70ea325efe6ac96747a` — created `STAGE_3_RESULT.md`, `STAGE_4_CANONICAL_READ_MODEL_TASK_SPEC.md`, and `STAGE_4_FRESH_CHAT_PROMPT.md` — documented implemented-candidate verdict, exact fixture-only evidence, limitations, representative-backup gate, and a self-contained read-only Step 4 scope without beginning Step 4
+
+Step 4 package assembly and verification — `bd369e00b16116c4be2ea70ea325efe6ac96747a` — assembled master/REV1, Step 2 evidence, Step 3 decision/result/ledger, Step 4 task/prompt, and SHA-256 manifest in an isolated temporary directory; ran `shasum -a 256 -c STAGE_4_PACKAGE_MANIFEST.txt`; created and re-listed `transaction-history-step-4-package.zip` — all ten manifested documents matched and all eleven expected package files were present; ZIP is a local handoff artifact only

@@ -7,7 +7,7 @@ Implemented candidate. This candidate is not owner-accepted, externally migrated
 ## Exact revisions
 
 - Starting SHA: `fea362e4cb9c5ec52c9e377a2526de49185d4d6a`
-- Candidate SHA: recorded in the post-commit execution ledger and Step 15 package generated from the candidate worktree.
+- Candidate SHA: `242022ba9f8a4739a7b06daaa547856ceeb2e480`
 - Candidate commit: `Add guarded salary management candidate`
 
 ## Implemented scope

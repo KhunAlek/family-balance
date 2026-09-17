@@ -12,6 +12,12 @@ Implemented candidate. Step 13 is not owner-accepted, externally migrated, merge
 - Canonical Transaction history, Balance history reconciliation, request replay, and portable backup/restore include the new relationship.
 - Historical Ledger rows remain unlinked, ambiguous, and mutation-disabled.
 
+## Exact revisions
+
+- Starting and accepted Step 12 SHA: `1ff8d0da73b2b1ff6274904ebbe372fa7ec7e960`
+- Candidate SHA: `fea362e4cb9c5ec52c9e377a2526de49185d4d6a`
+- Candidate commit: `Add EF and Goal movement management candidate`
+
 ## Authorized migration
 
 `0018_fund_movement_management.sql` creates only the empty immutable `fund_movements` relationship. It performs no backfill or factual rewrite.
@@ -23,7 +29,9 @@ Replacement, salary management, and all other unapproved changes remain disabled
 ## Verification
 
 - Bundled Node: `v24.19.0`.
-- Focused Step 13 pre-candidate suite: 3 passed, 0 failed.
-- Full Slice B/C/D pre-candidate suite: 319 passed, 0 failed.
+- Focused Step 13 suite at exact candidate SHA: 4 passed, 0 failed.
+- Full Slice B/C/D suite at exact candidate SHA: 320 passed, 0 failed.
 
-Exact candidate SHA and exact-candidate reruns are recorded after candidate creation.
+## Next owner gate
+
+Owner acceptance of this Step 13 candidate is required before Step 14 salary-management design work. Applying migration `0018` outside repository tests requires separate explicit authorization.

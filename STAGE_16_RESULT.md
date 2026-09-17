@@ -7,7 +7,7 @@ Implemented candidate. This Stage 16 work remains local and is not merged, deplo
 ## Exact revisions
 
 - Accepted Stage 15 starting SHA: `269d51655756e1733a268aac5fdfaa58d5dfa246`
-- Stage 16 candidate SHA: recorded after the single local candidate commit
+- Stage 16 candidate SHA: `09c23b2d7a2cdbb874c4f2993851f336c89dc7df`
 - Candidate commit: `Complete bilingual responsive transaction history`
 
 ## Implemented scope

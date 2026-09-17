@@ -21,3 +21,11 @@ narrow lifecycle migration — `2c539dd6c1f1abe3a06654388c13ec9ae7072f13` plus s
 focused Steps 1–8 gate — `2c539dd6c1f1abe3a06654388c13ec9ae7072f13` plus scoped worktree changes — bundled Node `v24.19.0`; one-off protocol, Balance history, Transaction history, canonical model, preflight, identity, backup, and legacy correction suites — 47 passed, 0 failed
 
 complete pre-candidate Slice B/C/D regression — `2c539dd6c1f1abe3a06654388c13ec9ae7072f13` plus scoped worktree changes — bundled Node `v24.19.0`; `node --test cloudflare/slice-b/test/*.test.mjs cloudflare/slice-c/test/*.test.mjs cloudflare/slice-d/test/*.test.mjs` — 293 passed, 0 failed
+
+## Candidate and exact-candidate verification
+
+candidate creation — `50bd2750dc353768c0fe8f5b2f40bd2e7f143e65` — staged exactly the Step 8 ledger, authorized migration, family implementation, shared-protocol/read-model wiring, and focused tests; `git diff --cached --check`; `git commit -m "Add one-off payment management candidate"`; `git rev-parse HEAD` — one local candidate commit created with nine files; owner/package work remained excluded; no merge, deployment, configuration, or external access occurred
+
+focused exact-candidate gate — `50bd2750dc353768c0fe8f5b2f40bd2e7f143e65` — exact-SHA assertion plus bundled Node over Steps 1–8 focused suites — 48 passed, 0 failed
+
+complete exact-candidate regression — `50bd2750dc353768c0fe8f5b2f40bd2e7f143e65` — exact-SHA assertion plus bundled Node over all Slice B/C/D tests — 294 passed, 0 failed

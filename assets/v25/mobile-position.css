@@ -10,7 +10,9 @@
     --position-gold-light:#e1c477;
     --position-cool:#c9d5e2;
     --position-utility-ink:#e4edf6;
-    --position-card-size:154px;
+    --position-card-size:clamp(144px,calc((100dvh - 300px)/3),210px);
+    --position-control-size:clamp(44px,6.2dvh,56px);
+    --position-stack-gap:clamp(8px,1.35dvh,14px);
   }
 
   .topbar{
@@ -69,7 +71,7 @@
   .top-actions #logoutBtn svg{transform:translateX(-8px)}
 
   .primary-tab-shell{height:calc(100dvh - 84px);padding:10px 12px calc(90px + env(safe-area-inset-bottom))}
-  #overview{display:flex;flex-direction:column;justify-content:space-evenly;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+  #overview{display:flex;flex-direction:column;justify-content:flex-start;gap:var(--position-stack-gap);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
   #overview::-webkit-scrollbar{display:none}
   #overview>.eyebrow{display:none}
   #overview .position-hero,#overview .position-pace-card{
@@ -87,7 +89,7 @@
     background:linear-gradient(145deg,#819bbc 0%,var(--position-slate) 48%,#344d69 100%);
   }
   #overview .hero-label{overflow:hidden;color:#edf3fa;font-size:12px;letter-spacing:0;text-transform:none;white-space:nowrap;text-overflow:ellipsis}
-  #overview .hero-value{margin:8px 0 4px;color:#fff;font-size:42px}
+  #overview .hero-value{margin:clamp(8px,1.2dvh,12px) 0 4px;color:#fff;font-size:clamp(42px,6dvh,54px)}
   #overview .hero-value small,#overview .hero-note{color:#edf3fa}
   #overview .position-equation{margin-top:9px;padding-top:9px;border-color:rgba(255,255,255,.25)}
   #overview .position-equation span{color:#e0e9f3;opacity:1}
@@ -101,14 +103,14 @@
   #overview .position-pace-card>span{padding:12px 14px}
   #overview .position-pace-card>span+span{border-color:rgba(57,42,17,.28)}
   #overview .position-pace-card small{min-height:2.5em;font-size:11px;line-height:1.25}
-  #overview .position-pace-card b{margin-top:7px;font-size:clamp(25px,7.2vw,32px);line-height:1;letter-spacing:-.045em;white-space:nowrap}
+  #overview .position-pace-card b{margin-top:clamp(7px,1.1dvh,11px);font-size:clamp(25px,min(7.2vw,4.2dvh),36px);line-height:1;letter-spacing:-.045em;white-space:nowrap}
   #overview .position-pace-card .position-pace-explanation{padding-top:10px;border-color:rgba(57,42,17,.28);background:rgba(68,47,16,.09);font-size:10px}
   #overview .position-pace-card:focus-visible{outline:3px solid #304a68;outline-offset:2px}
 
   #overview .position-action-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:0}
   #overview .position-action-row .btn{
-    display:flex;align-items:center;justify-content:center;gap:5px;width:100%;height:44px;min-height:44px;margin:0;padding:3px 5px;
-    border-radius:14px;font-size:10px;font-weight:750;line-height:1.15;white-space:normal;
+    display:flex;align-items:center;justify-content:center;gap:5px;width:100%;height:var(--position-control-size);min-height:var(--position-control-size);margin:0;padding:3px 5px;
+    border-radius:14px;font-size:clamp(10px,1.45dvh,12px);font-weight:750;line-height:1.15;white-space:normal;
   }
   #overview .position-action-row .two-line-label{display:block;max-width:54px;text-align:center}
   #overview .position-action-row svg{width:18px;height:18px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
@@ -131,16 +133,16 @@
   #accountsSection:after{border-color:rgba(255,255,255,.07)}
   #accountsSection:before{content:"";position:absolute;z-index:0;right:-30px;top:-54px;width:172px;height:172px;border:24px solid rgba(255,255,255,.04);border-radius:50%;pointer-events:none}
   #accountsSection .panel-head{margin:0;padding:5px 15px 4px;border-color:rgba(207,198,187,.28);align-items:flex-start}
-  #accountsSection .panel-head h3{color:#f7f5f1;font-size:12px;line-height:1.2;font-weight:750}
+  #accountsSection .panel-head h3{color:#f7f5f1;font-size:clamp(12px,1.7dvh,15px);line-height:1.2;font-weight:750}
   #accountsSection .accounts{display:grid;grid-template-columns:1fr;gap:0;padding:0 15px}
   #accountsSection .account{display:grid;grid-template-columns:1fr auto;align-items:center;padding:2px;border:0;border-bottom:1px solid rgba(207,198,187,.28);border-radius:0;background:transparent;color:#f7f5f1}
-  #accountsSection .account span{color:#f1ece4;font-size:11px;letter-spacing:0;text-transform:none}
-  #accountsSection .account b{margin:0;color:#fff;font-size:15px;line-height:1.2;text-align:right}
-  #accountsSection .account small{grid-column:1/-1;margin-top:1px;color:#d3cbc2;font-size:8px;line-height:1.15}
+  #accountsSection .account span{color:#f1ece4;font-size:clamp(11px,1.55dvh,14px);letter-spacing:0;text-transform:none}
+  #accountsSection .account b{margin:0;color:#fff;font-size:clamp(15px,2.1dvh,19px);line-height:1.2;text-align:right}
+  #accountsSection .account small{grid-column:1/-1;margin-top:1px;color:#d3cbc2;font-size:clamp(8px,1.1dvh,10px);line-height:1.15}
   #accountsSection .salary-row{margin:0 17px;padding:5px 0 6px;border-color:rgba(207,198,187,.28)}
-  #accountsSection .salary-row span{color:#ddd5cc;font-size:9px}
-  #accountsSection .salary-row b{margin-top:1px;color:#f7f5f1;font-size:13px;line-height:1.15}
-  #accountsSection .salary-row small{margin-top:1px;color:#d0c7be;font-size:8px;line-height:1.15}
+  #accountsSection .salary-row span{color:#ddd5cc;font-size:clamp(9px,1.25dvh,11px)}
+  #accountsSection .salary-row b{margin-top:1px;color:#f7f5f1;font-size:clamp(13px,1.8dvh,16px);line-height:1.15}
+  #accountsSection .salary-row small{margin-top:1px;color:#d0c7be;font-size:clamp(8px,1.1dvh,10px);line-height:1.15}
   #accountsSection .text-action{min-width:44px;min-height:32px;padding:4px 8px;border:1px solid rgba(217,209,199,.55);border-radius:9px;background:transparent;color:#f6f2ec!important;font-size:10px}
   #accountsSection .text-action:hover,#accountsSection .text-action:focus-visible{background:rgba(255,255,255,.06)}
 
@@ -158,7 +160,6 @@
 }
 
 @media (max-width:380px){
-  :root{--position-card-size:150px}
   .mobile-app-name{font-size:30px}
   .topbar{padding-left:12px;padding-right:12px}
   #overview .position-action-row .btn{gap:3px;padding-left:3px;padding-right:3px;font-size:9px}
@@ -170,7 +171,6 @@
 }
 
 @media (max-width:760px) and (max-height:740px){
-  :root{--position-card-size:144px}
   .topbar{min-height:78px}
   .primary-tab-shell{height:calc(100dvh - 78px)}
   #overview .hero-value{font-size:36px}

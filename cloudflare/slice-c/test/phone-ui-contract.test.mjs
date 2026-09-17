@@ -60,7 +60,7 @@ test('Position Pace card is directly below Available, responsive, labelled and n
   assert.match(app1, /positionPaceWeek'\)\.textContent=fmtMoney\(pace\.throughSunday,c\)/);
   assert.match(app1, /positionPaceToday'\)\.textContent=fmtMoney\(pace\.today,c\)/);
   assert.doesNotMatch(app1, /positionPaceWeek'\)\.textContent=fmtMoney\(pace\.throughSunday,c,true\)/);
-  assert.match(mobilePositionCss, /position-pace-card b\{[^}]*font-size:clamp\(25px,7\.2vw,32px\)/);
+  assert.match(mobilePositionCss, /position-pace-card b\{[^}]*font-size:clamp\(25px,min\(7\.2vw,4\.2dvh\),36px\)/);
   assert.match(mobilePositionCss, /position-pace-card small\{min-height:2\.5em/);
 });
 
@@ -89,7 +89,7 @@ test('Account balances is the third major card followed by one equal action row'
   assert.match(mobilePositionCss, /#accountsSection\{[\s\S]*linear-gradient\(135deg,#8a8078 0%,#6b625d 38%,#565761 72%,#36485f 100%\)/);
   assert.match(mobilePositionCss, /#accountsSection\{[\s\S]*height:var\(--position-card-size\)[\s\S]*min-height:var\(--position-card-size\)[\s\S]*max-height:var\(--position-card-size\)/);
   assert.match(mobilePositionCss, /#accountsSection \.panel-head\{[^}]*padding:5px 15px 4px/);
-  assert.match(mobilePositionCss, /#accountsSection \.panel-head h3\{[^}]*font-size:12px/);
+  assert.match(mobilePositionCss, /#accountsSection \.panel-head h3\{[^}]*font-size:clamp\(12px,1\.7dvh,15px\)/);
   assert.match(mobilePositionCss, /#accountsSection \.accounts\{[^}]*gap:0/);
   assert.match(mobilePositionCss, /#accountsSection \.account\{[^}]*padding:2px/);
   assert.match(mobilePositionCss, /#accountsSection \.salary-row\{[^}]*padding:5px 0 6px/);
@@ -103,7 +103,7 @@ test('Account balances is the third major card followed by one equal action row'
   assert.match(mobilePositionCss, /salary-row small\{[^}]*color:#d0c7be/);
   assert.match(mobilePositionCss, /text-action\{[^}]*rgba\(217,209,199,\.55\)[^}]*color:#f6f2ec!important/);
   assert.match(mobilePositionCss, /position-action-row\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
-  assert.match(mobilePositionCss, /position-action-row \.btn\{[\s\S]*height:44px;min-height:44px/);
+  assert.match(mobilePositionCss, /position-action-row \.btn\{[\s\S]*height:var\(--position-control-size\);min-height:var\(--position-control-size\)/);
   assert.match(mobilePositionCss, /two-line-label\{[^}]*max-width:54px/);
 });
 
@@ -115,16 +115,22 @@ test('all three feature cards share one gradient and curved-highlight treatment'
   assert.match(mobilePositionCss, /position-pace-card[\s\S]*background:linear-gradient\(145deg,#e7cd82 0%,var\(--position-gold\) 48%,#8c6929 100%\)/);
 });
 
-test('the complete Position hierarchy fits a 360 by 800 viewport above navigation', () => {
-  assert.match(mobilePositionCss, /--position-card-size:154px/);
+test('the complete Position hierarchy scales within a 360 by 800 viewport above navigation', () => {
+  assert.match(mobilePositionCss, /--position-card-size:clamp\(144px,calc\(\(100dvh - 300px\)\/3\),210px\)/);
+  assert.match(mobilePositionCss, /--position-control-size:clamp\(44px,6\.2dvh,56px\)/);
   assert.match(mobilePositionCss, /primary-tab-shell\{height:calc\(100dvh - 84px\);padding:10px 12px calc\(90px/);
   const usableHeight = 800 - 84 - 10 - 90;
-  const hierarchyHeight = (154 * 3) + (10 * 3) + 44;
+  const cardHeight = Math.min(210, Math.max(144, (800 - 300) / 3));
+  const controlHeight = Math.min(56, Math.max(44, 800 * 0.062));
+  const gap = Math.min(14, Math.max(8, 800 * 0.0135));
+  const hierarchyHeight = (cardHeight * 3) + (gap * 3) + controlHeight;
   assert.ok(hierarchyHeight <= usableHeight, `${hierarchyHeight}px hierarchy exceeds ${usableHeight}px usable height`);
 });
 
-test('Position distributes approved fixed cards across the live viewport', () => {
-  assert.match(mobilePositionCss, /#overview\{display:flex;flex-direction:column;justify-content:space-evenly/);
+test('Position scales approved cards and controls instead of distributing empty space', () => {
+  assert.match(mobilePositionCss, /--position-stack-gap:clamp\(8px,1\.35dvh,14px\)/);
+  assert.match(mobilePositionCss, /#overview\{display:flex;flex-direction:column;justify-content:flex-start;gap:var\(--position-stack-gap\)/);
+  assert.doesNotMatch(mobilePositionCss, /justify-content:space-evenly/);
   assert.match(mobilePositionCss, /position-pace-card\{[\s\S]*margin-top:0/);
   assert.match(mobilePositionCss, /position-action-row\{[^}]*margin-top:0/);
   assert.match(mobilePositionCss, /#accountsSection\{[\s\S]*margin-top:0/);

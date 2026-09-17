@@ -10,7 +10,7 @@
     --position-gold-light:#e1c477;
     --position-cool:#c9d5e2;
     --position-utility-ink:#e4edf6;
-    --position-card-size:180px;
+    --position-card-size:154px;
   }
 
   .topbar{
@@ -25,21 +25,21 @@
     backdrop-filter:none;
   }
   .topbar-icon{display:none!important}
-  .greeting{gap:0;min-width:0;flex:1 1 auto}
-  .title-block{min-width:0}
+  .greeting{gap:0;min-width:0;flex:1 1 auto;overflow:hidden}
+  .title-block{width:100%;min-width:0;overflow:hidden}
   .mobile-app-name{
     display:block;
     display:inline-block;
-    width:max-content;
-    max-width:none;
+    width:100%;
+    max-width:100%;
     color:#d8b65f;
     font-family:"Great Vibes",cursive;
-    font-size:39px;
+    font-size:clamp(28px,8vw,34px);
     font-weight:400;
     line-height:1;
     white-space:nowrap;
-    transform:scaleX(.78);
-    transform-origin:left center;
+    overflow:hidden;
+    text-overflow:clip;
     text-shadow:0 1px 0 rgba(255,239,182,.16),0 2px 5px rgba(0,0,0,.24);
   }
   .greeting p{display:none}
@@ -73,7 +73,7 @@
   .top-actions .icon-action:focus-visible,.language-picker select:focus-visible{outline:2px solid #f2d27c;outline-offset:-3px}
   .top-actions .icon-action svg{width:21px;height:21px;fill:none;stroke:var(--position-utility-ink);stroke-width:1.9;opacity:1}
 
-  .primary-tab-shell{height:calc(100dvh - 84px);padding:10px 12px calc(82px + env(safe-area-inset-bottom))}
+  .primary-tab-shell{height:calc(100dvh - 84px);padding:10px 12px calc(90px + env(safe-area-inset-bottom))}
   #overview{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
   #overview::-webkit-scrollbar{display:none}
   #overview>.eyebrow{display:none}
@@ -162,15 +162,15 @@
 }
 
 @media (max-width:380px){
-  :root{--position-card-size:180px}
-  .mobile-app-name{font-size:35px}
+  :root{--position-card-size:150px}
+  .mobile-app-name{font-size:28px}
   .topbar{padding-left:12px;padding-right:12px}
   #overview .position-action-row .btn{gap:3px;padding-left:3px;padding-right:3px;font-size:9px}
   #overview .position-action-row svg{width:16px;height:16px}
 }
 
-@media (max-width:760px) and (max-height:700px){
-  :root{--position-card-size:154px}
+@media (max-width:760px) and (max-height:740px){
+  :root{--position-card-size:144px}
   .topbar{min-height:78px}
   .primary-tab-shell{height:calc(100dvh - 78px)}
   #overview .hero-value{font-size:36px}

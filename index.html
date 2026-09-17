@@ -21,7 +21,7 @@
 <link rel="stylesheet" href="assets/v24/v24_1_notifications.css">
 <link rel="stylesheet" href="assets/v25/brand.css">
 <link rel="stylesheet" href="assets/v24/v24_1_repair.css?v=20260906">
-<link rel="stylesheet" href="assets/v24/v24_1_position_pace.css?v=20260915-prod-fixes">
+<link rel="stylesheet" href="assets/v24/v24_1_position_pace.css?v=20260915-compact-pace">
 <link rel="stylesheet" href="assets/v24/v24_1_obligation_calendar.css?v=20260907-calendar">
 <link rel="stylesheet" href="assets/v24/v24_1_history.css?v=20260915-prod-fixes">
 <link rel="stylesheet" href="assets/v25/mobile-position.css?v=20260917-position-redesign">
@@ -62,11 +62,19 @@
 
       <section class="primary-tab-panel" data-tab-panel="pace" id="weekly" aria-labelledby="paceTab" hidden>
         <div class="section-head"><h2>Available pace</h2></div>
-        <article class="pace-card pace-guidance-gold"><div class="pace-head"><b>Current guidance</b><span class="status-pill green" id="paceStatus">Checking</span></div><div class="pace-copy"><span class="pace-primary-label">Available pace through Sunday</span><h3 id="paceWeeklyValue">—</h3><p><b id="paceValue">—</b> Available pace today</p><p id="paceText">Checking the salary-cycle boundary.</p></div></article>
-        <div class="pace-summary"><div><span>Current Available</span><b id="paceAvailable">—</b></div><div><span>Next salary</span><b id="paceNextSalary">—</b></div><div><span>Remaining runway days</span><b id="paceRunwayDays">—</b></div></div>
-        <div class="pace-rule">Pace divides today’s Available across the remaining days until salary. Spending changes future pace because it changes the real account balance.</div>
-        <div class="section-head pace-weeks-head"><h2>Weekly pace</h2></div>
-        <div class="week-grid pace-week-grid" id="weeklyVarCards"></div>
+        <article class="pace-guidance-compact pace-guidance-gold">
+          <span class="pace-primary-label">Available pace through Sunday</span>
+          <h3 id="paceWeeklyValue">—</h3>
+          <div class="pace-guidance-stats">
+            <div><b id="paceValue">—</b><span>Available pace today</span></div>
+            <div><b id="paceAvailable">—</b><span>Current Available</span></div>
+            <div><b id="paceNextSalary">—</b><span>Next salary</span></div>
+            <div><b id="paceRunwayDays">—</b><span>Remaining runway days</span></div>
+          </div>
+          <div class="pace-current-fact" id="paceText">Checking the salary-cycle boundary.</div>
+        </article>
+        <div class="pace-weekly-head"><h3>Weekly pace</h3></div>
+        <div class="pace-week-list" id="weeklyVarCards"></div>
       </section>
 
       <section class="primary-tab-panel" data-tab-panel="commitments" id="allocations" aria-labelledby="commitmentsTab" hidden>

@@ -7,7 +7,7 @@ Implemented candidate. This Stage 15 candidate is not owner-accepted, externally
 ## Exact revisions
 
 - Accepted Stage 14 starting SHA: `242022ba9f8a4739a7b06daaa547856ceeb2e480`
-- Stage 15 candidate SHA: `269d51655756e1733a268aac5fdfaa58d5dfa246`
+- Stage 15 candidate SHA: recorded in the post-commit ledger and handoff package
 - Candidate commit: `Strengthen portable restore equivalence checks`
 
 ## Implemented scope

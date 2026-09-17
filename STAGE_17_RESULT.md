@@ -7,7 +7,7 @@ Local closeout candidate prepared. The reviewed Stage 16 tree passed the local c
 ## Exact revisions
 
 - Owner-accepted Stage 16 starting SHA: `09c23b2d7a2cdbb874c4f2993851f336c89dc7df`
-- Stage 17 candidate SHA: `14b17c1d81af9f0cbda1397e1220599524de13c2`
+- Stage 17 candidate SHA: recorded in `STAGE_17_EXECUTION_LEDGER.md` after candidate creation
 
 ## Cross-family evidence and risk map
 

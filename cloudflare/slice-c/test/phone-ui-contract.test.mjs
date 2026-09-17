@@ -11,6 +11,7 @@ const positionPaceCss = fs.readFileSync(new URL('../../../assets/v24/v24_1_posit
 const mobilePositionCss = fs.readFileSync(new URL('../../../assets/v25/mobile-position.css', import.meta.url), 'utf8');
 const reports = fs.readFileSync(new URL('../../../assets/v24/v24_1_reports.js', import.meta.url), 'utf8');
 const correction = fs.readFileSync(new URL('../../../assets/v24/v24_1_correction.js', import.meta.url), 'utf8');
+const manifest = JSON.parse(fs.readFileSync(new URL('../../../manifest.webmanifest', import.meta.url), 'utf8'));
 
 test('phone navigation is four true panels rather than scroll anchors', () => {
   for (const tab of ['position', 'pace', 'commitments', 'savings']) {
@@ -150,6 +151,24 @@ test('mobile Position palette and five-icon navigation follow the approved visua
   assert.match(mobilePositionCss, /grid-template-columns:repeat\(5,1fr\)!important/);
   assert.match(reports, /classList\.contains\('mobile-tabs'\)[\s\S]*<svg[\s\S]*<span>Reports<\/span>/);
   assert.equal((reports.match(/reportTab\(document\.querySelector\('\.mobile-tabs'\)\)/g) || []).length, 1);
+});
+
+test('installed app surfaces use the approved wallet icon at every declared size', () => {
+  const expected = [
+    ['app-icon-192.png', 192, 'any'],
+    ['app-icon-512.png', 512, 'any'],
+    ['app-icon-maskable-512.png', 512, 'maskable']
+  ];
+  assert.deepEqual(manifest.icons.map(icon => [icon.src.split('/').pop(), Number(icon.sizes.split('x')[0]), icon.purpose]), expected);
+  assert.match(html, /manifest\.webmanifest\?v=20260917-wallet-icon/);
+  assert.match(html, /rel="icon"[^>]*app-icon-32\.png/);
+  assert.match(html, /rel="apple-touch-icon"[^>]*app-icon-180\.png/);
+  assert.doesNotMatch(html, /rel="icon"[^>]*logo\.svg/);
+  for (const [file, size] of [...expected, ['app-icon-32.png', 32], ['app-icon-180.png', 180]]) {
+    const png = fs.readFileSync(new URL(`../../../assets/v25/${file}`, import.meta.url));
+    assert.equal(png.readUInt32BE(16), size, `${file} width`);
+    assert.equal(png.readUInt32BE(20), size, `${file} height`);
+  }
 });
 
 test('KTB transfer uses explicit direction choices and close signs out before requesting close', () => {

@@ -1,0 +1,183 @@
+@media (max-width:760px){
+  :root{
+    --position-navy:#101e2d;
+    --position-navy-deep:#091522;
+    --position-slate:#526f91;
+    --position-slate-deep:#304a68;
+    --position-slate-light:#7897bb;
+    --position-gold:#c3a052;
+    --position-gold-deep:#8d6d2e;
+    --position-gold-light:#e1c477;
+    --position-cool:#c9d5e2;
+    --position-utility-ink:#e4edf6;
+    --position-card-size:180px;
+  }
+
+  .topbar{
+    min-height:84px;
+    padding:12px 14px 13px;
+    border:0;
+    border-bottom:1px solid rgba(195,160,82,.72);
+    border-radius:0 0 24px 24px;
+    background:linear-gradient(135deg,var(--position-navy-deep),#172b40 62%,var(--position-navy));
+    box-shadow:0 7px 18px rgba(9,21,34,.18),inset 0 -1px rgba(225,196,119,.18);
+    color:#fff;
+    backdrop-filter:none;
+  }
+  .topbar-icon{display:none!important}
+  .greeting{gap:0;min-width:0;flex:1 1 auto}
+  .title-block{min-width:0}
+  .mobile-app-name{
+    display:block;
+    display:inline-block;
+    width:max-content;
+    max-width:none;
+    color:#d8b65f;
+    font-family:"Great Vibes",cursive;
+    font-size:39px;
+    font-weight:400;
+    line-height:1;
+    white-space:nowrap;
+    transform:scaleX(.78);
+    transform-origin:left center;
+    text-shadow:0 1px 0 rgba(255,239,182,.16),0 2px 5px rgba(0,0,0,.24);
+  }
+  .greeting p{display:none}
+
+  .top-actions{
+    display:grid;
+    grid-template-columns:repeat(3,44px);
+    flex:0 0 auto;
+    gap:0;
+    min-width:132px;
+    min-height:44px;
+    overflow:hidden;
+    border:1px solid rgba(201,213,226,.62);
+    border-radius:999px;
+    background:rgba(86,112,141,.18);
+    box-shadow:inset 0 1px rgba(255,255,255,.07);
+  }
+  .top-actions>*{position:relative;width:44px!important;height:44px!important;min-width:44px;min-height:44px;margin:0!important}
+  .top-actions>*+*:before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:1px;background:rgba(201,213,226,.48)}
+  .language-picker{display:block}
+  .language-picker select{
+    width:44px;height:44px;padding:0;border:0;border-radius:0;
+    appearance:none;-webkit-appearance:none;
+    background:transparent;color:var(--position-utility-ink);-webkit-text-fill-color:var(--position-utility-ink);opacity:1;text-align:center;text-align-last:center;font-weight:500;
+  }
+  .top-actions #notificationsBtn,.top-actions #logoutBtn{
+    display:grid!important;place-items:center;padding:0!important;border:0;border-radius:0;
+    background:transparent;color:var(--position-utility-ink);opacity:1;
+  }
+  .top-actions .icon-action:hover,.top-actions .icon-action:focus-visible,.language-picker select:focus-visible{background:rgba(120,151,187,.28)}
+  .top-actions .icon-action:focus-visible,.language-picker select:focus-visible{outline:2px solid #f2d27c;outline-offset:-3px}
+  .top-actions .icon-action svg{width:21px;height:21px;fill:none;stroke:var(--position-utility-ink);stroke-width:1.9;opacity:1}
+
+  .primary-tab-shell{height:calc(100dvh - 84px);padding:10px 12px calc(82px + env(safe-area-inset-bottom))}
+  #overview{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+  #overview::-webkit-scrollbar{display:none}
+  #overview>.eyebrow{display:none}
+  #overview .position-hero,#overview .position-pace-card{
+    width:100%;height:var(--position-card-size);min-height:var(--position-card-size);max-height:var(--position-card-size);
+    position:relative;margin:0;overflow:hidden;border-radius:22px;
+  }
+  #overview .position-hero,#overview .position-pace-card,#accountsSection{box-shadow:inset 0 1px rgba(255,255,255,.24),inset 0 -2px rgba(20,29,38,.1),0 8px 18px rgba(32,48,65,.17)}
+  #overview .position-hero:after,#overview .position-pace-card:after,#accountsSection:after{
+    content:"";position:absolute;z-index:0;right:-72px;top:-88px;width:235px;height:235px;border:30px solid rgba(255,255,255,.085);border-radius:50%;pointer-events:none;
+  }
+  #overview .position-hero>* ,#overview .position-pace-card>* ,#accountsSection>*{position:relative;z-index:1}
+  #overview .position-hero{
+    padding:17px 18px;
+    border:1px solid rgba(201,213,226,.2);
+    background:linear-gradient(145deg,#819bbc 0%,var(--position-slate) 48%,#344d69 100%);
+  }
+  #overview .hero-label{color:#edf3fa;font-size:12px;letter-spacing:0;text-transform:none}
+  #overview .hero-value{margin:8px 0 4px;color:#fff;font-size:42px}
+  #overview .hero-value small,#overview .hero-note{color:#edf3fa}
+  #overview .position-equation{margin-top:9px;padding-top:9px;border-color:rgba(255,255,255,.25)}
+  #overview .position-equation span{color:#e0e9f3;opacity:1}
+
+  #overview .position-pace-card{
+    margin-top:10px;
+    border:1px solid rgba(116,87,31,.34);
+    background:linear-gradient(145deg,#e7cd82 0%,var(--position-gold) 48%,#8c6929 100%);
+    color:#201a10;
+  }
+  #overview .position-pace-card>span{padding:12px 14px}
+  #overview .position-pace-card>span+span{border-color:rgba(57,42,17,.28)}
+  #overview .position-pace-card small{min-height:2.5em;font-size:11px;line-height:1.25}
+  #overview .position-pace-card b{margin-top:7px;font-size:clamp(25px,7.2vw,32px);line-height:1;letter-spacing:-.045em;white-space:nowrap}
+  #overview .position-pace-card .position-pace-explanation{padding-top:10px;border-color:rgba(57,42,17,.28);background:rgba(68,47,16,.09);font-size:10px}
+  #overview .position-pace-card:focus-visible{outline:3px solid #304a68;outline-offset:2px}
+
+  #overview .position-action-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px}
+  #overview .position-action-row .btn{
+    display:flex;align-items:center;justify-content:center;gap:5px;width:100%;height:54px;min-height:54px;margin:0;padding:6px 5px;
+    border-radius:14px;font-size:10px;font-weight:750;line-height:1.15;white-space:normal;
+  }
+  #overview .position-action-row svg{width:18px;height:18px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  #overview .tab-primary-action{
+    border:0;
+    background:linear-gradient(145deg,#7695b8,#58789c 52%,#3e5c7d);color:#fff;
+    box-shadow:inset 0 1px rgba(255,255,255,.22),0 7px 15px rgba(46,72,101,.18);
+  }
+  #overview .tab-primary-action:hover:not(:disabled){background:linear-gradient(145deg,#819fc0,#607fa1 52%,#466584)}
+  #overview .tab-primary-action:focus-visible{outline:3px solid #c3a052;outline-offset:2px}
+  #overview .position-secondary-action{border:1px solid #647b93;background:#f8fafc;color:#405a73;box-shadow:0 5px 12px rgba(46,72,101,.1)}
+  #overview .position-secondary-action:hover:not(:disabled){background:#eef3f7}
+  #overview .position-secondary-action:focus-visible{outline:3px solid #c3a052;outline-offset:2px}
+
+  #accountsSection{
+    position:relative;width:100%;height:var(--position-card-size);min-height:var(--position-card-size);max-height:var(--position-card-size);margin-top:10px;padding:0;overflow:hidden;border:1px solid rgba(185,174,161,.22);border-radius:22px;
+    background:radial-gradient(circle at 24% 24%,rgba(255,245,235,.1),transparent 42%),linear-gradient(135deg,#8a8078 0%,#6b625d 38%,#565761 72%,#36485f 100%);color:#f7f5f1;
+    box-shadow:inset 0 1px rgba(255,255,255,.18),inset 0 -2px rgba(26,32,42,.08),0 7px 18px rgba(26,32,42,.16);
+  }
+  #accountsSection:after{border-color:rgba(255,255,255,.07)}
+  #accountsSection:before{content:"";position:absolute;z-index:0;right:-30px;top:-54px;width:172px;height:172px;border:24px solid rgba(255,255,255,.04);border-radius:50%;pointer-events:none}
+  #accountsSection .panel-head{margin:0;padding:9px 15px 7px;border-color:rgba(207,198,187,.28);align-items:flex-start}
+  #accountsSection .panel-head h3{color:#f7f5f1;font-size:12px;line-height:1.2;font-weight:750}
+  #accountsSection .accounts{display:grid;grid-template-columns:1fr;padding:0 15px}
+  #accountsSection .account{display:grid;grid-template-columns:1fr auto;align-items:center;padding:5px 2px;border:0;border-bottom:1px solid rgba(207,198,187,.28);border-radius:0;background:transparent;color:#f7f5f1}
+  #accountsSection .account span{color:#f1ece4;font-size:11px;letter-spacing:0;text-transform:none}
+  #accountsSection .account b{margin:0;color:#fff;font-size:15px;line-height:1.2;text-align:right}
+  #accountsSection .account small{grid-column:1/-1;margin-top:1px;color:#d3cbc2;font-size:8px;line-height:1.15}
+  #accountsSection .salary-row{margin:0 17px;padding:5px 0 6px;border-color:rgba(207,198,187,.28)}
+  #accountsSection .salary-row span{color:#ddd5cc;font-size:9px}
+  #accountsSection .salary-row b{margin-top:1px;color:#f7f5f1;font-size:13px;line-height:1.15}
+  #accountsSection .salary-row small{margin-top:1px;color:#d0c7be;font-size:8px;line-height:1.15}
+  #accountsSection .text-action{min-width:44px;min-height:32px;padding:4px 8px;border:1px solid rgba(217,209,199,.55);border-radius:9px;background:transparent;color:#f6f2ec!important;font-size:10px}
+  #accountsSection .text-action:hover,#accountsSection .text-action:focus-visible{background:rgba(255,255,255,.06)}
+
+  .mobile-tabs{
+    grid-template-columns:repeat(5,1fr)!important;
+    left:12px;right:12px;bottom:max(10px,env(safe-area-inset-bottom));min-height:68px;padding:6px;
+    border:1px solid rgba(122,151,181,.2);border-radius:22px;
+    background:linear-gradient(145deg,#1b3046,var(--position-navy-deep));
+    box-shadow:0 13px 28px rgba(8,20,33,.28),inset 0 1px rgba(255,255,255,.08);
+  }
+  .mobile-tabs button{min-height:54px;color:#bdccdc;border-radius:16px}
+  .mobile-tabs button.active{background:linear-gradient(145deg,#6687ad,#425f80);color:#fff;box-shadow:inset 0 1px rgba(255,255,255,.14)}
+  .mobile-tabs button:focus-visible{outline:2px solid #e1c477;outline-offset:-2px}
+  .mobile-tabs svg{width:20px;height:20px;stroke-width:1.8}
+}
+
+@media (max-width:380px){
+  :root{--position-card-size:180px}
+  .mobile-app-name{font-size:35px}
+  .topbar{padding-left:12px;padding-right:12px}
+  #overview .position-action-row .btn{gap:3px;padding-left:3px;padding-right:3px;font-size:9px}
+  #overview .position-action-row svg{width:16px;height:16px}
+}
+
+@media (max-width:760px) and (max-height:700px){
+  :root{--position-card-size:154px}
+  .topbar{min-height:78px}
+  .primary-tab-shell{height:calc(100dvh - 78px)}
+  #overview .hero-value{font-size:36px}
+  #overview .position-hero{padding:11px 14px}
+  #overview .position-equation{margin-top:6px;padding-top:6px}
+  #overview .position-pace-card b{font-size:23px}
+  #accountsSection .panel-head{padding-top:7px;padding-bottom:5px}
+  #accountsSection .account{padding-top:4px;padding-bottom:4px}
+  #accountsSection .salary-row{padding-top:4px;padding-bottom:4px}
+}

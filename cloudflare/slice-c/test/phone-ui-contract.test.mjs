@@ -23,7 +23,7 @@ test('phone navigation is four true panels rather than scroll anchors', () => {
 });
 
 test('approved information-led action placement is present', () => {
-  assert.match(html, /id="accountsSection"[\s\S]*class="position-action-row"[\s\S]*data-open-drawer="payment"[\s\S]*<span>Payment<\/span>/);
+  assert.match(html, /id="accountsSection"[\s\S]*class="position-action-row"[\s\S]*data-open-drawer="payment"[\s\S]*>Make payment<\/span>/);
   assert.match(html, /data-drawer="payment"[\s\S]*id="previewPaymentBtn">Preview payment<\/button>[\s\S]*id="paymentBtn" disabled>Record payment<\/button>/);
   assert.match(html, /data-tab-panel="position"[\s\S]*data-open-drawer="balance"[\s\S]*Update balances/);
   assert.match(html, /data-tab-panel="pace"[\s\S]*<h2>Available pace<\/h2>/);
@@ -79,7 +79,7 @@ test('Available pace is phone-first, compact, and bounded on laptop', () => {
 test('secondary account actions live in a focused detail view', () => {
   assert.match(html, /id="accountsDetails"[\s\S]*data-open-drawer="income"[\s\S]*data-open-drawer="ktbTransfer"[\s\S]*id="recordsCorrectionBtn"/);
   assert.match(html, /id="accountsSection"[\s\S]*data-open-detail="accountsDetails"/);
-  assert.match(html, /class="position-action-row"[\s\S]*data-open-detail="accountsDetails"[\s\S]*?<span>Move money<\/span><\/button>/);
+  assert.match(html, /class="position-action-row"[\s\S]*data-open-detail="accountsDetails"[\s\S]*?<span class="two-line-label">Move money<\/span><\/button>/);
   assert.doesNotMatch(html, /id="accountsSection"[\s\S]*?panel-actions/);
 });
 
@@ -100,7 +100,8 @@ test('Account balances is the third major card followed by one equal action row'
   assert.match(mobilePositionCss, /salary-row small\{[^}]*color:#d0c7be/);
   assert.match(mobilePositionCss, /text-action\{[^}]*rgba\(217,209,199,\.55\)[^}]*color:#f6f2ec!important/);
   assert.match(mobilePositionCss, /position-action-row\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
-  assert.match(mobilePositionCss, /position-action-row \.btn\{[\s\S]*height:54px;min-height:54px/);
+  assert.match(mobilePositionCss, /position-action-row \.btn\{[\s\S]*height:44px;min-height:44px/);
+  assert.match(mobilePositionCss, /two-line-label\{[^}]*max-width:54px/);
 });
 
 test('all three feature cards share one gradient and curved-highlight treatment', () => {
@@ -115,7 +116,7 @@ test('the complete Position hierarchy fits a 360 by 800 viewport above navigatio
   assert.match(mobilePositionCss, /--position-card-size:154px/);
   assert.match(mobilePositionCss, /primary-tab-shell\{height:calc\(100dvh - 84px\);padding:10px 12px calc\(90px/);
   const usableHeight = 800 - 84 - 10 - 90;
-  const hierarchyHeight = (154 * 3) + (10 * 3) + 54;
+  const hierarchyHeight = (154 * 3) + (10 * 3) + 44;
   assert.ok(hierarchyHeight <= usableHeight, `${hierarchyHeight}px hierarchy exceeds ${usableHeight}px usable height`);
 });
 
@@ -126,16 +127,15 @@ test('compact header actions remain accessible with no target warning', () => {
   assert.doesNotMatch(app1, /target_not_set|Variables target not set/i);
   assert.match(html, /Great\+Vibes/);
   assert.match(mobilePositionCss, /font-family:"Great Vibes",cursive/);
-  assert.match(mobilePositionCss, /font-size:clamp\(28px,8vw,34px\)/);
-  assert.match(mobilePositionCss, /\.greeting\{[^}]*overflow:hidden/);
-  assert.match(mobilePositionCss, /\.title-block\{[^}]*overflow:hidden/);
+  assert.match(mobilePositionCss, /font-size:clamp\(30px,9\.25vw,40px\)/);
+  assert.match(mobilePositionCss, /\.mobile-app-name\{[\s\S]*max-width:100%/);
   assert.match(mobilePositionCss, /\.greeting p\{display:none\}/);
   assert.match(mobilePositionCss, /\.topbar-icon\{display:none!important\}/);
-  assert.match(mobilePositionCss, /grid-template-columns:repeat\(3,44px\)/);
+  assert.match(mobilePositionCss, /\.top-actions \.language-picker\{display:none!important\}/);
+  assert.match(mobilePositionCss, /\.top-actions\{[\s\S]*display:flex;[\s\S]*min-width:90px/);
   assert.match(mobilePositionCss, /min-height:44px/);
-  assert.match(mobilePositionCss, /--position-utility-ink:#e4edf6/);
-  assert.match(mobilePositionCss, /select\{[\s\S]*color:var\(--position-utility-ink\)/);
-  assert.match(mobilePositionCss, /icon-action svg\{[\s\S]*stroke:var\(--position-utility-ink\)/);
+  assert.match(mobilePositionCss, /icon-action svg\{[\s\S]*width:18px;height:18px[\s\S]*stroke:#d8b65f/);
+  assert.match(html, /hero-label">Available to spend<span class="sr-only" id="heroDateRange"><\/span>/);
 });
 
 test('mobile Position palette and five-icon navigation follow the approved visual system', () => {

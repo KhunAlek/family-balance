@@ -88,8 +88,10 @@ test('Account balances is the third major card followed by one equal action row'
   assert.match(html, /position-hero[\s\S]*position-pace-card[\s\S]*id="accountsSection"[\s\S]*class="position-action-row"/);
   assert.match(mobilePositionCss, /#accountsSection\{[\s\S]*linear-gradient\(135deg,#8a8078 0%,#6b625d 38%,#565761 72%,#36485f 100%\)/);
   assert.match(mobilePositionCss, /#accountsSection\{[\s\S]*height:var\(--position-card-size\)[\s\S]*min-height:var\(--position-card-size\)[\s\S]*max-height:var\(--position-card-size\)/);
+  assert.match(mobilePositionCss, /#accountsSection \.panel-head\{[^}]*padding:5px 15px 4px/);
   assert.match(mobilePositionCss, /#accountsSection \.panel-head h3\{[^}]*font-size:12px/);
-  assert.match(mobilePositionCss, /#accountsSection \.account\{[^}]*padding:5px 2px/);
+  assert.match(mobilePositionCss, /#accountsSection \.accounts\{[^}]*gap:0/);
+  assert.match(mobilePositionCss, /#accountsSection \.account\{[^}]*padding:2px/);
   assert.match(mobilePositionCss, /#accountsSection \.salary-row\{[^}]*padding:5px 0 6px/);
   assert.match(mobilePositionCss, /#accountsSection:after\{border-color:rgba\(255,255,255,\.07\)\}/);
   assert.match(mobilePositionCss, /#accountsSection:before\{[^}]*border:24px solid rgba\(255,255,255,\.04\)/);
@@ -119,6 +121,13 @@ test('the complete Position hierarchy fits a 360 by 800 viewport above navigatio
   const usableHeight = 800 - 84 - 10 - 90;
   const hierarchyHeight = (154 * 3) + (10 * 3) + 44;
   assert.ok(hierarchyHeight <= usableHeight, `${hierarchyHeight}px hierarchy exceeds ${usableHeight}px usable height`);
+});
+
+test('Position distributes approved fixed cards across the live viewport', () => {
+  assert.match(mobilePositionCss, /#overview\{display:flex;flex-direction:column;justify-content:space-evenly/);
+  assert.match(mobilePositionCss, /position-pace-card\{[\s\S]*margin-top:0/);
+  assert.match(mobilePositionCss, /position-action-row\{[^}]*margin-top:0/);
+  assert.match(mobilePositionCss, /#accountsSection\{[\s\S]*margin-top:0/);
 });
 
 test('compact header actions remain accessible with no target warning', () => {

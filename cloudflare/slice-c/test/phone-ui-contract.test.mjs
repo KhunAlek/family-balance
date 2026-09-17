@@ -134,6 +134,8 @@ test('compact header actions remain accessible with no target warning', () => {
   assert.match(mobilePositionCss, /\.top-actions \.language-picker\{display:none!important\}/);
   assert.match(mobilePositionCss, /\.top-actions\{[\s\S]*display:flex;[\s\S]*flex:0 0 88px;[\s\S]*width:88px;[\s\S]*gap:0;[\s\S]*min-width:88px/);
   assert.match(mobilePositionCss, /#notificationsBtn\{order:1\}[\s\S]*#logoutBtn\{order:2\}/);
+  assert.match(mobilePositionCss, /#notificationsBtn svg\{transform:translateX\(8px\)\}/);
+  assert.match(mobilePositionCss, /#logoutBtn svg\{transform:translateX\(-8px\)\}/);
   assert.match(mobilePositionCss, /min-height:44px/);
   assert.match(mobilePositionCss, /icon-action svg\{[\s\S]*width:18px;height:18px[\s\S]*stroke:#d8b65f/);
   assert.match(html, /hero-label">Available to spend<span class="sr-only" id="heroDateRange"><\/span>/);

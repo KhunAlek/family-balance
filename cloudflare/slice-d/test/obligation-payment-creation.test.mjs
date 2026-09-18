@@ -44,7 +44,6 @@ test('missing request ID and forced failure leave managed obligation state uncha
   await assert.rejects(save(base),/stable request ID/);await assert.rejects(save({...base,requestId:'obligation-failure'},{testOnlyForcedFailure:true}));
   assert.equal(raw.prepare('SELECT count(*) n FROM obligation_payments').get().n,initial.payments);assert.equal(raw.prepare('SELECT count(*) n FROM logical_transactions').get().n,initial.transactions);for(const table of ['obligation_payment_allocations','new_function_request_receipts','financial_write_claims'])assert.equal(raw.prepare(`SELECT count(*) n FROM ${table}`).get().n,0);
 });
-
 test('occurrence status is derived from terminal sums for unpaid, partial, paid, and overpaid amounts',()=>{
   const base={salaryCycle:{current_cycle_start:'2026-09-01',next_salary_date:'2026-10-01'},config:{},fixedExpenseEnabled:true,obligations:[{name:'Rent',expected_amount_satang:10000,amount_type:'Fixed'}],obligationOccurrences:[{occurrence_id:'o',obligation_name:'Rent',due_date:'2026-09-15',expected_amount_satang:10000,amount_type:'Fixed',cycle_start:'2026-09-01'}],logicalTransactions:[],logicalTransactionVersions:[],logicalTransactionComponents:[]};
   const state=amount=>remainingFixedObligations({...base,obligationPayments:amount===0?[]:[{payment_id:'p',obligation_name:'Rent',occurrence_due_date:'2026-09-15',payment_date:'2026-09-10',actual_amount_satang:amount,payment_status:'Final'}]},'2026-09-10').items[0];

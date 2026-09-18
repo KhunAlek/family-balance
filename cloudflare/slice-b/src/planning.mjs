@@ -70,9 +70,11 @@ export function authoritativeLedgerMovements(snapshot, options = {}) {
     if (String(row.source_sheet || '') !== 'Correction') return true;
     return replacementIdentities.has(ledgerIdentity(row));
   });
+  const components=snapshot.logicalTransactionComponents||[],transactions=snapshot.logicalTransactions||[],claimed=new Set(components.filter(x=>x.component_kind==='ledger_movement').map(x=>String(x.component_id))),activeTerminals=new Set(transactions.filter(x=>x.lifecycle_status==='active').map(x=>String(x.terminal_version_id))),active=new Set(components.filter(x=>activeTerminals.has(String(x.version_id))&&x.component_kind==='ledger_movement').map(x=>String(x.component_id)));
+  const terminalAuthoritative=authoritative.filter(row=>!claimed.has(String(row.ledger_id))||active.has(String(row.ledger_id)));
 
   const affectedAccounts = [...new Set(ambiguities.flatMap(item => item.accounts || []).filter(Boolean))];
-  return { rows: authoritative, ambiguities, affectedAccounts };
+  return { rows: terminalAuthoritative, ambiguities, affectedAccounts };
 }
 
 export function qualifyingCurrentCycleContributions(snapshot, account, throughDate) {

@@ -45,12 +45,15 @@ test('English remains the fallback for unsupported or incomplete locale data', (
 test('phase two translates remaining surfaces while preserving user-entered names', () => {
   const language = translations();
   assert.equal(language.translate('One-off spending Reports'), 'Отчёты по разовым расходам');
-  assert.equal(language.translate('Correct a record'), 'Исправить запись');
+  assert.equal(language.translate('Salary-cycle correction'), 'Исправление зарплатного цикла');
   assert.equal(language.translate('Manage categories'), 'Управление категориями');
   assert.equal(language.translate('Recent reminders'), 'Недавние напоминания');
   assert.equal(language.translate('Final payment — Close this bill'), 'Окончательный платёж — закрыть счёт');
   assert.equal(language.translate('Add “Отпуск 2027” as an active category.'), 'Добавить «Отпуск 2027» как активную категорию.');
   assert.equal(language.translate('Deactivate “Подработка” from 7 сент. Existing receipts stay unchanged.'), 'Отключить «Подработка» с 7 сент. Существующие поступления останутся без изменений.');
+  assert.equal(language.translate(' Available pace today'), ' Доступный темп на сегодня');
+  assert.equal(language.translate('\n  Available pace today  '), '\n  Доступный темп на сегодня  ');
+  assert.equal(language.translate('A subdivision of Available until the next salary—not additional money or a separate limit.'), 'Распределение доступной суммы до следующей зарплаты — это не дополнительные деньги и не отдельный лимит.');
   assert.equal(language.translate('Моя цель'), 'Моя цель');
 });
 

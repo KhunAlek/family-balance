@@ -19,18 +19,52 @@ export async function loadReportingCycles(db, householdId='family') {
 }
 
 export async function loadReportingPayments(db, householdId, from, through) {
-  const results = await db.batch([
-    db.prepare('SELECT p.*,c.name AS category_name FROM one_off_payments p LEFT JOIN one_off_categories c ON c.category_id=p.category_id AND c.household_id=p.household_id WHERE p.household_id=? AND p.business_date>=? AND p.business_date<=? ORDER BY p.business_date DESC,p.one_off_payment_id DESC').bind(householdId,from,through),
-    db.prepare('SELECT a.* FROM one_off_payment_allocations a JOIN one_off_payments p ON p.one_off_payment_id=a.one_off_payment_id WHERE p.household_id=? AND p.business_date>=? AND p.business_date<=? ORDER BY a.one_off_payment_id,a.account').bind(householdId,from,through)
+  const target = typeof db.withSession === 'function' ? db.withSession('first-primary') : db;
+  const [identitySchema] = await target.batch([
+    target.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('logical_transactions','logical_transaction_versions','logical_transaction_components') ORDER BY name")
   ]);
+  const hasIdentity = (identitySchema.results || []).length === 3;
+  const statements = [
+    target.prepare('SELECT p.*,c.name AS category_name FROM one_off_payments p LEFT JOIN one_off_categories c ON c.category_id=p.category_id AND c.household_id=p.household_id WHERE p.household_id=? AND p.business_date>=? AND p.business_date<=? ORDER BY p.business_date DESC,p.one_off_payment_id DESC').bind(householdId,from,through),
+    target.prepare('SELECT a.* FROM one_off_payment_allocations a JOIN one_off_payments p ON p.one_off_payment_id=a.one_off_payment_id WHERE p.household_id=? AND p.business_date>=? AND p.business_date<=? ORDER BY a.one_off_payment_id,a.account').bind(householdId,from,through)
+  ];
+  if (hasIdentity) {
+    statements.push(
+      target.prepare("SELECT lc.component_id AS one_off_payment_id,lc.version_id,lv.logical_transaction_id,lv.kind,lv.business_date AS version_business_date,lt.household_id,lt.lifecycle_status,lt.terminal_version_id FROM logical_transaction_components lc LEFT JOIN logical_transaction_versions lv ON lv.version_id=lc.version_id LEFT JOIN logical_transactions lt ON lt.logical_transaction_id=lv.logical_transaction_id WHERE lc.component_kind='one_off_payment' AND lc.component_role='primary' ORDER BY lc.component_id,lc.version_id"),
+      target.prepare("SELECT lt.logical_transaction_id,lt.household_id,lt.lifecycle_status,lt.terminal_version_id,lv.kind,lv.business_date FROM logical_transactions lt LEFT JOIN logical_transaction_versions lv ON lv.version_id=lt.terminal_version_id WHERE lt.household_id=? AND lv.kind='one_off_payment' AND lv.business_date>=? AND lv.business_date<=? ORDER BY lt.logical_transaction_id").bind(householdId,from,through)
+    );
+  }
+  const results = await target.batch(statements);
   const allocations = new Map();
   for (const row of results[1].results||[]) {
     const list=allocations.get(row.one_off_payment_id)||[]; list.push({...row}); allocations.set(row.one_off_payment_id,list);
   }
-  return (results[0].results||[]).map(row=>{
+  const payments = (results[0].results||[]).map(row=>{
     const split=allocations.get(row.one_off_payment_id)||[];
     if (!Number.isSafeInteger(row.amount_satang) || split.reduce((sum,a)=>sum+a.amount_satang,0)!==row.amount_satang) fail('Typed payment allocations do not reconcile.');
     return {...row,allocations:split};
+  });
+  if (!hasIdentity) return payments;
+
+  const claims = new Map();
+  for (const row of results[2].results || []) {
+    const list = claims.get(row.one_off_payment_id) || [];
+    list.push(row);
+    claims.set(row.one_off_payment_id, list);
+  }
+  const paymentsById = new Map(payments.map(row => [row.one_off_payment_id, row]));
+  for (const terminal of results[3].results || []) {
+    if (!terminal.terminal_version_id || !['active','deleted'].includes(terminal.lifecycle_status)) fail('One-off terminal identity is incomplete.');
+    const matches = [...claims.values()].flat().filter(row => row.logical_transaction_id === terminal.logical_transaction_id && row.version_id === terminal.terminal_version_id);
+    if (matches.length !== 1 || !paymentsById.has(matches[0].one_off_payment_id)) fail('One-off terminal identity does not resolve to exactly one payment.');
+  }
+  return payments.filter(payment => {
+    const owners = claims.get(payment.one_off_payment_id) || [];
+    if (!owners.length) return true;
+    if (owners.length !== 1) fail('One-off payment is claimed by multiple transaction versions.');
+    const owner = owners[0];
+    if (!owner.logical_transaction_id || owner.kind !== 'one_off_payment' || owner.household_id !== householdId || owner.version_business_date !== payment.business_date || !owner.terminal_version_id || !['active','deleted'].includes(owner.lifecycle_status)) fail('One-off payment identity is incomplete or crossed.');
+    return owner.lifecycle_status === 'active' && owner.terminal_version_id === owner.version_id;
   });
 }
 

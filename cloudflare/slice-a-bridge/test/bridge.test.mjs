@@ -229,30 +229,33 @@ await withAuthMock(async () => {
   assert.equal(raw.prepare('SELECT COUNT(*) AS n FROM balance_history').get().n, 69);
 });
 
-// Correction catalog and preview are authenticated read-only D1 operations.
+// Correction catalog exposes only the guarded salary path; old-client unsafe requests fail with zero writes.
 await withAuthMock(async () => {
   const { db, raw } = createSeededSqliteD1();
   const catalogResponse = await call('/api/apps-script', apiRequest({ apiAction: 'correctionCatalog', sessionToken: 'signed', payload: {} }), { ...baseEnv, DB: db });
   assert.equal(catalogResponse.status, 200);
   const catalog = await catalogResponse.json();
   assert.equal(catalog.ok, true);
-  assert.ok(catalog.records.balance.length >= 1);
-  assert.ok(catalog.records.obligationPayment.length >= 1);
-  assert.ok(catalog.records.ledgerMovement.length >= 1);
-  assert.equal(catalog.records.goal.length, 1);
-  const entityId = catalog.records.balance[0].entityId;
-
-  const previewResponse = await call('/api/apps-script', apiRequest({
-    apiAction: 'correctionPreview', sessionToken: 'signed', payload: { entityType: 'balance', entityId },
-  }), { ...baseEnv, DB: db });
-  assert.equal(previewResponse.status, 200);
-  const preview = await previewResponse.json();
-  assert.equal(preview.ok, true);
-  assert.equal(preview.entityType, 'balance');
-  assert.equal(preview.entityId, entityId);
-  assert.deepEqual(preview.allowedFields, ['businessDate','alexBalance','olgaBalance']);
-  assert.equal(raw.prepare('SELECT COUNT(*) AS n FROM financial_write_claims').get().n, 0);
-  assert.equal(raw.prepare('SELECT COUNT(*) AS n FROM correction_audit').get().n, 0);
+  assert.deepEqual(catalog.entityTypes,[{value:'salaryCycle',label:'Salary cycle'}]);
+  assert.deepEqual(Object.keys(catalog.records),['salaryCycle']);
+  const snapshotCounts=()=>({
+    claims:raw.prepare('SELECT COUNT(*) n FROM financial_write_claims').get().n,
+    audit:raw.prepare('SELECT COUNT(*) n FROM correction_audit').get().n,
+    balances:raw.prepare('SELECT COUNT(*) n FROM balance_history').get().n,
+    payments:raw.prepare('SELECT COUNT(*) n FROM obligation_payments').get().n,
+    ledger:raw.prepare('SELECT COUNT(*) n FROM ledger_movements').get().n,
+    revision:raw.prepare('SELECT current_revision n FROM household_revisions').get().n
+  });
+  for(const entityType of ['balance','obligationPayment','ledgerMovement','goal']){
+    const before=snapshotCounts();
+    const previewResponse=await call('/api/apps-script',apiRequest({apiAction:'correctionPreview',sessionToken:'signed',payload:{entityType,entityId:'old-client-id'}}),{...baseEnv,DB:db});
+    assert.equal(previewResponse.status,200);
+    assert.equal((await previewResponse.json()).ok,false);
+    const commitResponse=await call('/api/apps-script',apiRequest({apiAction:'write',sessionToken:'signed',payload:{action:'correctRecord',entityType,entityId:'old-client-id',correctedValues:{amount:1},reason:'Synthetic evidence'}}),{...baseEnv,DB:db});
+    assert.equal(commitResponse.status,200);
+    assert.equal((await commitResponse.json()).ok,false);
+    assert.deepEqual(snapshotCounts(),before,`${entityType} requests must write nothing`);
+  }
 });
 
 console.log('PASS: slice-a/slice-c Worker API contract tests');

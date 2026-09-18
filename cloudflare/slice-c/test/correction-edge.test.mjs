@@ -11,17 +11,18 @@ async function correct(db,payload,writeToken){
   });
 }
 
-test('correction of a historical partial balance preserves the missing counterpart as NULL',async()=>{
+test('historical partial balance correction is refused without changing the partial observation',async()=>{
   const {db,raw}=createSeededSqliteD1();
   raw.prepare(`INSERT INTO balance_history(
     household_id,business_date,sheet_order,alex_balance_satang,olga_balance_satang,source_sheet,source_row
   ) VALUES('family','2026-07-15',999999,NULL,1234500,'Synthetic Test',1)`).run();
   const partial=raw.prepare("SELECT balance_row_id,business_date,alex_balance_satang,olga_balance_satang FROM balance_history WHERE source_sheet='Synthetic Test'").get();
   assert.ok(partial);
-  await correct(db,{entityType:'balance',entityId:String(partial.balance_row_id),correctedValues:{olgaBalance:12345},reason:'Preserve partial-row semantics'},'partial-correction');
-  const replacement=raw.prepare("SELECT alex_balance_satang,olga_balance_satang FROM balance_history WHERE source_sheet='Correction' ORDER BY sheet_order DESC LIMIT 1").get();
-  assert.equal(replacement.alex_balance_satang,null);
-  assert.equal(replacement.olga_balance_satang,1234500);
+  const before=raw.prepare('SELECT total_changes() n').get().n;
+  await assert.rejects(correct(db,{entityType:'balance',entityId:String(partial.balance_row_id),correctedValues:{olgaBalance:12345},reason:'Preserve partial-row semantics'},'partial-correction'),/immutable/i);
+  assert.equal(raw.prepare('SELECT total_changes() n').get().n,before);
+  assert.equal(raw.prepare("SELECT COUNT(*) n FROM balance_history WHERE source_sheet='Correction'").get().n,0);
+  assert.equal(raw.prepare('SELECT COUNT(*) n FROM financial_write_claims').get().n,0);
 });
 
 test('salary-cycle start correction moves active salary-source membership atomically',async()=>{

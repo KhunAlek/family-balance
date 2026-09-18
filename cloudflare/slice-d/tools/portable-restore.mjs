@@ -23,6 +23,7 @@ export async function buildRestoreSql(backup, options = {}) {
   // every parent row is restored before its children while D1 keeps foreign-key
   // enforcement enabled. Platform-specific integrity checks run after import.
   const lines = [];
+  lines.push('BEGIN TRANSACTION;');
   if (options.includeSchema) {
     for (const item of backup.schema || []) {
       const sql = String(item?.sql || '').trim();
@@ -40,6 +41,7 @@ export async function buildRestoreSql(backup, options = {}) {
       lines.push(`INSERT INTO ${identifier(table)}(${columnSql}) VALUES(${values});`);
     }
   }
+  lines.push('COMMIT;');
   return `${lines.join('\n')}\n`;
 }
 

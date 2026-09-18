@@ -2,6 +2,15 @@ import { FinancialWriteValidationError, statement } from './write-protocol.mjs';
 import { bangkokBusinessDate, compareDates, isoDate } from '../../slice-b/src/dates.mjs';
 import { goalCommitmentState } from '../../slice-b/src/planning.mjs';
 
+export const LEGACY_CORRECTION_ENTITY_TYPES = Object.freeze(['salaryCycle']);
+
+const DISABLED_CORRECTION_MESSAGES = Object.freeze({
+  balance: 'Balance observations are immutable. Record a new balance observation instead.',
+  obligationPayment: 'Obligation-payment correction is unavailable until Transaction history can reconstruct both the payment and its cash effect.',
+  ledgerMovement: 'EF/Goal movement correction is unavailable until Transaction history can reconstruct both the fund and KTB effects.',
+  goal: 'Goal configuration is unavailable in record correction. Use the existing Savings controls for supported Goal actions.'
+});
+
 const round2 = value => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 const toSatang = value => Math.round((Number(value) + Number.EPSILON) * 100);
 const thb = value => Number(value || 0) / 100;
@@ -12,6 +21,15 @@ function positive(value, label) { const n = round2(Number(value)); if (!Number.i
 function nonNegative(value, label) { const n = round2(Number(value)); if (!Number.isFinite(n) || n < 0) fail(`${label} must be zero or positive.`); return n; }
 function own(o, key) { return Object.prototype.hasOwnProperty.call(o || {}, key); }
 function asPlain(value) { return value ? JSON.parse(JSON.stringify(value)) : null; }
+
+export function requireLegacyCorrectionEntityType(entityType) {
+  const normalized = String(entityType || '').trim();
+  if (!normalized) fail('Correction entity type is required.');
+  if (!LEGACY_CORRECTION_ENTITY_TYPES.includes(normalized)) {
+    fail(DISABLED_CORRECTION_MESSAGES[normalized] || `Unsupported correction entity type: ${normalized}`);
+  }
+  return normalized;
+}
 
 function correctionIdentity(ctx, sequence) {
   return { sheetOrder: 1_000_000_000 + ctx.nextRevision * 100 + sequence, sourceRow: ctx.nextRevision * 100 + sequence };
@@ -28,9 +46,8 @@ function findRecord(snapshot, entityType, entityId) {
 }
 
 export function previewCorrection(snapshot, payload = {}) {
-  const entityType = String(payload.entityType || '').trim();
+  const entityType = requireLegacyCorrectionEntityType(payload.entityType);
   const entityId = String(payload.entityId ?? '').trim();
-  if (!entityType) fail('Correction entity type is required.');
   if (!entityId && entityType !== 'salaryCycle') fail('Correction entity ID is required.');
   const record = findRecord(snapshot, entityType, entityId || 'family');
   if (!record) fail('The record to correct was not found.');
@@ -168,7 +185,7 @@ function planSalaryCycleCorrection(ctx,before,values,reason) {
 }
 
 export async function planCorrection(ctx) {
-  const entityType=String(ctx.payload.entityType||'').trim();
+  const entityType=requireLegacyCorrectionEntityType(ctx.payload.entityType);
   const entityId=String(ctx.payload.entityId??'').trim();
   const reason=String(ctx.payload.reason||'').trim();
   const values=ctx.payload.correctedValues||{};

@@ -1,0 +1,313 @@
+{
+  "format": "family-cash-flow-production-assets-v1",
+  "files": [
+    {
+      "path": "assets/v24/css1.css",
+      "bytes": 9718,
+      "sha256": "e42ba6f7e1716fc3a9e38b1a32cda6f22d3d48db3ab2e6539a0a8878866de104",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v24/logo.svg",
+      "bytes": 536,
+      "sha256": "7c903329e65643c022afb4bf56ab27b9f651e6891328daa50c67072f25009bc2",
+      "mime": "image/svg+xml"
+    },
+    {
+      "path": "assets/v24/v24_1_app1.js",
+      "bytes": 20778,
+      "sha256": "fe6dc7b267a8d402eeba2067e588a11670ae156db817d702f81053c83ff5d0d4",
+      "mime": "application/javascript"
+    },
+    {
+      "path": "assets/v24/v24_1_app2.js",
+      "bytes": 6864,
+      "sha256": "b7842a7a04a6233e3592ec3a18e0458f4a0c9c85bdba0debbc7e459e5fc5a803",
+      "mime": "application/javascript"
+    },
+    {
+      "path": "assets/v24/v24_1_app3.js",
+      "bytes": 9283,
+      "sha256": "a8f7fc14ed2b040cb889100d43778261eb28c979b446bb9da361055877c4fab4",
+      "mime": "application/javascript"
+    },
+    {
+      "path": "assets/v24/v24_1_app4.js",
+      "bytes": 16793,
+      "sha256": "93ba8284c8899f93d5c0e3cebc4f8f943e34998f4ed4ae9c99058110f3051275",
+      "mime": "application/javascript"
+    },
+    {
+      "path": "assets/v24/v24_1_categories.js",
+      "bytes": 4161,
+      "sha256": "6415542f889a92297415c2ce75790bf5103a94c3116ecafa9824352d90587f0c",
+      "mime": "application/javascript"
+    },
+    {
+      "path": "assets/v24/v24_1_core.css",
+      "bytes": 18190,
+      "sha256": "704cb928bf22c208f6517eb0193760f63839b05283187a395598fd0b60afe1ce",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v24/v24_1_correction.js",
+      "bytes": 11180,
+      "sha256": "2ec36d2b1c25e7072a23a2dac7cc025ac1c1b4cb5b10cfc3ad0d19958fc7e295",
+      "mime": "application/javascript"
+    },
+    {
+      "path": "assets/v24/v24_1_fixed.js",
+      "bytes": 6882,
+      "sha256": "53a4564cebc50e88b404c91c46f59a83492beaf4ac1d1a58653b6b6a4a1aae1c",
+      "mime": "application/javascript"
+    },
+    {
+      "path": "assets/v24/v24_1_goal_withdrawal.js",
+      "bytes": 4657,
+      "sha256": "2e15dd22ef05f7c5192580a0d47937a977091a6c0f938170d455ff5f83399115",
+      "mime": "application/javascript"
+    },
+    {
+      "path": "assets/v24/v24_1_history.css",
+      "bytes": 5052,
+      "sha256": "5ba033343674e231db765afeab79f329c2f30aa4378cf9c31602653c7848e970",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v24/v24_1_history.js",
+      "bytes": 24195,
+      "sha256": "eba3b7a5636f5605c29ba4ac2d381d0d09888928d00f197ebd6617a638e43799",
+      "mime": "application/javascript"
+    },
+    {
+      "path": "assets/v24/v24_1_i18n.js",
+      "bytes": 61987,
+      "sha256": "a06d06bb233edb9ee47356762f1b5c55fb06272e79c566b28a9ec2fb6f8b22ca",
+      "mime": "application/javascript"
+    },
+    {
+      "path": "assets/v24/v24_1_income.js",
+      "bytes": 6816,
+      "sha256": "9eca2b5fa792a301e376435ee8ed479dfb0b2b9f7af151699254be870bf41fdc",
+      "mime": "application/javascript"
+    },
+    {
+      "path": "assets/v24/v24_1_notifications.css",
+      "bytes": 1369,
+      "sha256": "470098566ab8a35987a7526cc84e1569ec356a7f1d9d4f7f8da7b2cc9069373d",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v24/v24_1_notifications.js",
+      "bytes": 6540,
+      "sha256": "0a4315320e4900e0a36d78afe71fa269d1bd6ccb104fe9b7ccab1c5184a17d9b",
+      "mime": "application/javascript"
+    },
+    {
+      "path": "assets/v24/v24_1_obligation_calendar.css",
+      "bytes": 2617,
+      "sha256": "30c142899c689b68478e71945c592b502cbbba3c06d60b2ad5ffab354948f80a",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v24/v24_1_obligation_calendar.js",
+      "bytes": 1263,
+      "sha256": "b52bd493e1c967f8a9024aff94ef997713c326783a192064c5d1a737639577bd",
+      "mime": "application/javascript"
+    },
+    {
+      "path": "assets/v24/v24_1_payment.js",
+      "bytes": 1525,
+      "sha256": "1e61d5c28c29350397fe1ea0328c1db3e0f9e4dd1dc8283b89dd1f5f98d6fd4d",
+      "mime": "application/javascript"
+    },
+    {
+      "path": "assets/v24/v24_1_position_pace.css",
+      "bytes": 3961,
+      "sha256": "d2c348590cb6ce9c48bbacff67eb3fa73bca17b02631b70214e1facd97bc87a3",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v24/v24_1_repair.css",
+      "bytes": 408,
+      "sha256": "45cb06e77922d5589c7e0d893992c9b0e702dcea8c5f18e6237e24cee7e22188",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v24/v24_1_reports.js",
+      "bytes": 6517,
+      "sha256": "baef3bb04804bb7c1a2cc13103c4491c1eabc5f1ddfa661be225dc1f60784fe0",
+      "mime": "application/javascript"
+    },
+    {
+      "path": "assets/v24/v24_1_responsive.css",
+      "bytes": 3958,
+      "sha256": "ef7b1fc5b7a10d3c3692c207fe90d5c0d4d3c7438b9e545d035343785e8c74f4",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v24/v24_1_startup_check.txt",
+      "bytes": 40,
+      "sha256": "90e2f4a89677cd0ae077c12bc0ff9f2406d88f3487f80928776886ee2ddc1490",
+      "mime": "text/plain"
+    },
+    {
+      "path": "assets/v24/v24_1_tabs.css",
+      "bytes": 10582,
+      "sha256": "1d55b76f6593608199c2e9eda68a852332e0f9f9e7d4b6101868204de932d717",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v25/app-icon-180.png",
+      "bytes": 45821,
+      "sha256": "3773776c24a8497235e2c6af85e8adff10fbe580fe10b267c0783e39c37bed67",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/v25/app-icon-192.png",
+      "bytes": 51768,
+      "sha256": "a30381abae8663036557c44a7354f019e6708a9f87e1275e5cabcb4177af34db",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/v25/app-icon-32.png",
+      "bytes": 2658,
+      "sha256": "5727da43311672250758f042051f299cd4334bfbc25bc935f9b9f5d4b3e21f78",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/v25/app-icon-512.png",
+      "bytes": 384365,
+      "sha256": "ccbb5f6ce2dd3bfaae5e36bd293b5a2d8b1a34b5637bfd3ced4f345d4de8b837",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/v25/app-icon-maskable-512.png",
+      "bytes": 384365,
+      "sha256": "ccbb5f6ce2dd3bfaae5e36bd293b5a2d8b1a34b5637bfd3ced4f345d4de8b837",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/v25/apple-touch-icon.png",
+      "bytes": 5557,
+      "sha256": "ead40de0b0fee192cbf7dbacc1d4bedc69be604aa72d8a89cc7118ecefc4c5c0",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/v25/badge-96.png",
+      "bytes": 1454,
+      "sha256": "942fa9036847eb04fbf16e582e72a2236ae8d2cbe2afe6853b4bd51e0a29d03c",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/v25/badge.svg",
+      "bytes": 471,
+      "sha256": "3203e32f1c0580c70c5012bfe7d27e9257241834e86d2eb7b408aab45fa62d19",
+      "mime": "image/svg+xml"
+    },
+    {
+      "path": "assets/v25/brand.css",
+      "bytes": 1670,
+      "sha256": "a4aa36c0d407683170c01c4c1921737720ce6022f6cb902a14e47d863fd44cf7",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v25/favicon-32.png",
+      "bytes": 1107,
+      "sha256": "0b5556b019495beb48b01c056099f0afa8f544efa8d1f768369ccb7a7727ee20",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/v25/icon-192.png",
+      "bytes": 5879,
+      "sha256": "46c1944fd0f730d8a346675bcdc2481312acebf54dcd3b13555e2f624ed327d1",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/v25/icon-512.png",
+      "bytes": 16784,
+      "sha256": "bcd1e48ac44b78e05a2e00110d28dd89d76c43bd912b75c22ed67f117efa2f5d",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/v25/icon-maskable-512.png",
+      "bytes": 14264,
+      "sha256": "f659c54cbe742157b7a47d3baddd46829e2460085827d8a2ae0a6be53cc23f3d",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/v25/logo-maskable.svg",
+      "bytes": 964,
+      "sha256": "6d043bf118d02d32abad77c0793f0aba961dd27a8f129f4f92de06d285a81cef",
+      "mime": "image/svg+xml"
+    },
+    {
+      "path": "assets/v25/logo.svg",
+      "bytes": 1034,
+      "sha256": "f4239cb1fb0168cae642b085ec0c514b18225412c9aeb41db4dc2154a0a6bb1a",
+      "mime": "image/svg+xml"
+    },
+    {
+      "path": "assets/v25/mobile-position.css",
+      "bytes": 10693,
+      "sha256": "6fd300fd7d69882a290e83a91824ca8ddcb199b98395d0fb3975be342cdf3916",
+      "mime": "text/css"
+    },
+    {
+      "path": "index.html",
+      "bytes": 33348,
+      "sha256": "3b866f46bf465e49d964d40700fe5bc3b12e24db465f1793189f55614606f94d",
+      "mime": "text/html"
+    },
+    {
+      "path": "manifest.webmanifest",
+      "bytes": 686,
+      "sha256": "f2a9bc2ee7c8b6ba8b741e1a4a3ef7eb0d4d4fb34716433e275fe725780a54fd",
+      "mime": "application/manifest+json"
+    },
+    {
+      "path": "sw.js",
+      "bytes": 1148,
+      "sha256": "a5df5321537ea7d115c0c2cb7ceabd374e12f2810282b0db257deacee6ec3658",
+      "mime": "application/javascript"
+    }
+  ],
+  "references": [
+    "assets/v24/v24_1_app1.js",
+    "assets/v24/v24_1_app2.js",
+    "assets/v24/v24_1_app3.js",
+    "assets/v24/v24_1_app4.js",
+    "assets/v24/v24_1_categories.js",
+    "assets/v24/v24_1_core.css",
+    "assets/v24/v24_1_correction.js",
+    "assets/v24/v24_1_fixed.js",
+    "assets/v24/v24_1_goal_withdrawal.js",
+    "assets/v24/v24_1_history.css",
+    "assets/v24/v24_1_history.js",
+    "assets/v24/v24_1_i18n.js",
+    "assets/v24/v24_1_income.js",
+    "assets/v24/v24_1_notifications.css",
+    "assets/v24/v24_1_notifications.js",
+    "assets/v24/v24_1_obligation_calendar.css",
+    "assets/v24/v24_1_obligation_calendar.js",
+    "assets/v24/v24_1_payment.js",
+    "assets/v24/v24_1_position_pace.css",
+    "assets/v24/v24_1_repair.css",
+    "assets/v24/v24_1_reports.js",
+    "assets/v24/v24_1_responsive.css",
+    "assets/v24/v24_1_tabs.css",
+    "assets/v25/app-icon-180.png",
+    "assets/v25/app-icon-192.png",
+    "assets/v25/app-icon-32.png",
+    "assets/v25/app-icon-512.png",
+    "assets/v25/app-icon-maskable-512.png",
+    "assets/v25/badge-96.png",
+    "assets/v25/brand.css",
+    "assets/v25/icon-192.png",
+    "assets/v25/logo.svg",
+    "assets/v25/mobile-position.css",
+    "index.html",
+    "manifest.webmanifest",
+    "sw.js"
+  ]
+}

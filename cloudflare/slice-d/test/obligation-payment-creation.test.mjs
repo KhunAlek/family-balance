@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { createSeededSqliteD1 } from '../../slice-c/test/sqlite-d1.mjs';
 import { executeRevisionClaimWrite } from '../../slice-c/src/write-protocol.mjs';
 import { planFinancialWrite } from '../../slice-c/src/write-actions.mjs';
+import { executeObligationPayment } from '../../slice-c/src/obligation-payment.mjs';
 import { runTerminalTransactionReadModel } from '../src/terminal-transaction-read-model.mjs';
 import { remainingFixedObligations } from '../../slice-b/src/obligations.mjs';
 
@@ -25,6 +26,23 @@ test('new split obligation payment atomically creates durable identity, occurren
   assert.equal(raw.prepare('SELECT obligation_payment_id FROM balance_history WHERE source_row=?').get(101).obligation_payment_id,'create-obligation:obligation');
   const tx=(await runTerminalTransactionReadModel(db)).model.activeTransactions.find(row=>row.logicalTransactionId===result.logicalTransactionId);
   assert.deepEqual(tx.allocations,[{account:'Alex',amountSatang:10000},{account:'Olga',amountSatang:5000}]);
+});
+
+test('managed obligation creation requires a stable request and replays it exactly once',async t=>{
+  const {db,raw}=createSeededSqliteD1();t.after(()=>raw.close());for(const name of migrations)raw.exec(fs.readFileSync(new URL(`../migrations/${name}`,import.meta.url),'utf8'));
+  raw.exec("UPDATE salary_cycle_state SET current_cycle_start='2026-08-01',next_salary_date='2026-09-01'; INSERT INTO obligation_occurrences(occurrence_id,household_id,obligation_name,due_date,expected_amount_satang,amount_type,cycle_start) VALUES('retry-occ','family','Claude','2026-08-20',30000,'Fixed','2026-08-01')");
+  const initialPayments=raw.prepare('SELECT count(*) n FROM obligation_payments').get().n,payload={requestId:'obligation-retry',obligationName:'Claude',occurrenceDueDate:'2026-08-20',date:'2026-08-15',sourceAccount:'Alex',amount:100,note:''};
+  const save=(value=payload,extra={})=>executeObligationPayment(db,{householdId:'family',actorEmail:'alex@example.com',action:'obligationPayment',nowIso:'2026-08-15T05:00:00.000Z',payload:value,...extra});
+  const result=await save(),replay=await save();assert.deepEqual(replay,result);assert.equal(raw.prepare('SELECT count(*) n FROM obligation_payments').get().n,initialPayments+1);assert.equal(raw.prepare('SELECT count(*) n FROM new_function_request_receipts').get().n,1);
+  await assert.rejects(save({...payload,amount:200}),/different details/);assert.equal(raw.prepare('SELECT count(*) n FROM obligation_payments').get().n,initialPayments+1);
+});
+
+test('missing request ID and forced failure leave managed obligation state unchanged',async t=>{
+  const {db,raw}=createSeededSqliteD1();t.after(()=>raw.close());for(const name of migrations)raw.exec(fs.readFileSync(new URL(`../migrations/${name}`,import.meta.url),'utf8'));
+  raw.exec("UPDATE salary_cycle_state SET current_cycle_start='2026-08-01',next_salary_date='2026-09-01'; INSERT INTO obligation_occurrences(occurrence_id,household_id,obligation_name,due_date,expected_amount_satang,amount_type,cycle_start) VALUES('failure-occ','family','Claude','2026-08-20',30000,'Fixed','2026-08-01')");
+  const initial={payments:raw.prepare('SELECT count(*) n FROM obligation_payments').get().n,transactions:raw.prepare('SELECT count(*) n FROM logical_transactions').get().n},base={obligationName:'Claude',occurrenceDueDate:'2026-08-20',date:'2026-08-15',sourceAccount:'Alex',amount:100,note:''},save=(payload,extra={})=>executeObligationPayment(db,{householdId:'family',actorEmail:'alex@example.com',action:'obligationPayment',nowIso:'2026-08-15T05:00:00.000Z',payload,...extra});
+  await assert.rejects(save(base),/stable request ID/);await assert.rejects(save({...base,requestId:'obligation-failure'},{testOnlyForcedFailure:true}));
+  assert.equal(raw.prepare('SELECT count(*) n FROM obligation_payments').get().n,initial.payments);assert.equal(raw.prepare('SELECT count(*) n FROM logical_transactions').get().n,initial.transactions);for(const table of ['obligation_payment_allocations','new_function_request_receipts','financial_write_claims'])assert.equal(raw.prepare(`SELECT count(*) n FROM ${table}`).get().n,0);
 });
 
 test('occurrence status is derived from terminal sums for unpaid, partial, paid, and overpaid amounts',()=>{

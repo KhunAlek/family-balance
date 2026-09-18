@@ -1,17 +1,7 @@
 name: Cloudflare production deploy
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.assetsignore'
-      - 'wrangler.production.jsonc'
-      - 'index.html'
-      - 'assets/**'
-      - 'cloudflare/slice-b/**'
-      - 'cloudflare/slice-c/**'
-      - 'cloudflare/slice-d/**'
-      - '.github/workflows/cloudflare-production-deploy.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -23,7 +13,8 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    environment: production
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: 6ee48ea46390bcf76f1d924f4a7d88f1
@@ -35,21 +26,21 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Install pinned Web Push dependency
+      - name: Install pinned application dependency
         run: npm ci --prefix cloudflare/slice-d --ignore-scripts --no-audit --no-fund
 
-      - name: Assert immutable production configuration
+      - name: Assert reviewed commit, production configuration, and locked assets
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain)"
           ! grep -i 'staging' wrangler.production.jsonc
           grep -Fq '"name": "family-cash-flow-production"' wrangler.production.jsonc
           grep -Fq '"database_id": "d605f4fb-f42a-4610-9805-1c4f8b8329b8"' wrangler.production.jsonc
           grep -Fq '"bucket_name": "family-cash-flow-production-backups"' wrangler.production.jsonc
-          grep -Fq '"BACKUP_ENVIRONMENT": "production"' wrangler.production.jsonc
-          grep -Fq '"0 2,13,20,21 * * *"' wrangler.production.jsonc
+          node cloudflare/slice-d/tools/release-assets.mjs verify
 
-      - name: Run accepted tests and production dry run
+      - name: Run accepted tests and build the candidate
         run: |
           set -euo pipefail
           (cd cloudflare/slice-b && npm test)
@@ -61,111 +52,81 @@ jobs:
           node -e "JSON.parse(require('fs').readFileSync('manifest.webmanifest','utf8'))"
           npx --yes wrangler@4.123.0 deploy --config wrangler.production.jsonc --dry-run --outdir /tmp/production-dry-run
 
-      - name: Apply idempotent Web Push schema
-        run: npx --yes wrangler@4.123.0 d1 execute family-cash-flow-production-v1 --remote --config wrangler.production.jsonc --file cloudflare/slice-d/migrations/0004_web_push_notifications.sql
-
-      - name: Ensure persistent production VAPID key pair exists
+      - name: Record production version and financial revision
         run: |
           set -euo pipefail
-          npx --yes wrangler@4.123.0 secret list --name "$WORKER_NAME" --format json > /tmp/secrets-before-vapid.json
-          if ! node -e "const x=require('/tmp/secrets-before-vapid.json'); process.exit(x.some(v=>v.name==='VAPID_PUBLIC_KEY')&&x.some(v=>v.name==='VAPID_PRIVATE_KEY')?0:1)"; then
-            (cd cloudflare/slice-d && node --input-type=module <<'NODE'
-          import { generateVAPIDKeys } from 'web-push-neo';
-          import fs from 'node:fs';
-          const keys = await generateVAPIDKeys();
-          fs.writeFileSync('/tmp/vapid-public', keys.publicKey, { mode: 0o600 });
-          fs.writeFileSync('/tmp/vapid-private', keys.privateKey, { mode: 0o600 });
-          NODE
-            )
-            npx --yes wrangler@4.123.0 secret put VAPID_PUBLIC_KEY --name "$WORKER_NAME" < /tmp/vapid-public
-            npx --yes wrangler@4.123.0 secret put VAPID_PRIVATE_KEY --name "$WORKER_NAME" < /tmp/vapid-private
-            shred -u /tmp/vapid-public /tmp/vapid-private
-          fi
-
-      - name: Bootstrap Worker before secret rotation
-        run: |
-          set -euo pipefail
-          npx --yes wrangler@4.123.0 deploy --config wrangler.production.jsonc | tee /tmp/bootstrap-deploy.log
-
-      - name: Install fresh production session-signing secret
-        run: |
-          set -euo pipefail
-          openssl rand -base64 48 | npx --yes wrangler@4.123.0 secret put SESSION_SIGNING_KEY --name "$WORKER_NAME"
-
-      - name: Deploy reviewed main commit as final version
-        run: |
-          set -euo pipefail
-          npx --yes wrangler@4.123.0 deploy --config wrangler.production.jsonc | tee /tmp/final-deploy.log
-
-      - name: Verify runtime and record sanitized deployment evidence
-        run: |
-          set -euo pipefail
-          health_code=000
-          for attempt in $(seq 1 90); do
-            health_code=$(curl -sS -H 'accept: application/json' -o /tmp/health.json -w '%{http_code}' "$WORKER_ORIGIN/health" || true)
-            if [ "$health_code" = 200 ] && node -e "const x=require('/tmp/health.json'); if(!(x.ok===true&&x.service==='family-cash-flow'&&x.runtime==='slice-d'&&x.appsScriptDependency===false))process.exit(1)"; then
-              break
-            fi
-            sleep 2
-          done
-          test "$health_code" = 200
-
-          root_code=$(curl -sS -o /tmp/root.html -w '%{http_code}' "$WORKER_ORIGIN/")
-          test "$root_code" = 200
-          grep -Eiq '<!doctype html|<html' /tmp/root.html
-
-          auth_code=$(curl -sS -H 'accept: application/json' -o /tmp/auth.json -w '%{http_code}' "$WORKER_ORIGIN/api/auth/session")
-          test "$auth_code" = 401
-          node -e "const x=require('/tmp/auth.json'); if(!(x.ok===false&&/Authentication required/.test(x.error)))process.exit(1)"
-
-          npx --yes wrangler@4.123.0 secret list --name "$WORKER_NAME" --format json > /tmp/secrets.json
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
-          const account=process.env.CLOUDFLARE_ACCOUNT_ID;
-          const url=`https://api.cloudflare.com/client/v4/accounts/${account}/workers/scripts/${process.env.WORKER_NAME}/schedules`;
-          const response=await fetch(url,{headers:{authorization:`Bearer ${process.env.CLOUDFLARE_API_TOKEN}`}});
-          const result=await response.json();
-          if(!response.ok||!result.success) throw new Error('Could not verify production cron schedules.');
-          fs.writeFileSync('/tmp/production-crons.json',JSON.stringify((result.result?.schedules||[]).map(x=>x.cron).sort()));
-          NODE
-          node <<'NODE'
-          const fs=require('fs');
-          const health=JSON.parse(fs.readFileSync('/tmp/health.json'));
-          const secrets=JSON.parse(fs.readFileSync('/tmp/secrets.json'));
-          if(!secrets.some(x=>x.name==='SESSION_SIGNING_KEY')) throw new Error('SESSION_SIGNING_KEY is missing');
-          if(!secrets.some(x=>x.name==='VAPID_PUBLIC_KEY')) throw new Error('VAPID_PUBLIC_KEY is missing');
-          if(!secrets.some(x=>x.name==='VAPID_PRIVATE_KEY')) throw new Error('VAPID_PRIVATE_KEY is missing');
-          const config=JSON.parse(fs.readFileSync('wrangler.production.jsonc'));
-          const actualCrons=JSON.parse(fs.readFileSync('/tmp/production-crons.json'));
-          const expectedCrons=[...config.triggers.crons].sort();
-          if(JSON.stringify(actualCrons)!==JSON.stringify(expectedCrons)) throw new Error('Production cron schedules do not match reviewed configuration.');
-          const versionPattern=/Current Version ID:\s*([^\s]+)/;
-          const bootstrapVersion=fs.readFileSync('/tmp/bootstrap-deploy.log','utf8').match(versionPattern)?.[1] || null;
-          const finalVersion=fs.readFileSync('/tmp/final-deploy.log','utf8').match(versionPattern)?.[1] || null;
-          if(!bootstrapVersion || !finalVersion || bootstrapVersion===finalVersion) throw new Error('Distinct bootstrap and final Worker versions were not proven.');
-          const evidence={
-            status:'PASS',
-            commit:process.env.GITHUB_SHA,
-            runId:process.env.GITHUB_RUN_ID,
-            workerName:process.env.WORKER_NAME,
-            origin:process.env.WORKER_ORIGIN,
-            bootstrapVersion,
-            finalVersion,
-            d1:config.d1_databases[0],
-            r2:config.r2_buckets[0],
-            crons:config.triggers.crons,
-            secretNames:secrets.map(x=>x.name).sort(),
-            health,
-            staticRootStatus:200,
-            unauthenticatedSessionStatus:401
-          };
-          fs.writeFileSync('/tmp/production-deployment-evidence.json',JSON.stringify(evidence,null,2)+'\n');
-          console.log(JSON.stringify({status:evidence.status,commit:evidence.commit,workerName:evidence.workerName,origin:evidence.origin,bootstrapVersion:evidence.bootstrapVersion,finalVersion:evidence.finalVersion,secretNames:evidence.secretNames}));
+          const api=`https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}`;
+          const headers={authorization:`Bearer ${process.env.CLOUDFLARE_API_TOKEN}`};
+          const deployments=await fetch(`${api}/workers/scripts/${process.env.WORKER_NAME}/deployments`,{headers}).then(r=>r.json());
+          const current=deployments.result?.deployments?.[0]?.versions;
+          if(!deployments.success||current?.length!==1||Number(current[0].percentage)!==100)throw new Error('Production is not on one known 100% version.');
+          const query=await fetch(`${api}/d1/database/d605f4fb-f42a-4610-9805-1c4f8b8329b8/query`,{method:'POST',headers:{...headers,'content-type':'application/json'},body:JSON.stringify({sql:"SELECT current_revision FROM household_revisions WHERE household_id='family'"})}).then(r=>r.json());
+          const batch=query.result?.[0],revision=batch?.results?.[0]?.current_revision;
+          if(!query.success||!Number.isInteger(revision)||batch.meta?.changed_db!==false)throw new Error('Could not prove the D1 revision read was non-writing.');
+          fs.writeFileSync('/tmp/prior-version',current[0].version_id+'\n');
+          fs.writeFileSync('/tmp/prior-revision',String(revision)+'\n');
           NODE
 
-      - name: Upload sanitized deployment evidence
+      - name: Upload immutable candidate without production traffic
+        id: upload
+        run: |
+          set -euo pipefail
+          alias="candidate-${GITHUB_RUN_ID}"
+          npx --yes wrangler@4.123.0 versions upload --config wrangler.production.jsonc --preview-alias "$alias" --message "Reviewed commit $GITHUB_SHA" | tee /tmp/candidate-upload.log
+          node <<'NODE'
+          const fs=require('fs'),value=fs.readFileSync('/tmp/candidate-upload.log','utf8');
+          const version=value.match(/(?:Current )?Version ID:\s*([^\s]+)/)?.[1];
+          if(!version)throw new Error('Wrangler did not report a candidate version ID.');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,`version=${version}\norigin=https://candidate-${process.env.GITHUB_RUN_ID}-${process.env.WORKER_NAME}.abystrov66.workers.dev\n`);
+          NODE
+
+      - name: Verify every candidate asset and MIME type
+        env:
+          CANDIDATE_ORIGIN: ${{ steps.upload.outputs.origin }}
+        run: node cloudflare/slice-d/tools/verify-release-preview.mjs
+
+      - name: Verify candidate visually on a phone viewport
+        env:
+          CANDIDATE_ORIGIN: ${{ steps.upload.outputs.origin }}
+        run: |
+          set -euo pipefail
+          npm install playwright@1.54.2 --no-save --ignore-scripts --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          node cloudflare/slice-d/tools/verify-release-browser.mjs
+
+      - name: Upload candidate screenshot
         uses: actions/upload-artifact@v4
         with:
-          name: production-deployment-evidence
-          path: /tmp/production-deployment-evidence.json
+          name: production-candidate-phone
+          path: /tmp/production-candidate-phone.png
           if-no-files-found: error
+
+      - name: Deploy the already-verified candidate once
+        id: deploy_candidate
+        run: npx --yes wrangler@4.123.0 versions deploy '${{ steps.upload.outputs.version }}@100%' -y --config wrangler.production.jsonc
+
+      - name: Verify live release and unchanged financial revision
+        env:
+          CANDIDATE_ORIGIN: ${{ env.WORKER_ORIGIN }}
+        run: |
+          set -euo pipefail
+          node cloudflare/slice-d/tools/verify-release-preview.mjs
+          auth_code=$(curl -sS -H 'accept: application/json' -o /tmp/auth.json -w '%{http_code}' "$WORKER_ORIGIN/api/auth/session")
+          test "$auth_code" = 401
+          node -e "const x=require('/tmp/auth.json');if(!(x.ok===false&&/Authentication required/.test(x.error)))process.exit(1)"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const before=Number(fs.readFileSync('/tmp/prior-revision','utf8').trim());
+          const url=`https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/d1/database/d605f4fb-f42a-4610-9805-1c4f8b8329b8/query`;
+          const body=await fetch(url,{method:'POST',headers:{authorization:`Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({sql:"SELECT current_revision FROM household_revisions WHERE household_id='family'"})}).then(r=>r.json());
+          const batch=body.result?.[0],after=batch?.results?.[0]?.current_revision;
+          if(!body.success||batch.meta?.changed_db!==false||after!==before)throw new Error(`Deployment changed D1 revision ${before} -> ${after}.`);
+          NODE
+
+      - name: Roll back automatically if post-deployment verification fails
+        if: failure() && steps.deploy_candidate.outcome == 'success'
+        run: |
+          prior=$(tr -d '\n' < /tmp/prior-version)
+          npx --yes wrangler@4.123.0 versions deploy "${prior}@100%" -y --config wrangler.production.jsonc

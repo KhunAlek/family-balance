@@ -5,6 +5,7 @@ import fs from 'node:fs';
 const html = fs.readFileSync(new URL('../../../index.html', import.meta.url), 'utf8');
 const app1 = fs.readFileSync(new URL('../../../assets/v24/v24_1_app1.js', import.meta.url), 'utf8');
 const app2 = fs.readFileSync(new URL('../../../assets/v24/v24_1_app2.js', import.meta.url), 'utf8');
+const app4 = fs.readFileSync(new URL('../../../assets/v24/v24_1_app4.js', import.meta.url), 'utf8');
 const responsive = fs.readFileSync(new URL('../../../assets/v24/v24_1_tabs.css', import.meta.url), 'utf8');
 const coreResponsive = fs.readFileSync(new URL('../../../assets/v24/v24_1_responsive.css', import.meta.url), 'utf8');
 const positionPaceCss = fs.readFileSync(new URL('../../../assets/v24/v24_1_position_pace.css', import.meta.url), 'utf8');
@@ -69,7 +70,7 @@ test('Available pace is phone-first, compact, and bounded on laptop', () => {
 test('secondary account actions live in a focused detail view', () => {
   assert.match(html, /id="accountsDetails"[\s\S]*data-open-drawer="income"[\s\S]*data-open-drawer="ktbTransfer"[\s\S]*id="recordsCorrectionBtn"/);
   assert.match(html, /id="accountsSection"[\s\S]*data-open-detail="accountsDetails"/);
-  assert.match(html, /data-open-detail="accountsDetails">Move money<\/button>/);
+  assert.match(html, /<button class="btn position-secondary-action"[^>]*data-open-detail="accountsDetails">[\s\S]*?<span class="two-line-label">Move money<\/span><\/button>/);
 });
 
 test('compact header actions remain accessible with no target warning', () => {
@@ -95,6 +96,14 @@ test('remaining detail navigation is labelled Back while Pace has no separate de
   assert.match(html, /id="movementCancel">← Back<\/button>/);
   assert.match(correction, /id="correctionCancel">← Back<\/button>/);
   assert.doesNotMatch(html, /aria-label="Close">×<\/button>/);
+});
+
+test('obligation payment keeps one request identity across ambiguous retries',()=>{
+  assert.match(html,/v24_1_app4\.js\?v=20260918-obligation-payment-retry/);
+  assert.match(app4,/function obligationPaymentRequestId\(payload\)/);
+  assert.match(app4,/payload\.requestId=obligationPaymentRequestId\(payload\)/);
+  assert.match(app4,/if\(movementContext\.type==='obligation'\)clearObligationPaymentRequest\(\)/);
+  assert.match(app4,/Network error — retry the same payment\./);
 });
 
 test('correction entry is contextual rather than injected into the action directory', () => {

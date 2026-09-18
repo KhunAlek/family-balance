@@ -1,0 +1,7 @@
+.DS_Store
+.wrangler/
+node_modules/
+
+# Reproducible handoff bundles; canonical records live at the repository root.
+transaction-history-*-package*/
+transaction-history-*-package.zip

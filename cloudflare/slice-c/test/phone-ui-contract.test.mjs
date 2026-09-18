@@ -9,7 +9,10 @@ const app4 = fs.readFileSync(new URL('../../../assets/v24/v24_1_app4.js', import
 const responsive = fs.readFileSync(new URL('../../../assets/v24/v24_1_tabs.css', import.meta.url), 'utf8');
 const coreResponsive = fs.readFileSync(new URL('../../../assets/v24/v24_1_responsive.css', import.meta.url), 'utf8');
 const positionPaceCss = fs.readFileSync(new URL('../../../assets/v24/v24_1_position_pace.css', import.meta.url), 'utf8');
+const mobilePositionCss = fs.readFileSync(new URL('../../../assets/v25/mobile-position.css', import.meta.url), 'utf8');
+const reports = fs.readFileSync(new URL('../../../assets/v24/v24_1_reports.js', import.meta.url), 'utf8');
 const correction = fs.readFileSync(new URL('../../../assets/v24/v24_1_correction.js', import.meta.url), 'utf8');
+const manifest = JSON.parse(fs.readFileSync(new URL('../../../manifest.webmanifest', import.meta.url), 'utf8'));
 
 test('phone navigation is four true panels rather than scroll anchors', () => {
   for (const tab of ['position', 'pace', 'commitments', 'savings']) {
@@ -22,7 +25,8 @@ test('phone navigation is four true panels rather than scroll anchors', () => {
 });
 
 test('approved information-led action placement is present', () => {
-  assert.match(html, /data-tab-panel="position"[\s\S]*data-open-drawer="payment"[\s\S]*Preview payment/);
+  assert.match(html, /id="accountsSection"[\s\S]*class="position-action-row"[\s\S]*data-open-drawer="payment"[\s\S]*>Make payment<\/span>/);
+  assert.match(html, /data-drawer="payment"[\s\S]*id="previewPaymentBtn">Preview payment<\/button>[\s\S]*id="paymentBtn" disabled>Record payment<\/button>/);
   assert.match(html, /data-tab-panel="position"[\s\S]*data-open-drawer="balance"[\s\S]*Update balances/);
   assert.match(html, /data-tab-panel="pace"[\s\S]*<h2>Available pace<\/h2>/);
   assert.doesNotMatch(html, /data-open-drawer="variablesTarget"/);
@@ -52,6 +56,13 @@ test('Position Pace card is directly below Available, responsive, labelled and n
   assert.match(html, /id="positionPaceCard"[^>]*data-tab="pace"/);
   assert.match(positionPaceCss, /position-pace-card/);
   assert.match(positionPaceCss, /grid-template-columns:1fr 1fr/);
+  assert.match(mobilePositionCss, /--position-card-size:/);
+  assert.match(mobilePositionCss, /#overview \.position-hero,#overview \.position-pace-card\{[\s\S]*height:var\(--position-card-size\)[\s\S]*min-height:var\(--position-card-size\)[\s\S]*max-height:var\(--position-card-size\)/);
+  assert.match(app1, /positionPaceWeek'\)\.textContent=fmtMoney\(pace\.throughSunday,c\)/);
+  assert.match(app1, /positionPaceToday'\)\.textContent=fmtMoney\(pace\.today,c\)/);
+  assert.doesNotMatch(app1, /positionPaceWeek'\)\.textContent=fmtMoney\(pace\.throughSunday,c,true\)/);
+  assert.match(mobilePositionCss, /position-pace-card b\{[^}]*font-size:clamp\(25px,min\(7\.2vw,4\.2dvh\),36px\)/);
+  assert.match(mobilePositionCss, /position-pace-card small\{min-height:2\.5em/);
 });
 
 test('Available pace is phone-first, compact, and bounded on laptop', () => {
@@ -71,6 +82,60 @@ test('secondary account actions live in a focused detail view', () => {
   assert.match(html, /id="accountsDetails"[\s\S]*data-open-drawer="income"[\s\S]*data-open-drawer="ktbTransfer"[\s\S]*id="recordsCorrectionBtn"/);
   assert.match(html, /id="accountsSection"[\s\S]*data-open-detail="accountsDetails"/);
   assert.match(html, /<button class="btn position-secondary-action"[^>]*data-open-detail="accountsDetails">[\s\S]*?<span class="two-line-label">Move money<\/span><\/button>/);
+  assert.match(html, /class="position-action-row"[\s\S]*data-open-detail="accountsDetails"[\s\S]*?<span class="two-line-label">Move money<\/span><\/button>/);
+  assert.doesNotMatch(html, /id="accountsSection"[\s\S]*?panel-actions/);
+});
+
+test('Account balances is the third major card followed by one equal action row', () => {
+  assert.match(html, /position-hero[\s\S]*position-pace-card[\s\S]*id="accountsSection"[\s\S]*class="position-action-row"/);
+  assert.match(mobilePositionCss, /#accountsSection\{[\s\S]*linear-gradient\(135deg,#8a8078 0%,#6b625d 38%,#565761 72%,#36485f 100%\)/);
+  assert.match(mobilePositionCss, /#accountsSection\{[\s\S]*height:var\(--position-card-size\)[\s\S]*min-height:var\(--position-card-size\)[\s\S]*max-height:var\(--position-card-size\)/);
+  assert.match(mobilePositionCss, /#accountsSection \.panel-head\{[^}]*padding:5px 15px 4px/);
+  assert.match(mobilePositionCss, /#accountsSection \.panel-head h3\{[^}]*font-size:clamp\(12px,1\.7dvh,15px\)/);
+  assert.match(mobilePositionCss, /#accountsSection \.accounts\{[^}]*gap:0/);
+  assert.match(mobilePositionCss, /#accountsSection \.account\{[^}]*padding:2px/);
+  assert.match(mobilePositionCss, /#accountsSection \.salary-row\{[^}]*padding:5px 0 6px/);
+  assert.match(mobilePositionCss, /#accountsSection:after\{border-color:rgba\(255,255,255,\.07\)\}/);
+  assert.match(mobilePositionCss, /#accountsSection:before\{[^}]*border:24px solid rgba\(255,255,255,\.04\)/);
+  assert.match(mobilePositionCss, /radial-gradient\(circle at 24% 24%,rgba\(255,245,235,\.1\),transparent 42%\)/);
+  assert.match(mobilePositionCss, /border:1px solid rgba\(185,174,161,\.22\)/);
+  assert.match(mobilePositionCss, /box-shadow:[^}]*0 7px 18px rgba\(26,32,42,\.16\)/);
+  assert.match(mobilePositionCss, /account span\{color:#f1ece4/);
+  assert.match(mobilePositionCss, /salary-row span\{color:#ddd5cc/);
+  assert.match(mobilePositionCss, /salary-row small\{[^}]*color:#d0c7be/);
+  assert.match(mobilePositionCss, /text-action\{[^}]*rgba\(217,209,199,\.55\)[^}]*color:#f6f2ec!important/);
+  assert.match(mobilePositionCss, /position-action-row\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(mobilePositionCss, /position-action-row \.btn\{[\s\S]*height:var\(--position-control-size\);min-height:var\(--position-control-size\)/);
+  assert.match(mobilePositionCss, /two-line-label\{[^}]*max-width:54px/);
+});
+
+test('all three feature cards share one gradient and curved-highlight treatment', () => {
+  assert.match(mobilePositionCss, /position-hero,#overview \.position-pace-card,#accountsSection\{box-shadow:inset 0 1px/);
+  assert.match(mobilePositionCss, /position-hero:after,#overview \.position-pace-card:after,#accountsSection:after\{/);
+  assert.match(mobilePositionCss, /right:-72px;top:-88px;width:235px;height:235px;border:30px solid rgba\(255,255,255,\.085\);border-radius:50%/);
+  assert.match(mobilePositionCss, /position-hero[\s\S]*background:linear-gradient\(145deg,#819bbc 0%,var\(--position-slate\) 48%,#344d69 100%\)/);
+  assert.match(mobilePositionCss, /position-pace-card[\s\S]*background:linear-gradient\(145deg,#e7cd82 0%,var\(--position-gold\) 48%,#8c6929 100%\)/);
+});
+
+test('the complete Position hierarchy scales within a 360 by 800 viewport above navigation', () => {
+  assert.match(mobilePositionCss, /--position-card-size:clamp\(144px,calc\(\(100dvh - 300px\)\/3\),210px\)/);
+  assert.match(mobilePositionCss, /--position-control-size:clamp\(44px,6\.2dvh,56px\)/);
+  assert.match(mobilePositionCss, /primary-tab-shell\{height:calc\(100dvh - 84px\);padding:10px 12px calc\(90px/);
+  const usableHeight = 800 - 84 - 10 - 90;
+  const cardHeight = Math.min(210, Math.max(144, (800 - 300) / 3));
+  const controlHeight = Math.min(56, Math.max(44, 800 * 0.062));
+  const gap = Math.min(14, Math.max(8, 800 * 0.0135));
+  const hierarchyHeight = (cardHeight * 3) + (gap * 3) + controlHeight;
+  assert.ok(hierarchyHeight <= usableHeight, `${hierarchyHeight}px hierarchy exceeds ${usableHeight}px usable height`);
+});
+
+test('Position scales approved cards and controls instead of distributing empty space', () => {
+  assert.match(mobilePositionCss, /--position-stack-gap:clamp\(8px,1\.35dvh,14px\)/);
+  assert.match(mobilePositionCss, /#overview\{display:flex;flex-direction:column;justify-content:flex-start;gap:var\(--position-stack-gap\)/);
+  assert.doesNotMatch(mobilePositionCss, /justify-content:space-evenly/);
+  assert.match(mobilePositionCss, /position-pace-card\{[\s\S]*margin-top:0/);
+  assert.match(mobilePositionCss, /position-action-row\{[^}]*margin-top:0/);
+  assert.match(mobilePositionCss, /#accountsSection\{[\s\S]*margin-top:0/);
 });
 
 test('compact header actions remain accessible with no target warning', () => {
@@ -78,6 +143,49 @@ test('compact header actions remain accessible with no target warning', () => {
   assert.match(html, /id="logoutBtn" aria-label="Sign out and close"/);
   assert.doesNotMatch(html, /guidanceTargetBtn|Set target|variablesTarget/i);
   assert.doesNotMatch(app1, /target_not_set|Variables target not set/i);
+  assert.match(html, /Great\+Vibes/);
+  assert.match(mobilePositionCss, /font-family:"Great Vibes",cursive/);
+  assert.match(mobilePositionCss, /font-size:clamp\(30px,9\.25vw,40px\)/);
+  assert.match(mobilePositionCss, /\.mobile-app-name\{[\s\S]*max-width:100%/);
+  assert.match(mobilePositionCss, /\.greeting p\{display:none\}/);
+  assert.match(mobilePositionCss, /\.topbar-icon\{display:none!important\}/);
+  assert.match(mobilePositionCss, /\.top-actions \.language-picker\{display:none!important\}/);
+  assert.match(mobilePositionCss, /\.top-actions\{[\s\S]*display:flex;[\s\S]*flex:0 0 88px;[\s\S]*width:88px;[\s\S]*gap:0;[\s\S]*min-width:88px/);
+  assert.match(mobilePositionCss, /#notificationsBtn\{order:1\}[\s\S]*#logoutBtn\{order:2\}/);
+  assert.match(mobilePositionCss, /#notificationsBtn svg\{transform:translateX\(8px\)\}/);
+  assert.match(mobilePositionCss, /#logoutBtn svg\{transform:translateX\(-8px\)\}/);
+  assert.match(mobilePositionCss, /min-height:44px/);
+  assert.match(mobilePositionCss, /icon-action svg\{[\s\S]*width:18px;height:18px[\s\S]*stroke:#d8b65f/);
+  assert.match(html, /hero-label">Available to spend<span class="sr-only" id="heroDateRange"><\/span>/);
+});
+
+test('mobile Position palette and five-icon navigation follow the approved visual system', () => {
+  assert.match(html, /assets\/v25\/mobile-position\.css/);
+  assert.match(mobilePositionCss, /--position-navy:#101e2d/);
+  assert.match(mobilePositionCss, /--position-slate:#526f91/);
+  assert.match(mobilePositionCss, /--position-gold:#c3a052/);
+  assert.doesNotMatch(mobilePositionCss, /teal|turquoise|cyan|green/i);
+  assert.match(mobilePositionCss, /grid-template-columns:repeat\(5,1fr\)!important/);
+  assert.match(reports, /classList\.contains\('mobile-tabs'\)[\s\S]*<svg[\s\S]*<span>Reports<\/span>/);
+  assert.equal((reports.match(/reportTab\(document\.querySelector\('\.mobile-tabs'\)\)/g) || []).length, 1);
+});
+
+test('installed app surfaces use the approved wallet icon at every declared size', () => {
+  const expected = [
+    ['app-icon-192.png', 192, 'any'],
+    ['app-icon-512.png', 512, 'any'],
+    ['app-icon-maskable-512.png', 512, 'maskable']
+  ];
+  assert.deepEqual(manifest.icons.map(icon => [icon.src.split('/').pop(), Number(icon.sizes.split('x')[0]), icon.purpose]), expected);
+  assert.match(html, /manifest\.webmanifest\?v=20260917-wallet-icon/);
+  assert.match(html, /rel="icon"[^>]*app-icon-32\.png/);
+  assert.match(html, /rel="apple-touch-icon"[^>]*app-icon-180\.png/);
+  assert.doesNotMatch(html, /rel="icon"[^>]*logo\.svg/);
+  for (const [file, size] of [...expected, ['app-icon-32.png', 32], ['app-icon-180.png', 180]]) {
+    const png = fs.readFileSync(new URL(`../../../assets/v25/${file}`, import.meta.url));
+    assert.equal(png.readUInt32BE(16), size, `${file} width`);
+    assert.equal(png.readUInt32BE(20), size, `${file} height`);
+  }
 });
 
 test('KTB transfer uses explicit direction choices and close signs out before requesting close', () => {

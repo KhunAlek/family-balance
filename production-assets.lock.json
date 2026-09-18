@@ -159,32 +159,32 @@
     },
     {
       "path": "assets/v25/app-icon-180.png",
-      "bytes": 45821,
-      "sha256": "3773776c24a8497235e2c6af85e8adff10fbe580fe10b267c0783e39c37bed67",
+      "bytes": 45820,
+      "sha256": "268425eb8a0eb05e4dfa458232411cdbb4be91fec2e7ab57f398ff6e426c99a0",
       "mime": "image/png"
     },
     {
       "path": "assets/v25/app-icon-192.png",
-      "bytes": 51768,
-      "sha256": "a30381abae8663036557c44a7354f019e6708a9f87e1275e5cabcb4177af34db",
+      "bytes": 51767,
+      "sha256": "96be3305646764a3c16300b4e2bdb56b7729d274a9335a628b0ddf44d457b5ab",
       "mime": "image/png"
     },
     {
       "path": "assets/v25/app-icon-32.png",
-      "bytes": 2658,
-      "sha256": "5727da43311672250758f042051f299cd4334bfbc25bc935f9b9f5d4b3e21f78",
+      "bytes": 2657,
+      "sha256": "c19bad9dc3578f48ccaab24d897d76ab58b5b452ee1249e01257895d6044d4af",
       "mime": "image/png"
     },
     {
       "path": "assets/v25/app-icon-512.png",
-      "bytes": 384365,
-      "sha256": "ccbb5f6ce2dd3bfaae5e36bd293b5a2d8b1a34b5637bfd3ced4f345d4de8b837",
+      "bytes": 384364,
+      "sha256": "747b258d3a616f614ac2fa4e7666dddc791bcf7415a48d7c1a7f478e1e5e76ff",
       "mime": "image/png"
     },
     {
       "path": "assets/v25/app-icon-maskable-512.png",
-      "bytes": 384365,
-      "sha256": "ccbb5f6ce2dd3bfaae5e36bd293b5a2d8b1a34b5637bfd3ced4f345d4de8b837",
+      "bytes": 384364,
+      "sha256": "747b258d3a616f614ac2fa4e7666dddc791bcf7415a48d7c1a7f478e1e5e76ff",
       "mime": "image/png"
     },
     {

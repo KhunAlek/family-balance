@@ -1,0 +1,29 @@
+# Stage 12 Execution Ledger
+
+## Intake and authorization
+
+repository rules, package inventory, SHA, and dirty state — `9ac1b819b80b8297ddb284a5f778a6a42509aef6` — read `../AGENTS.md` and every Step 12 package document; inspected archive inventory, verified all 13 manifest SHA-256 entries, and checked `git rev-parse HEAD` plus `git status --short` — expected SHA matched; every manifested document matched; the manifest was the fourteenth archive entry; pre-existing modified ledgers and untracked owner/package artifacts were identified and preserved
+
+owner gates — `9ac1b819b80b8297ddb284a5f778a6a42509aef6` — owner explicitly accepted Step 11 in the current conversation after the intake gate and had explicitly authorized local Step 12 work in the initiating request — local Step 12 code, repository tests, one candidate commit, result/ledger, and Step 13 handoff authorized; additive migration remains separately gated; production/representative access, external D1/R2 mutation, factual repair, observation mutation, dependency/configuration change, merge, deployment, and Step 13 implementation remain forbidden
+
+exact-SHA transfer inspection and migration proof — `9ac1b819b80b8297ddb284a5f778a6a42509aef6` — exact-SHA reads and searches of transfer creation, balance schema and effects, identity/preflight, canonical/history/reconciliation, Steps 7–11 family protocol, Worker authentication/routes, portable backup/restore, current consumers, and relevant tests — `ktbTransfer` validates date, positive amount, unequal Alex/Olga accounts, and source sufficiency, then writes only one generic `balance_history` row; source and destination exist only in the request/response and a free-text `one_off_payment_name`; no typed transfer parent or immutable source/destination/amount-to-balance-effect relationship exists; the canonical reader rejects `ktb_transfer` as unsupported and management routing supplies only one-off, other-income, and obligation family handlers; historical relationships cannot be inferred safely
+
+additive migration authorization gate — `9ac1b819b80b8297ddb284a5f778a6a42509aef6` — proved the minimum missing durable relationship is an immutable typed KTB-transfer parent linked to its one authoritative balance effect, added to portable backup/restore with no historical backfill or factual rewrite — awaiting separate owner authorization before schema or implementation changes
+
+additive migration authorization — `9ac1b819b80b8297ddb284a5f778a6a42509aef6` — owner explicitly authorized the narrowly scoped local typed-parent migration and repository-only migration/restore testing — migration `0017_ktb_transfer_management.sql` authorized locally; external application remains forbidden
+
+typed creation and management implementation — `9ac1b819b80b8297ddb284a5f778a6a42509aef6` plus scoped worktree changes — added empty immutable `ktb_transfers`, new-write logical identity and typed balance-effect linkage, complete correction/delete/restore/undo family handler, authenticated Worker routing, canonical/history/reconciliation reconstruction, and portable inventory support — one logical transaction ID is retained; each version has one typed parent linked uniquely to one balance row carrying both account effects; no historical relationship is inferred
+
+focused Step 12 invariant gate — `9ac1b819b80b8297ddb284a5f778a6a42509aef6` plus scoped worktree changes — bundled Node `v24.19.0`; `node --test cloudflare/slice-d/test/ktb-transfer-management.test.mjs` — 5 passed, 0 failed; creation in both directions, invalid creation/correction, correction direction/date/amount, delete/restore/undo, exact replay, semantic conflict, insufficiency, rollback, canonical reconstruction, reconciliation, neutrality, and portable restore passed
+
+complete pre-candidate Slice B/C/D regression — `9ac1b819b80b8297ddb284a5f778a6a42509aef6` plus scoped worktree changes — bundled Node `v24.19.0`; `node --test cloudflare/slice-b/test/*.test.mjs cloudflare/slice-c/test/*.test.mjs cloudflare/slice-d/test/*.test.mjs` — 315 passed, 0 failed before the final additional invalid/conflict coverage; final exact-candidate rerun required
+
+scope review — `9ac1b819b80b8297ddb284a5f778a6a42509aef6` plus scoped worktree changes — `git diff --check`, status and scoped diff review — no historical backfill, observation mutation, replacement, salary, obligation semantic change, EF/Goal management, dependency/configuration change, production/representative access, external migration, merge, deployment, or Step 13 implementation; prior owner files remain unstaged
+
+candidate creation — `1ff8d0da73b2b1ff6274904ebbe372fa7ec7e960` — staged exactly 20 scoped Step 12 schema, implementation, reader, routing, backup, fixture, and acceptance-test files; ran cached diff check; committed `Add KTB transfer management candidate` — one local candidate commit created; pre-existing owner changes and handoff documents remained excluded; no merge, deployment, external access, or database migration occurred
+
+focused exact-candidate gate — `1ff8d0da73b2b1ff6274904ebbe372fa7ec7e960` — asserted exact HEAD and ran `node --test cloudflare/slice-d/test/ktb-transfer-management.test.mjs` under bundled Node `v24.19.0` — 5 passed, 0 failed
+
+complete exact-candidate regression — `1ff8d0da73b2b1ff6274904ebbe372fa7ec7e960` — asserted exact HEAD and ran `node --test cloudflare/slice-b/test/*.test.mjs cloudflare/slice-c/test/*.test.mjs cloudflare/slice-d/test/*.test.mjs` under bundled Node `v24.19.0` — 316 passed, 0 failed
+
+Step 13 handoff package — `1ff8d0da73b2b1ff6274904ebbe372fa7ec7e960` — generated result, ledger, Step 13 task specification and fresh-chat prompt; created `transaction-history-step-13-package.zip`; extracted it to a temporary directory and ran `shasum -a 256 -c STAGE_13_PACKAGE_MANIFEST.txt` — all 15 manifested documents matched; archive contains those documents plus its manifest

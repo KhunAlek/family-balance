@@ -9,7 +9,9 @@ for(const asset of lock.files){
   const response=await fetch(`${origin}/${asset.path}?release_gate=${Date.now()}`,{headers:{'cache-control':'no-cache','pragma':'no-cache'}});
   const data=Buffer.from(await response.arrayBuffer()),type=response.headers.get('content-type')||'';
   if(response.status!==200)throw new Error(`${asset.path} returned HTTP ${response.status}.`);
-  if(!type.toLowerCase().startsWith(asset.mime.toLowerCase()))throw new Error(`${asset.path} returned ${type||'no content type'}, expected ${asset.mime}.`);
+  const actualMime=type.split(';',1)[0].trim().toLowerCase(),expectedMime=asset.mime.toLowerCase();
+  const validMime=actualMime===expectedMime||(expectedMime==='application/javascript'&&actualMime==='text/javascript');
+  if(!validMime)throw new Error(`${asset.path} returned ${type||'no content type'}, expected ${asset.mime}.`);
   const exact=data.length===asset.bytes&&sha256(data)===asset.sha256;
   const legacyFreshHash=data.length===asset.bytes+1&&data.at(-1)===10&&sha256(data.subarray(0,-1))===asset.sha256;
   if(!exact&&!legacyFreshHash)throw new Error(`${asset.path} does not match the reviewed release asset lock.`);

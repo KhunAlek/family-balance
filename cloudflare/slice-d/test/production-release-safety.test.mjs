@@ -25,7 +25,8 @@ test('reviewed release inventory includes every recovered mobile design asset',(
 
 test('candidate gate rejects missing, wrong-MIME, changed, or visually unstyled assets',()=>{
   assert.match(preview,/response\.status!==200/);
-  assert.match(preview,/startsWith\(asset\.mime/);
+  assert.match(preview,/expectedMime==='application\/javascript'&&actualMime==='text\/javascript'/);
+  assert.match(preview,/if\(!validMime\)throw new Error/);
   assert.match(preview,/sha256\(data\)/);
   assert.match(browser,/loadedStyleCount!==result\.localStyleCount/);
   assert.match(browser,/unstyled serif font/);

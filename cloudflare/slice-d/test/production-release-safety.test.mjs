@@ -15,6 +15,11 @@ test('production release uploads and verifies an immutable candidate before one 
   assert.ok(upload>0&&assetGate>upload&&browserGate>assetGate&&deploy>browserGate);
   assert.doesNotMatch(workflow,/secret put|d1 execute|Bootstrap Worker/);
   assert.match(workflow,/Roll back automatically if post-deployment verification fails/);
+  const liveGate=workflow.slice(workflow.indexOf('Verify live release and unchanged financial revision'));
+  assert.match(liveGate,/for attempt in \$\(seq 1 12\)/);
+  assert.match(liveGate,/if node cloudflare\/slice-d\/tools\/verify-release-preview\.mjs; then/);
+  assert.match(liveGate,/sleep 10/);
+  assert.match(liveGate,/exit 1/);
 });
 
 test('reviewed release inventory includes every recovered mobile design asset',()=>{

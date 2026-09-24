@@ -207,10 +207,10 @@ test('remaining detail navigation is labelled Back while Pace has no separate de
 });
 
 test('obligation payment keeps one request identity across ambiguous retries',()=>{
-  assert.match(html,/v24_1_app4\.js\?v=20260918-obligation-payment-retry/);
+  assert.match(html,/v24_1_app4\.js\?v=20260924-movement-recovery/);
   assert.match(app4,/function obligationPaymentRequestId\(payload\)/);
   assert.match(app4,/payload\.requestId=obligationPaymentRequestId\(payload\)/);
-  assert.match(app4,/if\(movementContext\.type==='obligation'\)clearObligationPaymentRequest\(\)/);
+  assert.match(app4,/clearObligationPaymentRequest\(\);closeMovementModal\(\)/);
   assert.match(app4,/Network error — retry the same payment\./);
 });
 

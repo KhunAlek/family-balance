@@ -21,8 +21,8 @@
     },
     {
       "path": "assets/v24/v24_1_app2.js",
-      "bytes": 6864,
-      "sha256": "b7842a7a04a6233e3592ec3a18e0458f4a0c9c85bdba0debbc7e459e5fc5a803",
+      "bytes": 7627,
+      "sha256": "13e1c8ac05a18d604e381eb602a80e151a0984b2c290930a992eb23c4a510978",
       "mime": "application/javascript"
     },
     {
@@ -33,8 +33,8 @@
     },
     {
       "path": "assets/v24/v24_1_app4.js",
-      "bytes": 16793,
-      "sha256": "93ba8284c8899f93d5c0e3cebc4f8f943e34998f4ed4ae9c99058110f3051275",
+      "bytes": 17139,
+      "sha256": "3496aa277674e08e7a1a0574246a480c43ac85c809d2881442d03865e7a75d59",
       "mime": "application/javascript"
     },
     {
@@ -81,14 +81,20 @@
     },
     {
       "path": "assets/v24/v24_1_i18n.js",
-      "bytes": 61987,
-      "sha256": "a06d06bb233edb9ee47356762f1b5c55fb06272e79c566b28a9ec2fb6f8b22ca",
+      "bytes": 67217,
+      "sha256": "2323db7cb3402560b9e94f51e449ec0778f680434bc0532b1798c90b9295d6f3",
       "mime": "application/javascript"
     },
     {
       "path": "assets/v24/v24_1_income.js",
       "bytes": 6816,
       "sha256": "9eca2b5fa792a301e376435ee8ed479dfb0b2b9f7af151699254be870bf41fdc",
+      "mime": "application/javascript"
+    },
+    {
+      "path": "assets/v24/v24_1_movement_recovery.js",
+      "bytes": 9355,
+      "sha256": "b8661b48f3dbb3abeb0976e6e33c5970e38ae15e928ed6f7648d884eb0f50b23",
       "mime": "application/javascript"
     },
     {
@@ -255,8 +261,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 33348,
-      "sha256": "3b866f46bf465e49d964d40700fe5bc3b12e24db465f1793189f55614606f94d",
+      "bytes": 33466,
+      "sha256": "38d7d9d9dc4e1fcd24bbc3662fdc76e49be9cc4ecce330d3d874f117a7f2b1b7",
       "mime": "text/html"
     },
     {
@@ -286,6 +292,7 @@
     "assets/v24/v24_1_history.js",
     "assets/v24/v24_1_i18n.js",
     "assets/v24/v24_1_income.js",
+    "assets/v24/v24_1_movement_recovery.js",
     "assets/v24/v24_1_notifications.css",
     "assets/v24/v24_1_notifications.js",
     "assets/v24/v24_1_obligation_calendar.css",

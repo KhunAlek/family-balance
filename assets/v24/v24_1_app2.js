@@ -7,11 +7,12 @@ async function requestJson(path,options={}){
     const response=await fetch(path,{credentials:'same-origin',signal:controller.signal,...options});
     const text=await response.text();
     let data;
-    try{data=text?JSON.parse(text):{}}catch(err){throw new Error('Backend returned an invalid response.')}
-    if(!response.ok){const error=new Error(data.error||'Backend request failed with HTTP '+response.status+'.');error.status=response.status;throw error}
+    try{data=text?JSON.parse(text):{}}catch(err){const error=new Error('Backend returned an invalid response.');error.kind='invalid_response';error.status=response.status;throw error}
+    if(!response.ok){const error=new Error(data.error||'Backend request failed with HTTP '+response.status+'.');error.status=response.status;error.kind='http';throw error}
     return data||{ok:false,error:'Empty response.'};
   }catch(err){
-    if(err&&err.name==='AbortError')throw new Error('Backend request timed out.');
+    if(err&&err.name==='AbortError'){const timeout=new Error('Backend request timed out.');timeout.kind='timeout';throw timeout}
+    if(err instanceof TypeError&&!err.kind){err.kind='transport'}
     throw err;
   }finally{clearTimeout(timer)}
 }
@@ -19,12 +20,12 @@ async function apiCall(apiAction,payload){
   try{
     return await requestJson('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiAction,payload:payload||{}})});
   }catch(err){
-    if(err&&err.status===401){showAuthGate('Your session expired. Sign in again.');throw new Error('Authentication required.')}
+    if(err&&err.status===401){showAuthGate('Your session expired. Sign in again.');const auth=new Error('Authentication required.');auth.kind='auth';auth.status=401;throw auth}
     throw err;
   }
 }
 async function fetchDashboard(){return apiCall('dashboard',{})}
-async function refreshLiveData(){const data=await fetchDashboard();if(data&&data.ok===false)throw new Error(data.error||'Could not load data.');render(data,{stale:false});if(typeof refreshNotificationPanel==='function')refreshNotificationPanel().catch(()=>{});return data}
+async function refreshLiveData(){const data=await fetchDashboard();if(data&&data.ok===false)throw new Error(data.error||'Could not load data.');render(data,{stale:false});if(typeof renderMovementRecoveryBanner==='function')renderMovementRecoveryBanner();if(typeof refreshNotificationPanel==='function')refreshNotificationPanel().catch(()=>{});return data}
 async function loadData(){try{await refreshLiveData()}catch(err){if(/Authentication required/i.test(err.message||'')){showAuthGate();return}document.getElementById('loadingState').style.display='none';document.getElementById('errorState').style.display='block';document.getElementById('errorState').textContent='Could not load data: '+err.message}}
 async function handleGoogleCredential(response){
   const mount=document.getElementById('googleLoginBtn');
@@ -33,10 +34,13 @@ async function handleGoogleCredential(response){
     mount.setAttribute('aria-busy','true');
     const result=await requestJson('/api/auth/google',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({credential:response.credential})});
     if(!result.ok)throw new Error(result.error||'This Google account is not authorized.');
+    const previousUser=AUTHENTICATED_USER;
     AUTHENTICATED_USER=result.identity&&result.identity.email||'';
+    if(previousUser!==AUTHENTICATED_USER&&typeof resetMovementRecoveryNotice==='function')resetMovementRecoveryNotice();
     hideAuthGate();
     document.getElementById('loadingState').style.display='grid';
     await refreshLiveData();
+    if(typeof reconcilePendingMovements==='function')await reconcilePendingMovements();
   }catch(err){showAuthGate(err.message||'Could not sign in.')}
   finally{mount.removeAttribute('aria-busy')}
 }
@@ -59,6 +63,7 @@ async function initializeApp(){
     AUTHENTICATED_USER=status.identity&&status.identity.email||'';
     hideAuthGate();
     await refreshLiveData();
+    if(typeof reconcilePendingMovements==='function')await reconcilePendingMovements();
   }catch(err){
     if(err&&err.status===401){showAuthGate();return}
     document.getElementById('loadingState').style.display='none';
@@ -70,6 +75,7 @@ async function initializeApp(){
 async function logout(){
   try{await requestJson('/api/auth/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})}catch(err){}
   AUTHENTICATED_USER='';
+  if(typeof resetMovementRecoveryNotice==='function')resetMovementRecoveryNotice();
   if(window.google&&google.accounts&&google.accounts.id)google.accounts.id.disableAutoSelect();
   showAuthGate('You have signed out.');
 }

@@ -8,6 +8,7 @@ import { loadFinancialSnapshot } from '../../slice-b/src/d1-repository.mjs';
 import { buildDashboardReadModel } from '../../slice-b/src/read-model.mjs';
 import { executeRevisionClaimWrite, FinancialWriteValidationError, StaleFinancialWriterError } from '../../slice-c/src/write-protocol.mjs';
 import { executeGoalWithdrawal } from '../../slice-c/src/goal-withdrawal.mjs';
+import { executeMovementWrite, getMovementRequestStatus } from '../../slice-c/src/movement-receipts.mjs';
 import { buildOneOffPaymentPreview, planFinancialWrite } from '../../slice-c/src/write-actions.mjs';
 import { executeObligationPayment } from '../../slice-c/src/obligation-payment.mjs';
 import { previewCorrection } from '../../slice-c/src/correction.mjs';
@@ -195,10 +196,13 @@ async function handleFinancialAction(payload, identity, env, options = {}) {
       const snapshot = await loadFinancialSnapshot(env.DB, 'family');
       return jsonResponse(previewCorrection(snapshot, payload.payload || {}));
     }
+    if (payload.apiAction === 'movementRequestStatus') {
+      return jsonResponse(await getMovementRequestStatus(env.DB, payload.payload || {}, 'family'));
+    }
     if (payload.apiAction === 'write') {
       const writePayload = payload.payload || {};
       const action = String(writePayload.action || '').trim();
-      const execute = action === 'oneOffPayment' ? executeTypedPayment : action === 'obligationPayment' ? executeObligationPayment : action === 'goalWithdrawal' ? executeGoalWithdrawal : FIXED_EXPENSE_ACTIONS.has(action)?executeFixedExpenseWrite : OTHER_INCOME_ACTIONS.has(action) ? executeOtherIncomeWrite : action === 'incomeReceipt' ? executeIncomeReceipt : CATEGORY_ACTIONS.has(action) ? executeCategoryWrite : action === 'correctRecord' && writePayload.entityType === 'salaryCycle' ? executeReportingCorrection : executeRevisionClaimWrite;
+      const execute = action === 'oneOffPayment' ? executeTypedPayment : action === 'obligationPayment' ? executeObligationPayment : action === 'goalWithdrawal' ? executeGoalWithdrawal : ['ktbTransfer','efWithdrawal','dedicatedTransfer'].includes(action) ? executeMovementWrite : FIXED_EXPENSE_ACTIONS.has(action)?executeFixedExpenseWrite : OTHER_INCOME_ACTIONS.has(action) ? executeOtherIncomeWrite : action === 'incomeReceipt' ? executeIncomeReceipt : CATEGORY_ACTIONS.has(action) ? executeCategoryWrite : action === 'correctRecord' && writePayload.entityType === 'salaryCycle' ? executeReportingCorrection : executeRevisionClaimWrite;
       const result = await execute(env.DB, {
         householdId: 'family',
         actorEmail: identity.email,

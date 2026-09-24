@@ -18,9 +18,9 @@ function browser(sharedStorage=new Map(),useActualRefresh=false) {
     });
     return elements.get(id);
   };
-  const document={getElementById:element,querySelectorAll(){return []},addEventListener(){}};
+  const document={documentElement:{lang:'en'},getElementById:element,querySelectorAll(){return []},addEventListener(){}};
   const sessionStorage={getItem:key=>sharedStorage.get(key)||null,setItem:(key,value)=>sharedStorage.set(key,value)};
-  const context=vm.createContext({document,sessionStorage,crypto:webcrypto,globalThis:null,setMsg:(id,message)=>messages.push([id,message]),clearMsg:()=>{},setBusy:()=>{},postAction:async payload=>{posts.push(payload);return {ok:true}},currentSourceBalance:()=>100,refreshLiveData:async()=>{},render:()=>{},closeActionDrawer:()=>{},initializeApp:()=>{},todayIso:()=> '2026-08-14',fmtMoney:v=>String(v),setTimeout:()=>{},console});
+  const context=vm.createContext({document,window:{confirm:()=>false},sessionStorage,crypto:webcrypto,globalThis:null,setMsg:(id,message)=>messages.push([id,message]),clearMsg:()=>{},setBusy:()=>{},postAction:async payload=>{posts.push(payload);return {ok:true}},currentSourceBalance:()=>100,refreshLiveData:async()=>{},render:()=>{},closeActionDrawer:()=>{},initializeApp:()=>{},todayIso:()=> '2026-08-14',fmtMoney:v=>String(v),setTimeout:()=>{},console});
   context.globalThis=context;
   vm.runInContext("let AUTHENTICATED_USER='alex@example.com';let currentData={emergencyFund:{current:100},config:{currency:'THB'}};let currentRenderMeta={stale:false};let movementContext={type:'ef',safeAmount:100};",context);
   vm.runInContext(recovery,context);
@@ -125,6 +125,33 @@ test('unavailable session storage prevents sending a movement',async()=>{
   await b.submit('efWithdrawalForm');
   assert.equal(b.posts.length,0);
   assert.match(b.messages.at(-1)[1],/recovery is unavailable/);
+});
+
+test('a rejected retry after an uncertain response retains the ID until history is checked',async()=>{
+  const b=browser(),movement={action:'ktbTransfer',date:'2026-08-14',sourceAccount:'Alex',destinationAccount:'Olga',amount:10};
+  b.context.postAction=async payload=>{b.posts.push(payload);if(b.posts.length===1){const error=new Error('timeout');error.kind='timeout';throw error}return {ok:false,error:'Financial state changed before this action could be committed.'}};
+  assert.equal(await b.context.submitRecordedMovement(movement,'ktbTransferMsg'),false);
+  assert.equal(await b.context.submitRecordedMovement(movement,'ktbTransferMsg'),false);
+  assert.equal(b.posts[0].requestId,b.posts[1].requestId);
+  assert.equal(vm.runInContext('movementRecords().length',b.context),1);
+  b.context.discardPendingMovement(b.posts[0].requestId);
+  assert.equal(vm.runInContext('movementRecords().length',b.context),1);
+  b.context.window.confirm=()=>true;
+  b.context.discardPendingMovement(b.posts[0].requestId);
+  assert.equal(vm.runInContext('movementRecords().length',b.context),0);
+});
+
+test('a concurrent rejected retry cannot erase the first request identity',async()=>{
+  const b=browser(),movement={action:'ktbTransfer',date:'2026-08-14',sourceAccount:'Alex',destinationAccount:'Olga',amount:10};
+  let finishFirst;
+  b.context.postAction=payload=>{b.posts.push(payload);return b.posts.length===1?new Promise(resolve=>{finishFirst=resolve}):Promise.resolve({ok:false,error:'Financial state changed before this action could be committed.'})};
+  const first=b.context.submitRecordedMovement(movement,'ktbTransferMsg');
+  await b.context.submitRecordedMovement(movement,'ktbTransferMsg');
+  assert.equal(vm.runInContext('movementRecords().length',b.context),1);
+  assert.equal(b.posts[0].requestId,b.posts[1].requestId);
+  finishFirst({ok:true});
+  assert.equal(await first,true);
+  assert.equal(vm.runInContext('movementRecords().length',b.context),0);
 });
 
 test('failed dashboard refresh after a confirmed write is reported as recorded',async()=>{

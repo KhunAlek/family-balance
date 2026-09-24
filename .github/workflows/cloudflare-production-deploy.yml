@@ -112,7 +112,16 @@ jobs:
           CANDIDATE_ORIGIN: ${{ env.WORKER_ORIGIN }}
         run: |
           set -euo pipefail
-          node cloudflare/slice-d/tools/verify-release-preview.mjs
+          for attempt in $(seq 1 12); do
+            if node cloudflare/slice-d/tools/verify-release-preview.mjs; then
+              break
+            fi
+            if [ "$attempt" -eq 12 ]; then
+              echo 'Live release did not converge to the reviewed asset lock within two minutes.' >&2
+              exit 1
+            fi
+            sleep 10
+          done
           auth_code=$(curl -sS -H 'accept: application/json' -o /tmp/auth.json -w '%{http_code}' "$WORKER_ORIGIN/api/auth/session")
           test "$auth_code" = 401
           node -e "const x=require('/tmp/auth.json');if(!(x.ok===false&&/Authentication required/.test(x.error)))process.exit(1)"

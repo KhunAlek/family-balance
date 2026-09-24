@@ -81,8 +81,8 @@
     },
     {
       "path": "assets/v24/v24_1_i18n.js",
-      "bytes": 67217,
-      "sha256": "2323db7cb3402560b9e94f51e449ec0778f680434bc0532b1798c90b9295d6f3",
+      "bytes": 67824,
+      "sha256": "da5803cbc196fba481685fc5b2b8e8d2d252e2103ca61a49f39174fa68a792f2",
       "mime": "application/javascript"
     },
     {
@@ -93,8 +93,8 @@
     },
     {
       "path": "assets/v24/v24_1_movement_recovery.js",
-      "bytes": 9355,
-      "sha256": "b8661b48f3dbb3abeb0976e6e33c5970e38ae15e928ed6f7648d884eb0f50b23",
+      "bytes": 11973,
+      "sha256": "66ff88b4a11390fb5a24201185fee2da0114e076ed05c6a2b173cd662e0670d9",
       "mime": "application/javascript"
     },
     {
@@ -261,8 +261,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 33466,
-      "sha256": "38d7d9d9dc4e1fcd24bbc3662fdc76e49be9cc4ecce330d3d874f117a7f2b1b7",
+      "bytes": 33458,
+      "sha256": "d824a947e41877a9d92fc5b981d279db0a8569b68821ca7aea1878c72bf0b340",
       "mime": "text/html"
     },
     {

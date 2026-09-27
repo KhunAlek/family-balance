@@ -141,8 +141,8 @@
     },
     {
       "path": "assets/v24/v24_1_reports.js",
-      "bytes": 6517,
-      "sha256": "baef3bb04804bb7c1a2cc13103c4491c1eabc5f1ddfa661be225dc1f60784fe0",
+      "bytes": 7149,
+      "sha256": "cd4777bc00717ca9ca015f787c0b3e695be2b491d2fa3c1b979399730b2533ca",
       "mime": "application/javascript"
     },
     {
@@ -285,8 +285,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 33947,
-      "sha256": "59276cff9ad6979ed481bfaa998f6a1acc9002ca0730ee69d49cc0a81a70a090",
+      "bytes": 33973,
+      "sha256": "351ba7676ab70c0ea508a7d2313924cdb378dca0d2af9f8fb9264df2aeee377d",
       "mime": "text/html"
     },
     {

@@ -236,6 +236,12 @@
       "mime": "image/png"
     },
     {
+      "path": "assets/v25/history-screen.css",
+      "bytes": 6086,
+      "sha256": "9d36e23ee57f28f6e987a8a89228e2e54c650fe78d6cbe3648ff22e7e057a34d",
+      "mime": "text/css"
+    },
+    {
       "path": "assets/v25/icon-192.png",
       "bytes": 5879,
       "sha256": "46c1944fd0f730d8a346675bcdc2481312acebf54dcd3b13555e2f624ed327d1",
@@ -291,8 +297,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 34063,
-      "sha256": "8349afa8738fe9875057340e1f06b41d5867ad821633141d8f1a45205e71fcba",
+      "bytes": 34144,
+      "sha256": "ce155945343f71792074b780c96deba056205ab652e2595018347907210d1d17",
       "mime": "text/html"
     },
     {
@@ -342,6 +348,7 @@
     "assets/v25/badge-96.png",
     "assets/v25/brand.css",
     "assets/v25/commitments-screen.css",
+    "assets/v25/history-screen.css",
     "assets/v25/icon-192.png",
     "assets/v25/logo.svg",
     "assets/v25/mobile-position.css",

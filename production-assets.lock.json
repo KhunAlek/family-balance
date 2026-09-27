@@ -16,7 +16,7 @@
     {
       "path": "assets/v24/v24_1_app1.js",
       "bytes": 20665,
-      "sha256": "af279550bd6e9a9cf83f86dcd0b6d38bd0ac63261add5750943f668a1c786901",
+      "sha256": "3af0230b094c8f6c5a6404488125353bf38dcfbdff4ef22415a2e36de35470ec",
       "mime": "application/javascript"
     },
     {
@@ -81,8 +81,8 @@
     },
     {
       "path": "assets/v24/v24_1_i18n.js",
-      "bytes": 67824,
-      "sha256": "da5803cbc196fba481685fc5b2b8e8d2d252e2103ca61a49f39174fa68a792f2",
+      "bytes": 68119,
+      "sha256": "b3099257399cf2638289712917918d13794424be4a7f10aedb6b6043f76cb88b",
       "mime": "application/javascript"
     },
     {
@@ -272,9 +272,15 @@
       "mime": "text/css"
     },
     {
+      "path": "assets/v25/savings-screen.css",
+      "bytes": 7556,
+      "sha256": "8c219c9c091ce735ea3e3ab1fe88387fbfa454a7951c16573d229779ea6b12a3",
+      "mime": "text/css"
+    },
+    {
       "path": "index.html",
-      "bytes": 33695,
-      "sha256": "9546ff78dcd9ca8bd4e1bd458f16cc15b6563ca063d3848acd343388f213c102",
+      "bytes": 33866,
+      "sha256": "66c254425061c3837cf07c4dad6299375dc3ae0814d4fafc010d77740e48166a",
       "mime": "text/html"
     },
     {
@@ -327,6 +333,7 @@
     "assets/v25/logo.svg",
     "assets/v25/mobile-position.css",
     "assets/v25/pace-screen.css",
+    "assets/v25/savings-screen.css",
     "index.html",
     "manifest.webmanifest",
     "sw.js"

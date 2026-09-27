@@ -15,8 +15,8 @@
     },
     {
       "path": "assets/v24/v24_1_app1.js",
-      "bytes": 20778,
-      "sha256": "fe6dc7b267a8d402eeba2067e588a11670ae156db817d702f81053c83ff5d0d4",
+      "bytes": 20665,
+      "sha256": "af279550bd6e9a9cf83f86dcd0b6d38bd0ac63261add5750943f668a1c786901",
       "mime": "application/javascript"
     },
     {
@@ -219,8 +219,8 @@
     },
     {
       "path": "assets/v25/commitments-screen.css",
-      "bytes": 6662,
-      "sha256": "abc7649a8417c1f8f7a70716a17a824ef0c5d2d45a88dd3ab096f22912e33bff",
+      "bytes": 5711,
+      "sha256": "25b4a4d5cf8ea1d481d361289ca367aefdd1eed12e07471fc319cb47bf7ac51d",
       "mime": "text/css"
     },
     {
@@ -273,8 +273,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 33810,
-      "sha256": "88ce3c3435bdf77d09f51362d7c5d78bc6cffe7a5a918e65f82e64f35419f69c",
+      "bytes": 33695,
+      "sha256": "9546ff78dcd9ca8bd4e1bd458f16cc15b6563ca063d3848acd343388f213c102",
       "mime": "text/html"
     },
     {

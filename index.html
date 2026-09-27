@@ -25,7 +25,7 @@
 <link rel="stylesheet" href="assets/v24/v24_1_history.css?v=20260915-prod-fixes">
 <link rel="stylesheet" href="assets/v25/mobile-position.css?v=20260917-fluid-content-layout">
 <link rel="stylesheet" href="assets/v25/pace-screen.css?v=20260927-review-2">
-<link rel="stylesheet" href="assets/v25/commitments-screen.css?v=20260927-review-1">
+<link rel="stylesheet" href="assets/v25/commitments-screen.css?v=20260927-review-2">
 </head>
 <body>
 <div id="app" style="display:none">
@@ -81,7 +81,6 @@
 
       <section class="primary-tab-panel" data-tab-panel="commitments" id="allocations" aria-labelledby="commitmentsTab" hidden>
         <div class="eyebrow">Before the next salary</div>
-        <article class="commitment-total"><span>Total outstanding commitments</span><b id="commitmentsTotal">—</b></article>
         <div class="commitment-rows">
           <button type="button" class="commitment-row required" data-open-detail="obligationsDetails"><span><b>Required obligations</b><small id="requiredCommitmentsMeta">Open current-cycle list</small></span><strong id="requiredCommitmentsAmount">—</strong></button>
           <div class="commitment-row ef"><span><b>EF commitment</b><small>Outstanding this cycle</small></span><strong id="availableEF">—</strong><button type="button" class="text-action" data-open-drawer="efCommitment">Edit</button></div>
@@ -138,7 +137,7 @@
 <div class="modal-backdrop" id="movementModal" role="dialog" aria-modal="true" aria-labelledby="movementTitle"><aside class="modal movement-drawer"><div class="drawer-head"><div><h2 id="movementTitle">Record movement</h2><p id="movementDescription"></p></div><button type="button" class="detail-back" id="movementCancel">← Back</button></div><form id="movementForm"><div class="movement-summary" id="movementSummary"></div><label for="movementDate">Date</label><input type="date" id="movementDate" required><label for="movementSource">Paid from</label><select id="movementSource" required><option value="Alex">Alex KTB</option><option value="Olga">Olga KTB</option></select><div class="movement-balance" id="movementSourceBalance"></div><label for="movementAmount">Amount</label><input type="number" min="0.01" step="0.01" id="movementAmount" required><div class="hint" id="movementAmountHint"></div><div id="movementPaymentStatusWrap" style="display:none"><label for="movementPaymentStatus">Payment type</label><select id="movementPaymentStatus"><option value="Final">Final payment — Close this bill</option><option value="Partial">Partial payment — keep it open</option></select><div class="hint">Variable bills default to final payment.</div></div><div id="movementNoteWrap" style="display:none"><label for="movementNote">Note (optional)</label><textarea id="movementNote"></textarea></div><div class="form-msg" id="movementMsg"></div><div class="modal-actions"><button type="button" class="btn secondary" id="movementCancelBottom">Cancel</button><button type="submit" class="btn primary" id="movementSubmit">Save</button></div></form></aside></div>
 
 <script src="assets/v24/v24_1_obligation_calendar.js?v=20260907-calendar"></script>
-<script src="assets/v24/v24_1_app1.js?v=20260907-calendar"></script>
+<script src="assets/v24/v24_1_app1.js?v=20260927-commitments-review-2"></script>
 <script src="assets/v24/v24_1_app2.js?v=20260924-movement-recovery"></script>
 <script src="assets/v24/v24_1_app3.js"></script>
 <script src="assets/v24/v24_1_notifications.js"></script>

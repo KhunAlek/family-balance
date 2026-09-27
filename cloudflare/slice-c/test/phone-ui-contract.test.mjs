@@ -225,8 +225,12 @@ test('correction entry is contextual rather than injected into the action direct
   assert.match(coreResponsive, /\.correction-safety,\.correction-safety li\{max-width:100%;overflow-wrap:anywhere\}/);
 });
 
-test('Commitments total uses the Position card grammar within its own panel', () => {
+test('Commitments presents three scoped cards in the approved blue, gold, and taupe sequence', () => {
   const commitments = fs.readFileSync(new URL('../../../assets/v25/commitments-screen.css', import.meta.url), 'utf8');
-  assert.match(commitments, /#allocations \.commitment-total\{[\s\S]*?border-radius:22px;[\s\S]*?background:linear-gradient\(145deg,#819bbc/);
+  assert.doesNotMatch(html, /id="commitmentsTotal"/);
+  assert.equal((html.match(/class="commitment-row /g)||[]).length, 3);
+  assert.match(commitments, /#allocations \.commitment-row\.required\{[^}]*background:linear-gradient\(145deg,#819bbc/);
+  assert.match(commitments, /#allocations \.commitment-row\.ef\{[^}]*background:linear-gradient\(145deg,#e7cd82/);
+  assert.match(commitments, /#allocations \.commitment-row\.goals\{[^}]*linear-gradient\(135deg,#8a8078/);
   assert.doesNotMatch(commitments, /#overview|#accountsSection|\.position-hero/);
 });

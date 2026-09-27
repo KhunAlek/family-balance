@@ -164,6 +164,12 @@
       "mime": "text/css"
     },
     {
+      "path": "assets/v25/accounts-records-screen.css",
+      "bytes": 3691,
+      "sha256": "099a569d69da5d2e3c7b9718926c47d370a53aff545ddebc6d81d1655b68a951",
+      "mime": "text/css"
+    },
+    {
       "path": "assets/v25/app-icon-180.png",
       "bytes": 45820,
       "sha256": "268425eb8a0eb05e4dfa458232411cdbb4be91fec2e7ab57f398ff6e426c99a0",
@@ -285,8 +291,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 33973,
-      "sha256": "351ba7676ab70c0ea508a7d2313924cdb378dca0d2af9f8fb9264df2aeee377d",
+      "bytes": 34063,
+      "sha256": "8349afa8738fe9875057340e1f06b41d5867ad821633141d8f1a45205e71fcba",
       "mime": "text/html"
     },
     {
@@ -327,6 +333,7 @@
     "assets/v24/v24_1_reports.js",
     "assets/v24/v24_1_responsive.css",
     "assets/v24/v24_1_tabs.css",
+    "assets/v25/accounts-records-screen.css",
     "assets/v25/app-icon-180.png",
     "assets/v25/app-icon-192.png",
     "assets/v25/app-icon-32.png",

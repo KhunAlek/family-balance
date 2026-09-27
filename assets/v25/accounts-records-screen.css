@@ -1,0 +1,57 @@
+/* Accounts & records detail only. The approved Position landing screen is unchanged. */
+#accountsDetails{background:#f3f5f8;color:#18283a}
+#accountsDetails .detail-head{
+  top:-20px;margin:-20px -20px 16px;padding:20px;
+  border:0;border-radius:0 0 20px 20px;
+  background:linear-gradient(135deg,#233b55,#101e2d);color:#fff;
+}
+#accountsDetails .detail-head .eyebrow{color:#d8b65f}
+#accountsDetails .detail-head h2{color:#fff;font-size:25px}
+#accountsDetails .detail-head button{min-height:44px;border:1px solid rgba(216,182,95,.55);background:rgba(255,255,255,.08);color:#f8e9c6}
+#accountsDetails>.panel{max-width:760px;margin:0 auto;padding:0;border:0;background:transparent;box-shadow:none;overflow:visible}
+#accountsDetails .accounts{display:block;padding:0}
+#accountsDetails .account-wide{
+  position:relative;isolation:isolate;overflow:hidden;display:block;min-height:182px;padding:23px 25px;
+  border:1px solid rgba(201,213,226,.25);border-radius:22px;
+  background:linear-gradient(145deg,#819bbc 0%,#526f91 48%,#344d69 100%);
+  box-shadow:inset 0 1px rgba(255,255,255,.3),0 8px 19px rgba(35,57,80,.17);
+}
+#accountsDetails .account-wide:after{content:"";position:absolute;z-index:-1;right:-72px;top:-112px;width:270px;height:270px;border:34px solid rgba(255,255,255,.08);border-radius:50%;pointer-events:none}
+#accountsDetails .account-wide span{color:#f4f5f7;font-size:15px;font-weight:800;letter-spacing:0;text-transform:none}
+#accountsDetails .account-wide b{margin:22px 0 8px;color:#fff;font-size:40px;font-weight:800;line-height:1;letter-spacing:-.035em}
+#accountsDetails .account-wide small{color:#e1e9f1;font-size:12px;line-height:1.45}
+#accountsDetails .freshness{
+  margin:13px 0;padding:18px 20px;border:1px solid rgba(116,87,31,.34);border-radius:20px;
+  background:linear-gradient(145deg,#e7cd82,#c3a052 52%,#927238);color:#2f2516;
+  box-shadow:inset 0 1px rgba(255,255,255,.35),0 7px 17px rgba(68,51,20,.12);
+  font-size:13px;line-height:1.55;
+}
+#accountsDetails .freshness strong{color:#2f2516;font-weight:800}
+#accountsDetails .detail-actions{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0;padding:17px;
+  border:1px solid rgba(185,174,161,.22);border-radius:22px;
+  background:linear-gradient(135deg,#8a8078 0%,#6b625d 38%,#565761 72%,#36485f 100%);
+  box-shadow:inset 0 1px rgba(255,255,255,.18),0 7px 17px rgba(32,48,65,.14);
+}
+#accountsDetails .detail-actions .btn{
+  display:flex;align-items:center;justify-content:center;min-height:56px;margin:0;padding:10px 12px;
+  border:1px solid rgba(255,255,255,.55);border-radius:12px;background:#f8fafc;
+  box-shadow:0 3px 8px rgba(20,30,42,.13);color:#304a68!important;
+  font-size:13px;font-weight:800;line-height:1.2;text-align:center;
+}
+#accountsDetails .detail-actions .btn:last-child{grid-column:1/-1}
+#accountsDetails .detail-actions .btn:focus-visible,#accountsDetails .detail-head button:focus-visible{outline:3px solid #d8b65f;outline-offset:2px}
+
+@media(max-width:760px){
+  #accountsDetails{padding:12px 12px 92px}
+  #accountsDetails .detail-head{top:-12px;margin:-12px -12px 12px;padding:13px 12px}
+  #accountsDetails .detail-head h2{font-size:20px}
+  #accountsDetails .detail-head button{white-space:nowrap}
+  #accountsDetails .account-wide{min-height:160px;padding:19px 20px}
+  #accountsDetails .account-wide b{margin:18px 0 7px;font-size:33px}
+  #accountsDetails .account-wide span{font-size:14px}
+  #accountsDetails .account-wide small{font-size:11px}
+  #accountsDetails .freshness{margin:11px 0;padding:15px 17px;font-size:12px}
+  #accountsDetails .detail-actions{gap:9px;padding:13px}
+  #accountsDetails .detail-actions .btn{min-height:54px;padding:9px;font-size:12px}
+}

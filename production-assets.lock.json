@@ -27,8 +27,8 @@
     },
     {
       "path": "assets/v24/v24_1_app3.js",
-      "bytes": 9283,
-      "sha256": "a8f7fc14ed2b040cb889100d43778261eb28c979b446bb9da361055877c4fab4",
+      "bytes": 9289,
+      "sha256": "8f923e872a72e1b4871419b2708db6e5991e44c3f86080b302aca5436a1f666b",
       "mime": "application/javascript"
     },
     {
@@ -81,8 +81,8 @@
     },
     {
       "path": "assets/v24/v24_1_i18n.js",
-      "bytes": 68119,
-      "sha256": "b3099257399cf2638289712917918d13794424be4a7f10aedb6b6043f76cb88b",
+      "bytes": 68044,
+      "sha256": "4a0b9e15df83a3a6a63bc06625eeaf36205824bed1c14e4b209f3b2aa99c4860",
       "mime": "application/javascript"
     },
     {
@@ -167,6 +167,12 @@
       "path": "assets/v25/accounts-records-screen.css",
       "bytes": 3691,
       "sha256": "099a569d69da5d2e3c7b9718926c47d370a53aff545ddebc6d81d1655b68a951",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v25/action-forms-screen.css",
+      "bytes": 6444,
+      "sha256": "4de391cb6a1a5c95f7849266beca995df6db5fb99dd40c9ee8986f7eecdd2537",
       "mime": "text/css"
     },
     {
@@ -297,8 +303,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 34144,
-      "sha256": "ce155945343f71792074b780c96deba056205ab652e2595018347907210d1d17",
+      "bytes": 34208,
+      "sha256": "48b5cddcb6ca236f6dadd76a6decbe9987d04bbb10c6267501f7aad367aaf273",
       "mime": "text/html"
     },
     {
@@ -340,6 +346,7 @@
     "assets/v24/v24_1_responsive.css",
     "assets/v24/v24_1_tabs.css",
     "assets/v25/accounts-records-screen.css",
+    "assets/v25/action-forms-screen.css",
     "assets/v25/app-icon-180.png",
     "assets/v25/app-icon-192.png",
     "assets/v25/app-icon-32.png",

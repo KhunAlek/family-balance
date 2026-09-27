@@ -272,6 +272,12 @@
       "mime": "text/css"
     },
     {
+      "path": "assets/v25/reports-screen.css",
+      "bytes": 5976,
+      "sha256": "46fb6aa0052df753cdec0a1b5f63ddb5e4b41cc1131acb7a0e6623c068964619",
+      "mime": "text/css"
+    },
+    {
       "path": "assets/v25/savings-screen.css",
       "bytes": 7967,
       "sha256": "df1e4277779f2bcddad0c4a3ffa4a2795c1f2b53258c405f953a5b5a1013a335",
@@ -279,8 +285,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 33866,
-      "sha256": "5dbcc19be8f0d24207a79c810e7085ced946c50b340a5dcc80fe256c6a5b81c8",
+      "bytes": 33947,
+      "sha256": "59276cff9ad6979ed481bfaa998f6a1acc9002ca0730ee69d49cc0a81a70a090",
       "mime": "text/html"
     },
     {
@@ -333,6 +339,7 @@
     "assets/v25/logo.svg",
     "assets/v25/mobile-position.css",
     "assets/v25/pace-screen.css",
+    "assets/v25/reports-screen.css",
     "assets/v25/savings-screen.css",
     "index.html",
     "manifest.webmanifest",

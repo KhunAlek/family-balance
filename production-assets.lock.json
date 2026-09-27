@@ -266,6 +266,12 @@
       "mime": "image/png"
     },
     {
+      "path": "assets/v25/income-salary-screen.css",
+      "bytes": 6871,
+      "sha256": "0a87e9820b02a953e041b7f40c08d38a63e58ee1854e19118877d7d0f14644ca",
+      "mime": "text/css"
+    },
+    {
       "path": "assets/v25/logo-maskable.svg",
       "bytes": 964,
       "sha256": "6d043bf118d02d32abad77c0793f0aba961dd27a8f129f4f92de06d285a81cef",
@@ -303,8 +309,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 34208,
-      "sha256": "48b5cddcb6ca236f6dadd76a6decbe9987d04bbb10c6267501f7aad367aaf273",
+      "bytes": 34295,
+      "sha256": "87ba2f46c595c9c1c4cf6812a077e4fb7d930022188b6f4bd8ae1e0efb65fab3",
       "mime": "text/html"
     },
     {
@@ -357,6 +363,7 @@
     "assets/v25/commitments-screen.css",
     "assets/v25/history-screen.css",
     "assets/v25/icon-192.png",
+    "assets/v25/income-salary-screen.css",
     "assets/v25/logo.svg",
     "assets/v25/mobile-position.css",
     "assets/v25/pace-screen.css",

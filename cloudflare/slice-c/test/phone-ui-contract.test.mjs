@@ -225,6 +225,8 @@ test('correction entry is contextual rather than injected into the action direct
   assert.match(coreResponsive, /\.correction-safety,\.correction-safety li\{max-width:100%;overflow-wrap:anywhere\}/);
 });
 
-test('commitments total is a typographic summary rather than another card', () => {
-  assert.match(responsive, /\.commitment-total\{[^}]*border-bottom:2px solid var\(--ink\)[^}]*border-radius:0[^}]*background:transparent/);
+test('Commitments total uses the Position card grammar within its own panel', () => {
+  const commitments = fs.readFileSync(new URL('../../../assets/v25/commitments-screen.css', import.meta.url), 'utf8');
+  assert.match(commitments, /#allocations \.commitment-total\{[\s\S]*?border-radius:22px;[\s\S]*?background:linear-gradient\(145deg,#819bbc/);
+  assert.doesNotMatch(commitments, /#overview|#accountsSection|\.position-hero/);
 });

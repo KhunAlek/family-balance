@@ -218,6 +218,12 @@
       "mime": "text/css"
     },
     {
+      "path": "assets/v25/commitments-screen.css",
+      "bytes": 6662,
+      "sha256": "abc7649a8417c1f8f7a70716a17a824ef0c5d2d45a88dd3ab096f22912e33bff",
+      "mime": "text/css"
+    },
+    {
       "path": "assets/v25/favicon-32.png",
       "bytes": 1107,
       "sha256": "0b5556b019495beb48b01c056099f0afa8f544efa8d1f768369ccb7a7727ee20",
@@ -267,8 +273,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 33725,
-      "sha256": "23a03e2a33889d07a9a076941ebda5004ab08df0b0ad4f98d9f3275851bb182c",
+      "bytes": 33810,
+      "sha256": "88ce3c3435bdf77d09f51362d7c5d78bc6cffe7a5a918e65f82e64f35419f69c",
       "mime": "text/html"
     },
     {
@@ -316,6 +322,7 @@
     "assets/v25/app-icon-maskable-512.png",
     "assets/v25/badge-96.png",
     "assets/v25/brand.css",
+    "assets/v25/commitments-screen.css",
     "assets/v25/icon-192.png",
     "assets/v25/logo.svg",
     "assets/v25/mobile-position.css",

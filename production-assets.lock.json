@@ -27,8 +27,8 @@
     },
     {
       "path": "assets/v24/v24_1_app3.js",
-      "bytes": 9289,
-      "sha256": "8f923e872a72e1b4871419b2708db6e5991e44c3f86080b302aca5436a1f666b",
+      "bytes": 9372,
+      "sha256": "da36e3876fea61bfcbca2aba68f61226c57fcd9de2c53dc98873c65534eaf5db",
       "mime": "application/javascript"
     },
     {
@@ -87,8 +87,8 @@
     },
     {
       "path": "assets/v24/v24_1_income.js",
-      "bytes": 6816,
-      "sha256": "9eca2b5fa792a301e376435ee8ed479dfb0b2b9f7af151699254be870bf41fdc",
+      "bytes": 6948,
+      "sha256": "e463f1601d775e50c944fea9aa4ff9eace0488a28513e53a4177904c8bfda094",
       "mime": "application/javascript"
     },
     {
@@ -267,8 +267,8 @@
     },
     {
       "path": "assets/v25/income-salary-screen.css",
-      "bytes": 6871,
-      "sha256": "0a87e9820b02a953e041b7f40c08d38a63e58ee1854e19118877d7d0f14644ca",
+      "bytes": 7214,
+      "sha256": "cb437acef4b57ba422bf8ac4a81d3d28d8c2c0641b18a067137cda7aed7d73d9",
       "mime": "text/css"
     },
     {

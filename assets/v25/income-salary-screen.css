@@ -47,6 +47,10 @@
 #actionDrawer .drawer-panel[data-drawer="income"] #incomeManagement p{margin:13px 0;color:#362a18;font-size:12px;line-height:1.45}
 #actionDrawer .drawer-panel[data-drawer="income"] #incomeManagement>.drawer-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin:12px 0}
 #actionDrawer .drawer-panel[data-drawer="income"] #incomeManagement>.drawer-actions #incomeAdd{grid-column:1/-1}
+#actionDrawer .drawer-panel[data-drawer="income"] #incomeManagement>.drawer-actions #incomeActive:not([aria-pressed="true"]),
+#actionDrawer .drawer-panel[data-drawer="income"] #incomeManagement>.drawer-actions #incomeInactive:not([aria-pressed="true"]){
+  border:1px solid rgba(64,47,19,.3);background:#f8f5ec;color:#304a68;box-shadow:none;
+}
 #actionDrawer .drawer-panel[data-drawer="income"] #incomeManagement>.drawer-actions button[aria-pressed="true"]{background:linear-gradient(145deg,#7695b8,#58789c 52%,#3e5c7d);color:#fff}
 #actionDrawer .drawer-panel[data-drawer="income"] #incomeSourceList{display:grid;gap:8px;margin:12px 0}
 #actionDrawer .drawer-panel[data-drawer="income"] #incomeSourceList .compact-row{

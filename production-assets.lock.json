@@ -260,9 +260,15 @@
       "mime": "text/css"
     },
     {
+      "path": "assets/v25/pace-screen.css",
+      "bytes": 5471,
+      "sha256": "3374d3aab8860b1e1f101f9703e375b4cbca5870e123f18cce8dc409b5d596a0",
+      "mime": "text/css"
+    },
+    {
       "path": "index.html",
-      "bytes": 33458,
-      "sha256": "d824a947e41877a9d92fc5b981d279db0a8569b68821ca7aea1878c72bf0b340",
+      "bytes": 33725,
+      "sha256": "23a03e2a33889d07a9a076941ebda5004ab08df0b0ad4f98d9f3275851bb182c",
       "mime": "text/html"
     },
     {
@@ -313,6 +319,7 @@
     "assets/v25/icon-192.png",
     "assets/v25/logo.svg",
     "assets/v25/mobile-position.css",
+    "assets/v25/pace-screen.css",
     "index.html",
     "manifest.webmanifest",
     "sw.js"

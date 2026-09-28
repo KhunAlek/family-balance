@@ -338,6 +338,12 @@
       "mime": "text/css"
     },
     {
+      "path": "assets/v25/notifications-screen.css",
+      "bytes": 5529,
+      "sha256": "74490aac6c79c8c0e07c20d4837787b472838d946652f9f364be6a8c689bfa93",
+      "mime": "text/css"
+    },
+    {
       "path": "assets/v25/pace-screen.css",
       "bytes": 5471,
       "sha256": "3374d3aab8860b1e1f101f9703e375b4cbca5870e123f18cce8dc409b5d596a0",
@@ -357,8 +363,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 35334,
-      "sha256": "b07029d81f2fe2d79d2f0682280bf14d9cfbd38024b9fd03bd5df2f03db55cf7",
+      "bytes": 35421,
+      "sha256": "5523b16ae894cd300822d424ad5c5192221e3aeef9dd0f597625fb595502daed",
       "mime": "text/html"
     },
     {
@@ -422,6 +428,7 @@
     "assets/v25/income-salary-screen.css",
     "assets/v25/logo.svg",
     "assets/v25/mobile-position.css",
+    "assets/v25/notifications-screen.css",
     "assets/v25/pace-screen.css",
     "assets/v25/reports-screen.css",
     "assets/v25/savings-screen.css",

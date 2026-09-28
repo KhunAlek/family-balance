@@ -27,8 +27,8 @@
     },
     {
       "path": "assets/v24/v24_1_app3.js",
-      "bytes": 9443,
-      "sha256": "6c27ef1d34fe1b6f0bb66c353fa85ae1e543f37ff0de677fc22fdbafcec09888",
+      "bytes": 9535,
+      "sha256": "d97beebde310e493360b837b10eaad36c364a35a95b60dd795d540ae0cecd9c6",
       "mime": "application/javascript"
     },
     {
@@ -57,8 +57,8 @@
     },
     {
       "path": "assets/v24/v24_1_fixed.js",
-      "bytes": 6882,
-      "sha256": "53a4564cebc50e88b404c91c46f59a83492beaf4ac1d1a58653b6b6a4a1aae1c",
+      "bytes": 9383,
+      "sha256": "5f2e0ed15d2c59a89f809012ab2aae6b7e548ba3ff6ca6e6dbb5160ebc83d755",
       "mime": "application/javascript"
     },
     {
@@ -81,8 +81,8 @@
     },
     {
       "path": "assets/v24/v24_1_i18n.js",
-      "bytes": 68390,
-      "sha256": "711908547f9e590ca7746c7b9ca95a8a2bd9b10e300f488024baec89fd9a28ef",
+      "bytes": 70702,
+      "sha256": "12d131fcee665ba1a931fe850b45dcd1595e9c36b584962904bd0f95709ea4f8",
       "mime": "application/javascript"
     },
     {
@@ -254,6 +254,12 @@
       "mime": "image/png"
     },
     {
+      "path": "assets/v25/fixed-expense-management-screen.css",
+      "bytes": 7333,
+      "sha256": "6e37f83de7983eb6fe50312756855a483629ed67677add80a742c9601d9c973b",
+      "mime": "text/css"
+    },
+    {
       "path": "assets/v25/fixed-payment-screen.css",
       "bytes": 3445,
       "sha256": "30fd735cbd457d36b44d60ad6f24e4613c9ce27be08e1be2aa5fba75fb7e8aab",
@@ -327,8 +333,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 34877,
-      "sha256": "d7a3d6f7b0e41200799b66681f4c3825db9aaa1209ba400b3bb80f6c0e92fe52",
+      "bytes": 34975,
+      "sha256": "26307ddf1732f1d115314988ce3c1c7cf4d413f4cbe70919b1b4f4566f8530fa",
       "mime": "text/html"
     },
     {
@@ -381,6 +387,7 @@
     "assets/v25/category-management-screen.css",
     "assets/v25/commitment-forms-screen.css",
     "assets/v25/commitments-screen.css",
+    "assets/v25/fixed-expense-management-screen.css",
     "assets/v25/fixed-payment-screen.css",
     "assets/v25/history-screen.css",
     "assets/v25/icon-192.png",

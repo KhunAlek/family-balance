@@ -33,8 +33,8 @@
     },
     {
       "path": "assets/v24/v24_1_app4.js",
-      "bytes": 17139,
-      "sha256": "3496aa277674e08e7a1a0574246a480c43ac85c809d2881442d03865e7a75d59",
+      "bytes": 17210,
+      "sha256": "0f6285be30984c0ebc10496651baca0bc0192dad20a9c71f598fc6813c3f5d36",
       "mime": "application/javascript"
     },
     {
@@ -254,6 +254,12 @@
       "mime": "image/png"
     },
     {
+      "path": "assets/v25/fixed-payment-screen.css",
+      "bytes": 3445,
+      "sha256": "30fd735cbd457d36b44d60ad6f24e4613c9ce27be08e1be2aa5fba75fb7e8aab",
+      "mime": "text/css"
+    },
+    {
       "path": "assets/v25/history-screen.css",
       "bytes": 6086,
       "sha256": "9d36e23ee57f28f6e987a8a89228e2e54c650fe78d6cbe3648ff22e7e057a34d",
@@ -321,8 +327,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 34790,
-      "sha256": "62f871feff2388eb7b8d7ebd517a4914e69f2f870dc58f4a361b1bd5e8c65d3a",
+      "bytes": 34877,
+      "sha256": "d7a3d6f7b0e41200799b66681f4c3825db9aaa1209ba400b3bb80f6c0e92fe52",
       "mime": "text/html"
     },
     {
@@ -375,6 +381,7 @@
     "assets/v25/category-management-screen.css",
     "assets/v25/commitment-forms-screen.css",
     "assets/v25/commitments-screen.css",
+    "assets/v25/fixed-payment-screen.css",
     "assets/v25/history-screen.css",
     "assets/v25/icon-192.png",
     "assets/v25/income-salary-screen.css",

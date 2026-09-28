@@ -33,8 +33,8 @@
     },
     {
       "path": "assets/v24/v24_1_app4.js",
-      "bytes": 17653,
-      "sha256": "b163a75ac2af0d227301ebca5929e791f72449000ee3f314e549f1dd498573c8",
+      "bytes": 17675,
+      "sha256": "b474b189f8b891b28b9a71d70800caca483adbb0a8952e30f0dff7fffe604254",
       "mime": "application/javascript"
     },
     {
@@ -81,8 +81,8 @@
     },
     {
       "path": "assets/v24/v24_1_i18n.js",
-      "bytes": 72673,
-      "sha256": "3440381bc14971c7d10b77db5a7db43bc3490c6ec745b1b242b389ebc9a7154d",
+      "bytes": 72684,
+      "sha256": "552c6ec5d4efd318e6125bf4633db5b1d01f77444aa7ce13c9287204200dd9ca",
       "mime": "application/javascript"
     },
     {
@@ -284,6 +284,12 @@
       "mime": "text/css"
     },
     {
+      "path": "assets/v25/goal-transfer-screen.css",
+      "bytes": 3577,
+      "sha256": "579661e96465dbf013188cb6278dda27edc59ab52b44550f5f43c7ee555e0a5d",
+      "mime": "text/css"
+    },
+    {
       "path": "assets/v25/goal-withdrawal-screen.css",
       "bytes": 4398,
       "sha256": "b6378aec96fc12fa0ae81b061dbb03bc6878895c0d66ad20961e98929b56a1eb",
@@ -369,8 +375,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 35562,
-      "sha256": "d7e3e0a5157e9df6231f10cacf6393b61a3aeb7b6474e671c902b50197ea61f9",
+      "bytes": 35650,
+      "sha256": "47f200474afb4216fcb9a8579da7b21db4b4df75d94c686834f98a17c549d7c4",
       "mime": "text/html"
     },
     {
@@ -428,6 +434,7 @@
     "assets/v25/ef-withdrawal-screen.css",
     "assets/v25/fixed-expense-management-screen.css",
     "assets/v25/fixed-payment-screen.css",
+    "assets/v25/goal-transfer-screen.css",
     "assets/v25/goal-withdrawal-screen.css",
     "assets/v25/history-screen.css",
     "assets/v25/icon-192.png",

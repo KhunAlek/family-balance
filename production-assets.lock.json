@@ -81,8 +81,8 @@
     },
     {
       "path": "assets/v24/v24_1_i18n.js",
-      "bytes": 70702,
-      "sha256": "12d131fcee665ba1a931fe850b45dcd1595e9c36b584962904bd0f95709ea4f8",
+      "bytes": 70751,
+      "sha256": "09ffa2e3b69322127d04d2018d22f16408616acd948ab7e683295cfb16ccc745",
       "mime": "application/javascript"
     },
     {
@@ -254,6 +254,12 @@
       "mime": "text/css"
     },
     {
+      "path": "assets/v25/ef-withdrawal-screen.css",
+      "bytes": 3323,
+      "sha256": "cb8e748c4f73c0fdc58eba625fbd153d7542050019a01ac55e43172751ccbfa6",
+      "mime": "text/css"
+    },
+    {
       "path": "assets/v25/favicon-32.png",
       "bytes": 1107,
       "sha256": "0b5556b019495beb48b01c056099f0afa8f544efa8d1f768369ccb7a7727ee20",
@@ -345,8 +351,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 35162,
-      "sha256": "e038b7420dd4571d579ac06f383f99e7072007570749ff558304cc390f9ec06d",
+      "bytes": 35249,
+      "sha256": "eba943c247e1ec62c637e9e90d26a29372831ee21fc8b27cbcaadf5685d8d858",
       "mime": "text/html"
     },
     {
@@ -400,6 +406,7 @@
     "assets/v25/category-management-screen.css",
     "assets/v25/commitment-forms-screen.css",
     "assets/v25/commitments-screen.css",
+    "assets/v25/ef-withdrawal-screen.css",
     "assets/v25/fixed-expense-management-screen.css",
     "assets/v25/fixed-payment-screen.css",
     "assets/v25/goal-withdrawal-screen.css",

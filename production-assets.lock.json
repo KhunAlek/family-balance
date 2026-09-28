@@ -399,8 +399,8 @@
     },
     {
       "path": "sw.js",
-      "bytes": 1178,
-      "sha256": "ac94c67eba8ff4148de534313934e6592e8d55857fa13fd2bcc7708bf1f4edc4",
+      "bytes": 1182,
+      "sha256": "e9260d2428c02233461741dc2ba1802f5aa3eafe61ee259b5b2c2c5257ec0fa9",
       "mime": "application/javascript"
     }
   ],
@@ -449,7 +449,6 @@
     "assets/v25/goal-transfer-screen.css",
     "assets/v25/goal-withdrawal-screen.css",
     "assets/v25/history-screen.css",
-    "assets/v25/icon-192.png",
     "assets/v25/income-salary-screen.css",
     "assets/v25/mobile-position.css",
     "assets/v25/notifications-screen.css",

@@ -51,8 +51,8 @@
     },
     {
       "path": "assets/v24/v24_1_correction.js",
-      "bytes": 11180,
-      "sha256": "2ec36d2b1c25e7072a23a2dac7cc025ac1c1b4cb5b10cfc3ad0d19958fc7e295",
+      "bytes": 11610,
+      "sha256": "82b14b487193059de64d4d6265b68e0e0aff02e63186b691c3def01728ba958b",
       "mime": "application/javascript"
     },
     {
@@ -81,8 +81,8 @@
     },
     {
       "path": "assets/v24/v24_1_i18n.js",
-      "bytes": 72117,
-      "sha256": "acb5b84ac4e258e9dae9fa84a99dea9610abc785ba46af09b3692fa770809185",
+      "bytes": 72673,
+      "sha256": "3440381bc14971c7d10b77db5a7db43bc3490c6ec745b1b242b389ebc9a7154d",
       "mime": "application/javascript"
     },
     {
@@ -356,6 +356,12 @@
       "mime": "text/css"
     },
     {
+      "path": "assets/v25/salary-correction-screen.css",
+      "bytes": 3681,
+      "sha256": "43ae1cd720122f6237fbf13e8107514d553083197dfbd995f4f96e7e7db96952",
+      "mime": "text/css"
+    },
+    {
       "path": "assets/v25/savings-screen.css",
       "bytes": 8281,
       "sha256": "24675def9441c4c9209d047138b496f63f4d07a0eb50cedf2c1eb7202839fb8e",
@@ -363,8 +369,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 35444,
-      "sha256": "02c21ad6f072b3ea213ec0b899c1c4dac4cb7ad6aa680b1908cb8a7ddeef0d68",
+      "bytes": 35562,
+      "sha256": "d7e3e0a5157e9df6231f10cacf6393b61a3aeb7b6474e671c902b50197ea61f9",
       "mime": "text/html"
     },
     {
@@ -431,6 +437,7 @@
     "assets/v25/notifications-screen.css",
     "assets/v25/pace-screen.css",
     "assets/v25/reports-screen.css",
+    "assets/v25/salary-correction-screen.css",
     "assets/v25/savings-screen.css",
     "index.html",
     "manifest.webmanifest",

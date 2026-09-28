@@ -24,6 +24,7 @@ const ru={
 };
 Object.assign(ru,{
 'Salary-cycle correction':'Исправление зарплатного цикла',
+'Correct the stored dates for this salary cycle. Preview the reporting effect before applying.':'Исправьте сохранённые даты этого зарплатного цикла. Перед применением проверьте, как изменится отчётность.',
 'This guarded correction changes salary-cycle reporting dates only.':'Это защищённое исправление меняет только даты отчётности зарплатного цикла.',
 'Other corrections are safely unavailable here.':'Другие исправления здесь безопасно недоступны.',
 'Balance observations are immutable. Record a new balance observation instead.':'Наблюдения остатков неизменяемы. Вместо исправления запишите новое наблюдение остатков.',
@@ -89,6 +90,8 @@ Object.assign(ru,{
 function ruGoalCount(raw,one,few,many){const n=Math.abs(Number(raw)),last=n%10,lastTwo=n%100;return raw+' '+(lastTwo>=11&&lastTwo<=14?many:last===1?one:last>=2&&last<=4?few:many)}
 const historyKinds={'one off payment':'разовый платёж','obligation payment':'платёж по обязательству','other income receipt':'получение прочего дохода','salary receipt':'получение зарплаты','ktb transfer':'перевод между счетами KTB','ef movement':'движение резервного фонда','goal movement':'движение по цели'};
 const templates=[
+[/^Cycle start: (.+) → (.+)$/,(_,before,after)=>'Начало цикла: '+before+' → '+after],
+[/^(Current cycle|Previous cycle|Earlier cycle|Previously unassigned): (.+) → (.+)$/,(_,cycle,before,after)=>translated(cycle)+': '+before+' → '+after],
 [/^(\d{4}-\d{2}-\d{2}) · (one off payment|obligation payment|other income receipt|salary receipt|ktb transfer|ef movement|goal movement)( · (.+))?$/,(_,date,kind,suffix,rest)=>date+' · '+historyKinds[kind]+(suffix?' · '+translated(rest):'')],
 [/^(.+) · (weekly|monthly|yearly|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/,(_,v,schedule)=>v+' · '+({'weekly':'еженедельно','monthly':'ежемесячно','yearly':'ежегодно'}[schedule]||translated(schedule))],
 [/^Schedule preview\. Existing occurrences kept: (\d+)\. Unpaid occurrences replaced: (.+)\. New occurrences: (.+)\.( Commitment impact is not currently known\.)?$/,(_,kept,replaced,created,unknown)=>'Предпросмотр графика. Сохранено записей: '+kept+'. Заменены неоплаченные: '+(replaced==='none'?'нет':replaced)+'. Новые записи: '+(created==='none'?'нет':created)+'.'+(unknown?' Влияние на обязательства сейчас неизвестно.':'')],

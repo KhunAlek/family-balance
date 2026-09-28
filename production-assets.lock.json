@@ -63,8 +63,8 @@
     },
     {
       "path": "assets/v24/v24_1_goal_withdrawal.js",
-      "bytes": 4657,
-      "sha256": "2e15dd22ef05f7c5192580a0d47937a977091a6c0f938170d455ff5f83399115",
+      "bytes": 4627,
+      "sha256": "a9dd4cb77cdb36d842c4ec509f1bf519b2072269bd2013fd480d0e3713855e4b",
       "mime": "application/javascript"
     },
     {
@@ -272,6 +272,12 @@
       "mime": "text/css"
     },
     {
+      "path": "assets/v25/goal-withdrawal-screen.css",
+      "bytes": 4398,
+      "sha256": "b6378aec96fc12fa0ae81b061dbb03bc6878895c0d66ad20961e98929b56a1eb",
+      "mime": "text/css"
+    },
+    {
       "path": "assets/v25/history-screen.css",
       "bytes": 6086,
       "sha256": "9d36e23ee57f28f6e987a8a89228e2e54c650fe78d6cbe3648ff22e7e057a34d",
@@ -339,8 +345,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 35073,
-      "sha256": "ec0fbc07602a240cb89676bd4644ec2d748040b57cd00ed67e9d8400ca1eb080",
+      "bytes": 35162,
+      "sha256": "e038b7420dd4571d579ac06f383f99e7072007570749ff558304cc390f9ec06d",
       "mime": "text/html"
     },
     {
@@ -396,6 +402,7 @@
     "assets/v25/commitments-screen.css",
     "assets/v25/fixed-expense-management-screen.css",
     "assets/v25/fixed-payment-screen.css",
+    "assets/v25/goal-withdrawal-screen.css",
     "assets/v25/history-screen.css",
     "assets/v25/icon-192.png",
     "assets/v25/income-salary-screen.css",

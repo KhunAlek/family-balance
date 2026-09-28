@@ -374,9 +374,15 @@
       "mime": "text/css"
     },
     {
+      "path": "assets/v25/sign-in-screen.css",
+      "bytes": 1599,
+      "sha256": "2b0d96f43bad36791e98022c932f5c07c0dfcce7fb8d0486069a3b38aedff9cf",
+      "mime": "text/css"
+    },
+    {
       "path": "index.html",
-      "bytes": 35650,
-      "sha256": "47f200474afb4216fcb9a8579da7b21db4b4df75d94c686834f98a17c549d7c4",
+      "bytes": 35731,
+      "sha256": "da086f57857e6b1a3acc4c52bee9025a3bbf754d4cef69e6edc1269bcc625d96",
       "mime": "text/html"
     },
     {
@@ -446,6 +452,7 @@
     "assets/v25/reports-screen.css",
     "assets/v25/salary-correction-screen.css",
     "assets/v25/savings-screen.css",
+    "assets/v25/sign-in-screen.css",
     "index.html",
     "manifest.webmanifest",
     "sw.js"

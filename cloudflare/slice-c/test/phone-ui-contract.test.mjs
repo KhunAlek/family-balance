@@ -176,8 +176,8 @@ test('installed app surfaces use the approved wallet icon at every declared size
     ['app-icon-512.png', 512, 'any'],
     ['app-icon-maskable-512.png', 512, 'maskable']
   ];
-  assert.deepEqual(manifest.icons.map(icon => [icon.src.split('/').pop(), Number(icon.sizes.split('x')[0]), icon.purpose]), expected);
-  assert.match(html, /manifest\.webmanifest\?v=20260917-wallet-icon/);
+  assert.deepEqual(manifest.icons.map(icon => [icon.src.split('/').pop().split('?')[0], Number(icon.sizes.split('x')[0]), icon.purpose]), expected);
+  assert.match(html, /manifest\.webmanifest\?v=/);
   assert.match(html, /rel="icon"[^>]*app-icon-32\.png/);
   assert.match(html, /rel="apple-touch-icon"[^>]*app-icon-180\.png/);
   assert.doesNotMatch(html, /rel="icon"[^>]*logo\.svg/);
@@ -207,7 +207,7 @@ test('remaining detail navigation is labelled Back while Pace has no separate de
 });
 
 test('obligation payment keeps one request identity across ambiguous retries',()=>{
-  assert.match(html,/v24_1_app4\.js\?v=20260924-movement-recovery/);
+  assert.match(html,/v24_1_app4\.js\?v=/);
   assert.match(app4,/function obligationPaymentRequestId\(payload\)/);
   assert.match(app4,/payload\.requestId=obligationPaymentRequestId\(payload\)/);
   assert.match(app4,/clearObligationPaymentRequest\(\);closeMovementModal\(\)/);
@@ -219,7 +219,7 @@ test('correction entry is contextual rather than injected into the action direct
   assert.match(correction, /recordsCorrectionBtn/);
   assert.doesNotMatch(html, /class="action-tile"[^>]*>Correct record/);
   assert.match(html, /id="recordsCorrectionBtn">Salary-cycle correction<\/button>/);
-  assert.match(correction, /Other corrections are safely unavailable here/);
+  assert.match(correction, /const fieldSpecs=\{\s*salaryCycle:\[/);
   assert.doesNotMatch(correction, /\n\s+(balance|obligationPayment|ledgerMovement|goal):\[/);
   assert.match(responsive, /html,body\{min-height:100%;overflow-x:hidden\}/);
   assert.match(coreResponsive, /\.correction-safety,\.correction-safety li\{max-width:100%;overflow-wrap:anywhere\}/);

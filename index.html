@@ -42,6 +42,7 @@
 <link rel="stylesheet" href="assets/v25/ef-transfer-screen.css?v=20260928-review-1">
 <link rel="stylesheet" href="assets/v25/goal-transfer-screen.css?v=20260928-review-1">
 <link rel="stylesheet" href="assets/v25/sign-in-screen.css?v=20260928-wallet-icon-review-2">
+<link rel="stylesheet" href="assets/v25/entry-states-screen.css?v=20260929-review-1">
 <link rel="stylesheet" href="assets/v25/notifications-screen.css?v=20260928-review-1">
 <link rel="stylesheet" href="assets/v25/salary-correction-screen.css?v=20260928-review-1">
 </head>
@@ -122,8 +123,8 @@
 </div>
 
 <div class="auth-gate" id="authGate" aria-live="polite"><div class="auth-card"><img src="assets/v25/app-icon-192.png?v=20260928-luxury-wallet-icon" alt="Family Cash Flow icon"><h1>Family Cash Flow</h1><p>Sign in with an approved Google account to open the household dashboard.</p><div class="google-login" id="googleLoginBtn" aria-label="Continue with Google"></div><div class="auth-error" id="authError"></div></div></div>
-<div class="loading-shell" id="loadingState"><div class="loading-card"><img class="loading-logo" src="assets/v25/app-icon-192.png?v=20260928-luxury-wallet-icon" alt=""><div class="loading-title">Loading Family Cash Flow</div><div class="loading-copy">Retrieving current balances and the latest planning state…</div><div class="skeleton big"></div><div class="skeleton row"></div></div></div>
-<div class="error-state" id="errorState" style="display:none">Could not load the dashboard.</div>
+<div class="loading-shell" id="loadingState" aria-live="polite" aria-busy="true"><div class="loading-card"><img class="loading-logo" src="assets/v25/app-icon-192.png?v=20260928-luxury-wallet-icon" alt=""><div class="loading-title">Family Cash Flow</div><div class="loading-copy">Retrieving current balances and the latest planning state…</div><div class="skeleton big"></div><div class="skeleton row"></div></div></div>
+<div class="error-state" id="errorState" style="display:none" role="alert"><div class="error-card"><img class="error-logo" src="assets/v25/app-icon-192.png?v=20260928-luxury-wallet-icon" alt=""><div class="error-eyebrow">Family Cash Flow</div><h2>Could not load the dashboard.</h2><p id="errorMessage"></p><button type="button" class="btn primary" id="retryLoadBtn">Try again</button></div></div>
 
 <nav class="mobile-tabs" role="tablist" aria-label="Mobile navigation"><button class="active" id="positionTab" role="tab" aria-selected="true" data-tab="position"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="7" rx="1"/><rect x="14" y="4" width="6" height="4" rx="1"/><rect x="4" y="15" width="6" height="5" rx="1"/><rect x="14" y="12" width="6" height="8" rx="1"/></svg><span>Position</span></button><button id="paceTab" role="tab" aria-selected="false" data-tab="pace"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m5 10V5m5 14v-7m5 7V3"/></svg><span>Pace</span></button><button id="commitmentsTab" role="tab" aria-selected="false" data-tab="commitments"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10a2 2 0 0 1 2 2v16l-3-2-4 2-4-2-3 2V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>Commitments</span></button><button id="savingsTab" role="tab" aria-selected="false" data-tab="savings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="13" r="7"/><circle cx="11" cy="13" r="3"/><path d="m16 8 5-5m-5 0h5v5"/></svg><span>Savings</span></button></nav>
 
@@ -156,7 +157,7 @@
 
 <script src="assets/v24/v24_1_obligation_calendar.js?v=20260907-calendar"></script>
 <script src="assets/v24/v24_1_app1.js?v=20260927-savings-review-1"></script>
-<script src="assets/v24/v24_1_app2.js?v=20260924-movement-recovery"></script>
+<script src="assets/v24/v24_1_app2.js?v=20260929-entry-states-review-1"></script>
 <script src="assets/v24/v24_1_app3.js"></script>
 <script src="assets/v24/v24_1_notifications.js"></script>
 <script src="assets/v24/v24_1_movement_recovery.js?v=20260924-movement-race"></script>
@@ -169,6 +170,6 @@
 <script src="assets/v24/v24_1_categories.js"></script>
 <script src="assets/v24/v24_1_fixed.js?v=20260906-weekly-1"></script>
 <script src="assets/v24/v24_1_reports.js?v=20260927-chart-colors-1"></script>
-<script src="assets/v24/v24_1_i18n.js?v=20260928-goal-transfer-review-1"></script>
+<script src="assets/v24/v24_1_i18n.js?v=20260929-entry-states-review-1"></script>
 </body>
 </html>

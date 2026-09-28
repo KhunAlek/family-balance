@@ -1,0 +1,41 @@
+/* Loading and load-failure screens use the approved Position palette. */
+.loading-shell,.error-state{
+  position:fixed;inset:0;z-index:3000;
+  max-width:none;min-height:100dvh;margin:0;padding:20px;
+  align-items:center;justify-items:center;
+  background:radial-gradient(circle at 82% 13%,rgba(116,149,184,.13),transparent 35%),#f3f5f8;
+}
+.loading-shell{display:grid}
+.loading-card,.error-card{
+  position:relative;isolation:isolate;overflow:hidden;
+  width:min(420px,100%);padding:30px 25px 28px;
+  border:1px solid rgba(216,182,95,.48);border-radius:27px;
+  background:linear-gradient(145deg,#233b55,#101e2d 76%);
+  box-shadow:inset 0 1px rgba(255,255,255,.13),0 22px 55px rgba(21,42,65,.23);
+  text-align:center;color:#fff;
+}
+.loading-card::after,.error-card::after{
+  content:"";position:absolute;z-index:-1;right:-117px;top:-102px;
+  width:285px;height:285px;border:37px solid rgba(255,255,255,.055);
+  border-radius:50%;pointer-events:none;
+}
+.loading-logo,.error-logo{
+  display:block;width:88px;height:88px;margin:0 auto 19px;object-fit:contain;
+  border:1px solid rgba(216,182,95,.65);border-radius:22px;background:#0b1d3a;
+  box-shadow:0 11px 26px rgba(0,0,0,.21);outline:none;
+}
+.loading-title,.error-eyebrow{
+  color:#d8b65f;font-family:'Great Vibes',cursive;
+  font-size:clamp(31px,8vw,39px);font-weight:400;line-height:1.15;
+  text-shadow:0 2px 3px rgba(0,0,0,.26);
+}
+.loading-copy{max-width:300px;margin:10px auto 23px;color:#e1e9f1;font-size:12px;line-height:1.55}
+.loading-card .skeleton{margin-top:10px;border:1px solid rgba(255,255,255,.1);background:linear-gradient(90deg,#385572 20%,#7695b8 50%,#385572 80%);background-size:200% 100%}
+.loading-card .skeleton.big{height:83px;border-radius:17px}
+.loading-card .skeleton.row{height:34px;border-radius:11px;background:linear-gradient(90deg,#9e8246 20%,#ddbe70 50%,#9e8246 80%);background-size:200% 100%}
+.error-card h2{margin:11px 0 8px;color:#fff;font-size:20px;line-height:1.25}
+.error-card p{max-width:330px;min-height:38px;margin:0 auto 22px;color:#e1e9f1;font-size:12px;line-height:1.55;overflow-wrap:anywhere}
+.error-card .btn.primary{width:100%;min-height:47px;border-color:#7394b8;background:linear-gradient(145deg,#6687ad,#425f80);color:#fff;box-shadow:0 8px 20px rgba(9,21,34,.25)}
+.error-card .btn.primary:hover,.error-card .btn.primary:focus-visible{background:linear-gradient(145deg,#789ac0,#506d91)}
+@media(max-width:420px){.loading-shell,.error-state{padding:17px}.loading-card,.error-card{padding:28px 19px 25px}}
+@media(prefers-reduced-motion:reduce){.loading-card .skeleton{animation:none}}

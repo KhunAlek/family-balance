@@ -333,14 +333,14 @@
     },
     {
       "path": "assets/v25/savings-screen.css",
-      "bytes": 7967,
-      "sha256": "df1e4277779f2bcddad0c4a3ffa4a2795c1f2b53258c405f953a5b5a1013a335",
+      "bytes": 8281,
+      "sha256": "24675def9441c4c9209d047138b496f63f4d07a0eb50cedf2c1eb7202839fb8e",
       "mime": "text/css"
     },
     {
       "path": "index.html",
-      "bytes": 35057,
-      "sha256": "42a0b1270bf8d049202b3e60efc91c7abde4d535b61a1be7078e0c9da7727a90",
+      "bytes": 35073,
+      "sha256": "ec0fbc07602a240cb89676bd4644ec2d748040b57cd00ed67e9d8400ca1eb080",
       "mime": "text/html"
     },
     {

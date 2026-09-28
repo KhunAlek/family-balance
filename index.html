@@ -6,9 +6,9 @@
 <title>Family Cash Flow</title>
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#0B1D3A">
-<link rel="manifest" href="/manifest.webmanifest?v=20260917-wallet-icon">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/v25/app-icon-32.png">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/v25/app-icon-180.png">
+<link rel="manifest" href="/manifest.webmanifest?v=20260928-luxury-wallet-icon">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/v25/app-icon-32.png?v=20260928-luxury-wallet-icon">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/v25/app-icon-180.png?v=20260928-luxury-wallet-icon">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -41,14 +41,14 @@
 <link rel="stylesheet" href="assets/v25/ef-withdrawal-screen.css?v=20260928-review-1">
 <link rel="stylesheet" href="assets/v25/ef-transfer-screen.css?v=20260928-review-1">
 <link rel="stylesheet" href="assets/v25/goal-transfer-screen.css?v=20260928-review-1">
-<link rel="stylesheet" href="assets/v25/sign-in-screen.css?v=20260928-review-1">
+<link rel="stylesheet" href="assets/v25/sign-in-screen.css?v=20260928-wallet-icon-review-2">
 <link rel="stylesheet" href="assets/v25/notifications-screen.css?v=20260928-review-1">
 <link rel="stylesheet" href="assets/v25/salary-correction-screen.css?v=20260928-review-1">
 </head>
 <body>
 <div id="app" style="display:none">
   <aside class="sidebar">
-    <div class="brand"><img class="brand-icon" src="assets/v25/logo.svg" alt=""><div class="brand-copy"><div class="brand-name">Family Cash Flow</div><div class="brand-subtitle">Household planning</div></div></div>
+    <div class="brand"><img class="brand-icon" src="assets/v25/app-icon-192.png?v=20260928-luxury-wallet-icon" alt=""><div class="brand-copy"><div class="brand-name">Family Cash Flow</div><div class="brand-subtitle">Household planning</div></div></div>
     <nav class="nav" aria-label="Dashboard sections">
       <button class="active" data-tab="position"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm10 7h6V11h-6v9ZM4 20h6v-3H4v3Zm10-13h6V4h-6v3Z"/></svg>Position</button>
       <button data-tab="pace"><svg viewBox="0 0 24 24"><path d="M4 5h16v15H4zM8 3v4m8-4v4M4 10h16"/></svg>Pace</button>
@@ -61,7 +61,7 @@
 
   <main class="main">
     <header class="topbar">
-      <div class="greeting"><img class="topbar-icon" src="assets/v25/logo.svg" alt=""><div class="title-block"><h1 class="screen-title">Household dashboard</h1><div class="mobile-app-name">Family Cash Flow</div><p id="asOfLine">Loading current numbers…</p></div></div>
+      <div class="greeting"><img class="topbar-icon" src="assets/v25/app-icon-192.png?v=20260928-luxury-wallet-icon" alt=""><div class="title-block"><h1 class="screen-title">Household dashboard</h1><div class="mobile-app-name">Family Cash Flow</div><p id="asOfLine">Loading current numbers…</p></div></div>
       <div class="top-actions"><label class="language-picker"><span class="sr-only">Language</span><select id="languageSelect" aria-label="Language"><option value="en">EN</option><option value="ru">RU</option></select></label><button class="icon-action" type="button" data-open-drawer="notifications" id="notificationsBtn" aria-label="Notifications"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 20h4"/></svg></button><button class="icon-action" type="button" id="logoutBtn" aria-label="Sign out and close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     </header>
 
@@ -121,8 +121,8 @@
   </main>
 </div>
 
-<div class="auth-gate" id="authGate" aria-live="polite"><div class="auth-card"><img src="assets/v25/logo.svg" alt="Family Cash Flow logo"><h1>Family Cash Flow</h1><p>Sign in with an approved Google account to open the household dashboard.</p><div class="google-login" id="googleLoginBtn" aria-label="Continue with Google"></div><div class="auth-error" id="authError"></div></div></div>
-<div class="loading-shell" id="loadingState"><div class="loading-card"><img class="loading-logo" src="assets/v25/logo.svg" alt=""><div class="loading-title">Loading Family Cash Flow</div><div class="loading-copy">Retrieving current balances and the latest planning state…</div><div class="skeleton big"></div><div class="skeleton row"></div></div></div>
+<div class="auth-gate" id="authGate" aria-live="polite"><div class="auth-card"><img src="assets/v25/app-icon-192.png?v=20260928-luxury-wallet-icon" alt="Family Cash Flow icon"><h1>Family Cash Flow</h1><p>Sign in with an approved Google account to open the household dashboard.</p><div class="google-login" id="googleLoginBtn" aria-label="Continue with Google"></div><div class="auth-error" id="authError"></div></div></div>
+<div class="loading-shell" id="loadingState"><div class="loading-card"><img class="loading-logo" src="assets/v25/app-icon-192.png?v=20260928-luxury-wallet-icon" alt=""><div class="loading-title">Loading Family Cash Flow</div><div class="loading-copy">Retrieving current balances and the latest planning state…</div><div class="skeleton big"></div><div class="skeleton row"></div></div></div>
 <div class="error-state" id="errorState" style="display:none">Could not load the dashboard.</div>
 
 <nav class="mobile-tabs" role="tablist" aria-label="Mobile navigation"><button class="active" id="positionTab" role="tab" aria-selected="true" data-tab="position"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="7" rx="1"/><rect x="14" y="4" width="6" height="4" rx="1"/><rect x="4" y="15" width="6" height="5" rx="1"/><rect x="14" y="12" width="6" height="8" rx="1"/></svg><span>Position</span></button><button id="paceTab" role="tab" aria-selected="false" data-tab="pace"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m5 10V5m5 14v-7m5 7V3"/></svg><span>Pace</span></button><button id="commitmentsTab" role="tab" aria-selected="false" data-tab="commitments"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10a2 2 0 0 1 2 2v16l-3-2-4 2-4-2-3 2V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>Commitments</span></button><button id="savingsTab" role="tab" aria-selected="false" data-tab="savings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="13" r="7"/><circle cx="11" cy="13" r="3"/><path d="m16 8 5-5m-5 0h5v5"/></svg><span>Savings</span></button></nav>

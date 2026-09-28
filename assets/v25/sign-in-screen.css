@@ -18,8 +18,8 @@
   border-radius:50%;pointer-events:none;
 }
 .auth-card img{
-  width:76px;height:76px;border:1px solid rgba(216,182,95,.65);
-  border-radius:20px;background:#f8fafc;
+  width:100px;height:100px;border:1px solid rgba(216,182,95,.65);
+  border-radius:23px;background:#0b1d3a;
   box-shadow:0 11px 26px rgba(0,0,0,.21);
 }
 .auth-card h1{

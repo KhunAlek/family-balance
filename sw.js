@@ -6,7 +6,7 @@ self.addEventListener('push', event => {
   const title = String(payload.title || 'Family Cash Flow');
   const options = {
     body: String(payload.body || 'Open the app to review an update.'),
-    icon: '/assets/v25/icon-192.png',
+    icon: '/assets/v25/icon-192.png?v=20260928-luxury-wallet-icon',
     badge: '/assets/v25/badge-96.png',
     tag: String(payload.tag || 'family-cash-flow'),
     renotify: false,

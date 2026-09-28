@@ -183,38 +183,38 @@
     },
     {
       "path": "assets/v25/app-icon-180.png",
-      "bytes": 45820,
-      "sha256": "268425eb8a0eb05e4dfa458232411cdbb4be91fec2e7ab57f398ff6e426c99a0",
+      "bytes": 40011,
+      "sha256": "41b7047bc0f18b8dbdf0312fd796f080cc7b256708b3c8a4bacc0c91e3d2966b",
       "mime": "image/png"
     },
     {
       "path": "assets/v25/app-icon-192.png",
-      "bytes": 51767,
-      "sha256": "96be3305646764a3c16300b4e2bdb56b7729d274a9335a628b0ddf44d457b5ab",
+      "bytes": 51383,
+      "sha256": "f4c35bff33867b4a73bd71b35a3cbbbc1813e31e5497e1e5de1788b425b44542",
       "mime": "image/png"
     },
     {
       "path": "assets/v25/app-icon-32.png",
-      "bytes": 2657,
-      "sha256": "c19bad9dc3578f48ccaab24d897d76ab58b5b452ee1249e01257895d6044d4af",
+      "bytes": 2376,
+      "sha256": "2cd4a30c974c83e223e5662994bcda4164fe9fd2d852c609a98312fd1c6a82ee",
       "mime": "image/png"
     },
     {
       "path": "assets/v25/app-icon-512.png",
-      "bytes": 384364,
-      "sha256": "747b258d3a616f614ac2fa4e7666dddc791bcf7415a48d7c1a7f478e1e5e76ff",
+      "bytes": 378492,
+      "sha256": "ee1e008569c88480f54c5fe01e48a1f57aefdae620f8d4dc9f34a55c6a2c33f2",
       "mime": "image/png"
     },
     {
       "path": "assets/v25/app-icon-maskable-512.png",
-      "bytes": 384364,
-      "sha256": "747b258d3a616f614ac2fa4e7666dddc791bcf7415a48d7c1a7f478e1e5e76ff",
+      "bytes": 193324,
+      "sha256": "f513b5ffacf411d99063677072ba71315f488161c08eb93256ce12dc16d2747c",
       "mime": "image/png"
     },
     {
       "path": "assets/v25/apple-touch-icon.png",
-      "bytes": 5557,
-      "sha256": "ead40de0b0fee192cbf7dbacc1d4bedc69be604aa72d8a89cc7118ecefc4c5c0",
+      "bytes": 40011,
+      "sha256": "41b7047bc0f18b8dbdf0312fd796f080cc7b256708b3c8a4bacc0c91e3d2966b",
       "mime": "image/png"
     },
     {
@@ -232,7 +232,7 @@
     {
       "path": "assets/v25/brand.css",
       "bytes": 1670,
-      "sha256": "a4aa36c0d407683170c01c4c1921737720ce6022f6cb902a14e47d863fd44cf7",
+      "sha256": "5be9f5b6117c8d6e47e5d2874636518d67135c34e33ec0c206c6d1cca6d1ad8a",
       "mime": "text/css"
     },
     {
@@ -267,8 +267,8 @@
     },
     {
       "path": "assets/v25/favicon-32.png",
-      "bytes": 1107,
-      "sha256": "0b5556b019495beb48b01c056099f0afa8f544efa8d1f768369ccb7a7727ee20",
+      "bytes": 2376,
+      "sha256": "2cd4a30c974c83e223e5662994bcda4164fe9fd2d852c609a98312fd1c6a82ee",
       "mime": "image/png"
     },
     {
@@ -303,20 +303,20 @@
     },
     {
       "path": "assets/v25/icon-192.png",
-      "bytes": 5879,
-      "sha256": "46c1944fd0f730d8a346675bcdc2481312acebf54dcd3b13555e2f624ed327d1",
+      "bytes": 51383,
+      "sha256": "f4c35bff33867b4a73bd71b35a3cbbbc1813e31e5497e1e5de1788b425b44542",
       "mime": "image/png"
     },
     {
       "path": "assets/v25/icon-512.png",
-      "bytes": 16784,
-      "sha256": "bcd1e48ac44b78e05a2e00110d28dd89d76c43bd912b75c22ed67f117efa2f5d",
+      "bytes": 378492,
+      "sha256": "ee1e008569c88480f54c5fe01e48a1f57aefdae620f8d4dc9f34a55c6a2c33f2",
       "mime": "image/png"
     },
     {
       "path": "assets/v25/icon-maskable-512.png",
-      "bytes": 14264,
-      "sha256": "f659c54cbe742157b7a47d3baddd46829e2460085827d8a2ae0a6be53cc23f3d",
+      "bytes": 193324,
+      "sha256": "f513b5ffacf411d99063677072ba71315f488161c08eb93256ce12dc16d2747c",
       "mime": "image/png"
     },
     {
@@ -375,26 +375,32 @@
     },
     {
       "path": "assets/v25/sign-in-screen.css",
-      "bytes": 1599,
-      "sha256": "2b0d96f43bad36791e98022c932f5c07c0dfcce7fb8d0486069a3b38aedff9cf",
+      "bytes": 1601,
+      "sha256": "df24efdf061c253b43ddd860a224301eef81c88d86966b92e73745ffb4669f8f",
       "mime": "text/css"
     },
     {
+      "path": "assets/v25/wallet-icon-source.png",
+      "bytes": 1365791,
+      "sha256": "087a4b0712e6c8fc71fc06d736a5db05e9a6be1331b9fb3881f2384095711f36",
+      "mime": "image/png"
+    },
+    {
       "path": "index.html",
-      "bytes": 35731,
-      "sha256": "da086f57857e6b1a3acc4c52bee9025a3bbf754d4cef69e6edc1269bcc625d96",
+      "bytes": 35962,
+      "sha256": "d3e5ded4bae3a5af211c667970bd5a041cb44afadcfe999ac479759a4aaef3ee",
       "mime": "text/html"
     },
     {
       "path": "manifest.webmanifest",
-      "bytes": 686,
-      "sha256": "f2a9bc2ee7c8b6ba8b741e1a4a3ef7eb0d4d4fb34716433e275fe725780a54fd",
+      "bytes": 776,
+      "sha256": "eff3a99579d8a6f0e6ca9871ff67bbfa3af37ba4973af1f39b0ad100a7741ef6",
       "mime": "application/manifest+json"
     },
     {
       "path": "sw.js",
-      "bytes": 1148,
-      "sha256": "a5df5321537ea7d115c0c2cb7ceabd374e12f2810282b0db257deacee6ec3658",
+      "bytes": 1178,
+      "sha256": "ac94c67eba8ff4148de534313934e6592e8d55857fa13fd2bcc7708bf1f4edc4",
       "mime": "application/javascript"
     }
   ],
@@ -445,7 +451,6 @@
     "assets/v25/history-screen.css",
     "assets/v25/icon-192.png",
     "assets/v25/income-salary-screen.css",
-    "assets/v25/logo.svg",
     "assets/v25/mobile-position.css",
     "assets/v25/notifications-screen.css",
     "assets/v25/pace-screen.css",

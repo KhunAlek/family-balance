@@ -176,6 +176,12 @@
       "mime": "text/css"
     },
     {
+      "path": "assets/v25/add-goal-screen.css",
+      "bytes": 3106,
+      "sha256": "268c996939e17efb1992a40703d0d7fa659b15752843a612063e962415857080",
+      "mime": "text/css"
+    },
+    {
       "path": "assets/v25/app-icon-180.png",
       "bytes": 45820,
       "sha256": "268425eb8a0eb05e4dfa458232411cdbb4be91fec2e7ab57f398ff6e426c99a0",
@@ -333,8 +339,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 34975,
-      "sha256": "26307ddf1732f1d115314988ce3c1c7cf4d413f4cbe70919b1b4f4566f8530fa",
+      "bytes": 35057,
+      "sha256": "42a0b1270bf8d049202b3e60efc91c7abde4d535b61a1be7078e0c9da7727a90",
       "mime": "text/html"
     },
     {
@@ -377,6 +383,7 @@
     "assets/v24/v24_1_tabs.css",
     "assets/v25/accounts-records-screen.css",
     "assets/v25/action-forms-screen.css",
+    "assets/v25/add-goal-screen.css",
     "assets/v25/app-icon-180.png",
     "assets/v25/app-icon-192.png",
     "assets/v25/app-icon-32.png",

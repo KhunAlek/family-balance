@@ -1,0 +1,74 @@
+/* One-off payment category management review. */
+#actionDrawer:has(.drawer-panel[data-drawer="categories"]:not([hidden])) .drawer{background:#f3f5f8;color:#18283a}
+#actionDrawer:has(.drawer-panel[data-drawer="categories"]:not([hidden])) .drawer-head{
+  background:linear-gradient(135deg,#233b55,#101e2d);border-bottom:1px solid rgba(216,182,95,.35);color:#fff;
+}
+#actionDrawer:has(.drawer-panel[data-drawer="categories"]:not([hidden])) .drawer-head h2{color:#fff;font-size:22px;line-height:1.18}
+#actionDrawer:has(.drawer-panel[data-drawer="categories"]:not([hidden])) .drawer-head p{color:#d9e3ee;font-size:12px;line-height:1.4}
+#actionDrawer:has(.drawer-panel[data-drawer="categories"]:not([hidden])) .drawer-head .detail-back{
+  flex:0 0 auto;min-height:42px;padding:8px 12px;border:1px solid rgba(216,182,95,.6);border-radius:11px;
+  background:rgba(255,255,255,.08);color:#f8e9c6;font-weight:800;
+}
+#actionDrawer .drawer-panel[data-drawer="categories"]{max-width:760px;margin:0 auto}
+#actionDrawer .drawer-panel[data-drawer="categories"]>.form-summary{
+  padding:16px 17px;border:1px solid rgba(201,213,226,.25);border-radius:18px;
+  background:linear-gradient(145deg,#819bbc,#526f91 48%,#344d69);color:#fff;font-size:12px;line-height:1.5;
+  box-shadow:inset 0 1px rgba(255,255,255,.25),0 7px 16px rgba(32,48,65,.13);
+}
+#actionDrawer .drawer-panel[data-drawer="categories"]>.drawer-actions{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:0 0 13px;padding:13px;
+  border:1px solid rgba(116,87,31,.34);border-radius:18px;
+  background:linear-gradient(145deg,#e7cd82,#c3a052 52%,#927238);
+  box-shadow:inset 0 1px rgba(255,255,255,.35),0 7px 16px rgba(68,51,20,.13);
+}
+#actionDrawer .drawer-panel[data-drawer="categories"]>.drawer-actions #categoryAdd{grid-column:1/-1}
+#actionDrawer .drawer-panel[data-drawer="categories"]>.drawer-actions .btn{min-height:44px;border:1px solid rgba(64,47,19,.25);border-radius:11px;background:#f8f5ec;color:#304a68;font-size:12px;font-weight:800;box-shadow:none}
+#actionDrawer .drawer-panel[data-drawer="categories"]>.drawer-actions .btn[aria-pressed="true"],
+#actionDrawer .drawer-panel[data-drawer="categories"]>.drawer-actions #categoryAdd{
+  border-color:#344d69;background:linear-gradient(145deg,#7695b8,#58789c 52%,#3e5c7d);color:#fff;
+}
+#actionDrawer .drawer-panel[data-drawer="categories"] #categoryList{
+  display:grid;gap:8px;margin:0 0 13px;padding:13px;border:1px solid rgba(185,174,161,.35);border-radius:18px;
+  background:linear-gradient(135deg,#8a8078,#6b625d 38%,#565761 72%,#36485f);
+  box-shadow:inset 0 1px rgba(255,255,255,.18),0 7px 16px rgba(32,48,65,.13);
+}
+#actionDrawer .drawer-panel[data-drawer="categories"] #categoryList .compact-row{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:61px;margin:0;padding:11px 12px;
+  border:1px solid rgba(255,255,255,.55);border-radius:12px;background:#f8fafc;color:#18283a;
+}
+#actionDrawer .drawer-panel[data-drawer="categories"] #categoryList .row-title{font-size:12px;line-height:1.3}
+#actionDrawer .drawer-panel[data-drawer="categories"] #categoryList .row-side{flex:0 0 auto}
+#actionDrawer .drawer-panel[data-drawer="categories"] #categoryList .mini-action{
+  min-height:38px;margin:0;padding:7px 10px;border:1px solid #b9c8d8;border-radius:9px;background:#fff;color:#304a68;font-size:11px;
+}
+#actionDrawer .drawer-panel[data-drawer="categories"] #categoryList .empty-state{color:#fff;font-size:12px}
+#actionDrawer .drawer-panel[data-drawer="categories"] #categoryForm,
+#actionDrawer .drawer-panel[data-drawer="categories"] #categoryActionPreview{
+  margin:13px 0;padding:16px;border:1px solid #d3dbe4;border-radius:18px;background:#fff;
+  box-shadow:0 7px 16px rgba(32,48,65,.1);
+}
+#actionDrawer .drawer-panel[data-drawer="categories"] #categoryForm[hidden],
+#actionDrawer .drawer-panel[data-drawer="categories"] #categoryPreview[hidden],
+#actionDrawer .drawer-panel[data-drawer="categories"] #categoryActionPreview[hidden]{display:none!important}
+#actionDrawer .drawer-panel[data-drawer="categories"] #categoryForm label{color:#304a68;font-size:12px;font-weight:800}
+#actionDrawer .drawer-panel[data-drawer="categories"] #categoryForm input{min-height:46px;border:1px solid #b9c8d8;border-radius:11px;background:#fff;color:#18283a;font-size:14px}
+#actionDrawer .drawer-panel[data-drawer="categories"] #categoryPreview,
+#actionDrawer .drawer-panel[data-drawer="categories"] #categoryActionPreview p{
+  margin:12px 0 0;padding:13px;border:1px solid rgba(116,87,31,.25);border-radius:12px;background:#e5d0a1;color:#2f2516;font-size:12px;line-height:1.5;
+}
+#actionDrawer .drawer-panel[data-drawer="categories"] #categoryActionPreview p{margin:0}
+#actionDrawer .drawer-panel[data-drawer="categories"] #categoryForm .drawer-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+#actionDrawer .drawer-panel[data-drawer="categories"] #categoryForm .drawer-actions button:last-child{grid-column:1/-1}
+#actionDrawer .drawer-panel[data-drawer="categories"] :is(#categoryForm,#categoryActionPreview) .drawer-actions{gap:9px}
+#actionDrawer .drawer-panel[data-drawer="categories"] :is(#categoryForm,#categoryActionPreview) .drawer-actions .btn{min-height:44px;border-radius:11px;font-size:12px;font-weight:800}
+#actionDrawer .drawer-panel[data-drawer="categories"] :is(#categoryForm,#categoryActionPreview) .drawer-actions .btn:not(.secondary){border:0;background:linear-gradient(145deg,#7695b8,#58789c 52%,#3e5c7d);color:#fff}
+#actionDrawer .drawer-panel[data-drawer="categories"] :is(#categoryForm,#categoryActionPreview) .drawer-actions .btn.secondary{border:1px solid #b9c8d8;background:#fff;color:#304a68}
+#actionDrawer .drawer-panel[data-drawer="categories"] :is(#categoryForm,#categoryActionPreview) .drawer-actions .btn:disabled{opacity:.55}
+#actionDrawer .drawer-panel[data-drawer="categories"] button:focus-visible,
+#actionDrawer .drawer-panel[data-drawer="categories"] input:focus-visible,
+#actionDrawer:has(.drawer-panel[data-drawer="categories"]:not([hidden])) .drawer-head button:focus-visible{outline:3px solid #d8b65f;outline-offset:2px}
+@media(max-width:760px){
+  #actionDrawer:has(.drawer-panel[data-drawer="categories"]:not([hidden])) .drawer-head{padding:16px 17px}
+  #actionDrawer:has(.drawer-panel[data-drawer="categories"]:not([hidden])) .drawer-head h2{font-size:19px}
+  #actionDrawer:has(.drawer-panel[data-drawer="categories"]:not([hidden])) .drawer-body{padding:16px 17px 28px}
+}

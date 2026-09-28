@@ -27,8 +27,8 @@
     },
     {
       "path": "assets/v24/v24_1_app3.js",
-      "bytes": 9372,
-      "sha256": "da36e3876fea61bfcbca2aba68f61226c57fcd9de2c53dc98873c65534eaf5db",
+      "bytes": 9443,
+      "sha256": "dbe76f96d7d080bb2a2632567c37a36a5627f82203b7208b37180f8666304db4",
       "mime": "application/javascript"
     },
     {
@@ -39,8 +39,8 @@
     },
     {
       "path": "assets/v24/v24_1_categories.js",
-      "bytes": 4161,
-      "sha256": "6415542f889a92297415c2ce75790bf5103a94c3116ecafa9824352d90587f0c",
+      "bytes": 6095,
+      "sha256": "40d951d36c30b5e928a12c0e761f7eac91102a03150de6ed434c3d4cfc15e32e",
       "mime": "application/javascript"
     },
     {
@@ -81,8 +81,8 @@
     },
     {
       "path": "assets/v24/v24_1_i18n.js",
-      "bytes": 68044,
-      "sha256": "4a0b9e15df83a3a6a63bc06625eeaf36205824bed1c14e4b209f3b2aa99c4860",
+      "bytes": 68475,
+      "sha256": "68c4e8eac285508582b262fe35d000e9cbc7fa824c8a3559ea2c7dcf3c3e2cb9",
       "mime": "application/javascript"
     },
     {
@@ -230,6 +230,12 @@
       "mime": "text/css"
     },
     {
+      "path": "assets/v25/category-management-screen.css",
+      "bytes": 6467,
+      "sha256": "9c597b42a105db6216a7837f1244a00d75f550c7f370a0fc3bc2247f3920bebe",
+      "mime": "text/css"
+    },
+    {
       "path": "assets/v25/commitments-screen.css",
       "bytes": 5711,
       "sha256": "25b4a4d5cf8ea1d481d361289ca367aefdd1eed12e07471fc319cb47bf7ac51d",
@@ -309,8 +315,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 34295,
-      "sha256": "87ba2f46c595c9c1c4cf6812a077e4fb7d930022188b6f4bd8ae1e0efb65fab3",
+      "bytes": 34713,
+      "sha256": "0fc6c0f79a177bb2382313391b2e8c3963adb428c285da352d6c9ddc4952ec5f",
       "mime": "text/html"
     },
     {
@@ -360,6 +366,7 @@
     "assets/v25/app-icon-maskable-512.png",
     "assets/v25/badge-96.png",
     "assets/v25/brand.css",
+    "assets/v25/category-management-screen.css",
     "assets/v25/commitments-screen.css",
     "assets/v25/history-screen.css",
     "assets/v25/icon-192.png",

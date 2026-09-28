@@ -46,6 +46,33 @@
 #historyDetails .history-view-only{background:#ede9e5;color:#4b5059;font-size:12px;line-height:1.5}
 #historyDetails .history-technical summary{color:#304a68;font-weight:750}
 
+/* Transaction detail and management review. */
+#historyDetails .history-detail>p{color:#52677e;font-size:12px;line-height:1.45}
+#historyDetails .history-detail>.history-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+#historyDetails .history-detail>.history-actions .btn{min-height:46px;margin:0;border:1px solid #b9c8d8;border-radius:11px;background:#fff;color:#304a68;font-size:12px;font-weight:800}
+#historyDetails .history-detail>.history-actions [data-management="corrected"]{border:0;background:linear-gradient(145deg,#7695b8,#58789c 52%,#3e5c7d);color:#fff;box-shadow:0 6px 12px rgba(35,57,80,.15)}
+#historyDetails #historyManagement:not(:empty){margin-top:20px;padding-top:18px;border-top:1px solid #d7c18c}
+#historyDetails .history-management-choice h3,#historyDetails .history-management h3{color:#18283a;font-size:18px;line-height:1.25}
+#historyDetails .history-management-choice p{margin:0;color:#52677e;font-size:12px;line-height:1.45}
+#historyDetails .history-correction-options .btn,#historyDetails #hmCancel{min-height:45px;margin:0;border:1px solid #b9c8d8;border-radius:11px;background:#fff;color:#304a68;font-size:12px;font-weight:800}
+#historyDetails .history-correction-options .btn{box-shadow:0 3px 8px rgba(32,48,65,.06)}
+#historyDetails .history-management-head .text-action{min-height:38px;padding:7px 0;color:#304a68!important;font-size:12px;font-weight:800;text-align:left}
+#historyDetails .history-management label{min-width:0;color:#304a68;font-size:12px;font-weight:800}
+#historyDetails .history-management input,#historyDetails .history-management select,#historyDetails .history-management textarea{width:100%;min-height:46px;border:1px solid #b9c8d8;border-radius:11px;background:#fff;color:#18283a;font-size:14px}
+#historyDetails .history-management textarea{min-height:80px}
+#historyDetails .history-fixed-value{border:1px solid #d7e0e9;border-radius:11px;background:#f3f5f8}
+#historyDetails .history-fixed-value span,#historyDetails .history-fixed-value small{color:#52677e}
+#historyDetails .history-fixed-value b{color:#18283a;font-size:13px}
+#historyDetails .history-preview{padding:15px 16px;border:1px solid rgba(116,87,31,.34);border-radius:14px;background:linear-gradient(145deg,#e7cd82,#c3a052 52%,#927238);color:#2f2516;font-size:12px;line-height:1.5}
+#historyDetails .history-preview b{font-size:14px}
+#historyDetails .history-preview ul{margin:8px 0 0;padding-left:20px}
+#historyDetails .history-management .history-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:2px 0 0}
+#historyDetails .history-management .history-actions .btn{min-height:46px;margin:0;border-radius:11px;font-size:12px;font-weight:800}
+#historyDetails #hmPreviewBtn,#historyDetails #hmCommitBtn{border:0;background:linear-gradient(145deg,#7695b8,#58789c 52%,#3e5c7d);color:#fff;box-shadow:0 6px 12px rgba(35,57,80,.15)}
+#historyDetails #hmCommitBtn{background:linear-gradient(135deg,#233b55,#101e2d)}
+#historyDetails #hmCommitBtn:disabled{opacity:.5;box-shadow:none}
+#historyDetails :is(button,input,select,textarea):focus-visible{outline:3px solid #d8b65f;outline-offset:2px}
+
 @media(max-width:760px){
   #historyDetails{padding:12px 12px 92px}
   #historyDetails .detail-head{top:-12px;margin:-12px -12px 12px;padding:13px 12px}
@@ -61,4 +88,8 @@
   #historyDetails .history-row{gap:8px;padding:12px 13px}
   #historyDetails .history-row strong{font-size:12px}
   #historyDetails .history-detail{padding:14px}
+  #historyDetails .history-detail>.history-actions,#historyDetails .history-management .history-actions{grid-template-columns:1fr}
+  #historyDetails .history-management-choice{gap:10px}
+  #historyDetails .history-management{gap:13px}
+  #historyDetails #historyManagement:not(:empty){margin-top:18px;padding-top:16px}
 }

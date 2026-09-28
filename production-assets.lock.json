@@ -28,7 +28,7 @@
     {
       "path": "assets/v24/v24_1_app3.js",
       "bytes": 9443,
-      "sha256": "dbe76f96d7d080bb2a2632567c37a36a5627f82203b7208b37180f8666304db4",
+      "sha256": "6c27ef1d34fe1b6f0bb66c353fa85ae1e543f37ff0de677fc22fdbafcec09888",
       "mime": "application/javascript"
     },
     {
@@ -81,8 +81,8 @@
     },
     {
       "path": "assets/v24/v24_1_i18n.js",
-      "bytes": 68475,
-      "sha256": "68c4e8eac285508582b262fe35d000e9cbc7fa824c8a3559ea2c7dcf3c3e2cb9",
+      "bytes": 68390,
+      "sha256": "711908547f9e590ca7746c7b9ca95a8a2bd9b10e300f488024baec89fd9a28ef",
       "mime": "application/javascript"
     },
     {
@@ -236,6 +236,12 @@
       "mime": "text/css"
     },
     {
+      "path": "assets/v25/commitment-forms-screen.css",
+      "bytes": 3947,
+      "sha256": "2caaf94e9dcd0c67f2574958dc945e7ce7125d15c44c6bc8830fdefa7ca5e4cb",
+      "mime": "text/css"
+    },
+    {
       "path": "assets/v25/commitments-screen.css",
       "bytes": 5711,
       "sha256": "25b4a4d5cf8ea1d481d361289ca367aefdd1eed12e07471fc319cb47bf7ac51d",
@@ -315,8 +321,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 34713,
-      "sha256": "0fc6c0f79a177bb2382313391b2e8c3963adb428c285da352d6c9ddc4952ec5f",
+      "bytes": 34790,
+      "sha256": "62f871feff2388eb7b8d7ebd517a4914e69f2f870dc58f4a361b1bd5e8c65d3a",
       "mime": "text/html"
     },
     {
@@ -367,6 +373,7 @@
     "assets/v25/badge-96.png",
     "assets/v25/brand.css",
     "assets/v25/category-management-screen.css",
+    "assets/v25/commitment-forms-screen.css",
     "assets/v25/commitments-screen.css",
     "assets/v25/history-screen.css",
     "assets/v25/icon-192.png",

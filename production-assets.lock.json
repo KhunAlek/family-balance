@@ -15,32 +15,32 @@
     },
     {
       "path": "assets/v24/v24_1_app1.js",
-      "bytes": 20778,
-      "sha256": "fe6dc7b267a8d402eeba2067e588a11670ae156db817d702f81053c83ff5d0d4",
+      "bytes": 20665,
+      "sha256": "3af0230b094c8f6c5a6404488125353bf38dcfbdff4ef22415a2e36de35470ec",
       "mime": "application/javascript"
     },
     {
       "path": "assets/v24/v24_1_app2.js",
-      "bytes": 7627,
-      "sha256": "13e1c8ac05a18d604e381eb602a80e151a0984b2c290930a992eb23c4a510978",
+      "bytes": 7772,
+      "sha256": "2caae2fac50d16eb70435be7520cc0f54cd2d0af3991eb1e05bd552fc5a538c2",
       "mime": "application/javascript"
     },
     {
       "path": "assets/v24/v24_1_app3.js",
-      "bytes": 9283,
-      "sha256": "a8f7fc14ed2b040cb889100d43778261eb28c979b446bb9da361055877c4fab4",
+      "bytes": 9535,
+      "sha256": "d97beebde310e493360b837b10eaad36c364a35a95b60dd795d540ae0cecd9c6",
       "mime": "application/javascript"
     },
     {
       "path": "assets/v24/v24_1_app4.js",
-      "bytes": 17139,
-      "sha256": "3496aa277674e08e7a1a0574246a480c43ac85c809d2881442d03865e7a75d59",
+      "bytes": 17675,
+      "sha256": "b474b189f8b891b28b9a71d70800caca483adbb0a8952e30f0dff7fffe604254",
       "mime": "application/javascript"
     },
     {
       "path": "assets/v24/v24_1_categories.js",
-      "bytes": 4161,
-      "sha256": "6415542f889a92297415c2ce75790bf5103a94c3116ecafa9824352d90587f0c",
+      "bytes": 6095,
+      "sha256": "40d951d36c30b5e928a12c0e761f7eac91102a03150de6ed434c3d4cfc15e32e",
       "mime": "application/javascript"
     },
     {
@@ -51,20 +51,20 @@
     },
     {
       "path": "assets/v24/v24_1_correction.js",
-      "bytes": 11180,
-      "sha256": "2ec36d2b1c25e7072a23a2dac7cc025ac1c1b4cb5b10cfc3ad0d19958fc7e295",
+      "bytes": 11610,
+      "sha256": "82b14b487193059de64d4d6265b68e0e0aff02e63186b691c3def01728ba958b",
       "mime": "application/javascript"
     },
     {
       "path": "assets/v24/v24_1_fixed.js",
-      "bytes": 6882,
-      "sha256": "53a4564cebc50e88b404c91c46f59a83492beaf4ac1d1a58653b6b6a4a1aae1c",
+      "bytes": 9383,
+      "sha256": "5f2e0ed15d2c59a89f809012ab2aae6b7e548ba3ff6ca6e6dbb5160ebc83d755",
       "mime": "application/javascript"
     },
     {
       "path": "assets/v24/v24_1_goal_withdrawal.js",
-      "bytes": 4657,
-      "sha256": "2e15dd22ef05f7c5192580a0d47937a977091a6c0f938170d455ff5f83399115",
+      "bytes": 4627,
+      "sha256": "a9dd4cb77cdb36d842c4ec509f1bf519b2072269bd2013fd480d0e3713855e4b",
       "mime": "application/javascript"
     },
     {
@@ -75,20 +75,20 @@
     },
     {
       "path": "assets/v24/v24_1_history.js",
-      "bytes": 24195,
-      "sha256": "eba3b7a5636f5605c29ba4ac2d381d0d09888928d00f197ebd6617a638e43799",
+      "bytes": 25225,
+      "sha256": "2a90ce99acdde21e9f32f91c65438085ee5de0cbba094a87f28ac161510fd5b6",
       "mime": "application/javascript"
     },
     {
       "path": "assets/v24/v24_1_i18n.js",
-      "bytes": 67824,
-      "sha256": "da5803cbc196fba481685fc5b2b8e8d2d252e2103ca61a49f39174fa68a792f2",
+      "bytes": 72732,
+      "sha256": "93839a1d93bbfd403de7fa807bb1c0f7d57fdee26cdb2c50a7ed5f16a3db2b54",
       "mime": "application/javascript"
     },
     {
       "path": "assets/v24/v24_1_income.js",
-      "bytes": 6816,
-      "sha256": "9eca2b5fa792a301e376435ee8ed479dfb0b2b9f7af151699254be870bf41fdc",
+      "bytes": 6948,
+      "sha256": "e463f1601d775e50c944fea9aa4ff9eace0488a28513e53a4177904c8bfda094",
       "mime": "application/javascript"
     },
     {
@@ -141,8 +141,8 @@
     },
     {
       "path": "assets/v24/v24_1_reports.js",
-      "bytes": 6517,
-      "sha256": "baef3bb04804bb7c1a2cc13103c4491c1eabc5f1ddfa661be225dc1f60784fe0",
+      "bytes": 7149,
+      "sha256": "cd4777bc00717ca9ca015f787c0b3e695be2b491d2fa3c1b979399730b2533ca",
       "mime": "application/javascript"
     },
     {
@@ -164,39 +164,57 @@
       "mime": "text/css"
     },
     {
+      "path": "assets/v25/accounts-records-screen.css",
+      "bytes": 3691,
+      "sha256": "099a569d69da5d2e3c7b9718926c47d370a53aff545ddebc6d81d1655b68a951",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v25/action-forms-screen.css",
+      "bytes": 6444,
+      "sha256": "4de391cb6a1a5c95f7849266beca995df6db5fb99dd40c9ee8986f7eecdd2537",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v25/add-goal-screen.css",
+      "bytes": 3106,
+      "sha256": "268c996939e17efb1992a40703d0d7fa659b15752843a612063e962415857080",
+      "mime": "text/css"
+    },
+    {
       "path": "assets/v25/app-icon-180.png",
-      "bytes": 45820,
-      "sha256": "268425eb8a0eb05e4dfa458232411cdbb4be91fec2e7ab57f398ff6e426c99a0",
+      "bytes": 40011,
+      "sha256": "41b7047bc0f18b8dbdf0312fd796f080cc7b256708b3c8a4bacc0c91e3d2966b",
       "mime": "image/png"
     },
     {
       "path": "assets/v25/app-icon-192.png",
-      "bytes": 51767,
-      "sha256": "96be3305646764a3c16300b4e2bdb56b7729d274a9335a628b0ddf44d457b5ab",
+      "bytes": 51383,
+      "sha256": "f4c35bff33867b4a73bd71b35a3cbbbc1813e31e5497e1e5de1788b425b44542",
       "mime": "image/png"
     },
     {
       "path": "assets/v25/app-icon-32.png",
-      "bytes": 2657,
-      "sha256": "c19bad9dc3578f48ccaab24d897d76ab58b5b452ee1249e01257895d6044d4af",
+      "bytes": 2376,
+      "sha256": "2cd4a30c974c83e223e5662994bcda4164fe9fd2d852c609a98312fd1c6a82ee",
       "mime": "image/png"
     },
     {
       "path": "assets/v25/app-icon-512.png",
-      "bytes": 384364,
-      "sha256": "747b258d3a616f614ac2fa4e7666dddc791bcf7415a48d7c1a7f478e1e5e76ff",
+      "bytes": 378492,
+      "sha256": "ee1e008569c88480f54c5fe01e48a1f57aefdae620f8d4dc9f34a55c6a2c33f2",
       "mime": "image/png"
     },
     {
       "path": "assets/v25/app-icon-maskable-512.png",
-      "bytes": 384364,
-      "sha256": "747b258d3a616f614ac2fa4e7666dddc791bcf7415a48d7c1a7f478e1e5e76ff",
+      "bytes": 193324,
+      "sha256": "f513b5ffacf411d99063677072ba71315f488161c08eb93256ce12dc16d2747c",
       "mime": "image/png"
     },
     {
       "path": "assets/v25/apple-touch-icon.png",
-      "bytes": 5557,
-      "sha256": "ead40de0b0fee192cbf7dbacc1d4bedc69be604aa72d8a89cc7118ecefc4c5c0",
+      "bytes": 40011,
+      "sha256": "41b7047bc0f18b8dbdf0312fd796f080cc7b256708b3c8a4bacc0c91e3d2966b",
       "mime": "image/png"
     },
     {
@@ -214,32 +232,104 @@
     {
       "path": "assets/v25/brand.css",
       "bytes": 1670,
-      "sha256": "a4aa36c0d407683170c01c4c1921737720ce6022f6cb902a14e47d863fd44cf7",
+      "sha256": "5be9f5b6117c8d6e47e5d2874636518d67135c34e33ec0c206c6d1cca6d1ad8a",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v25/category-management-screen.css",
+      "bytes": 6467,
+      "sha256": "9c597b42a105db6216a7837f1244a00d75f550c7f370a0fc3bc2247f3920bebe",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v25/commitment-forms-screen.css",
+      "bytes": 3947,
+      "sha256": "2caaf94e9dcd0c67f2574958dc945e7ce7125d15c44c6bc8830fdefa7ca5e4cb",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v25/commitments-screen.css",
+      "bytes": 5711,
+      "sha256": "25b4a4d5cf8ea1d481d361289ca367aefdd1eed12e07471fc319cb47bf7ac51d",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v25/ef-transfer-screen.css",
+      "bytes": 3491,
+      "sha256": "a61ddb9bbca0dd80a782fdeb53705da029604369e15c142da387e0a87a271d5e",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v25/ef-withdrawal-screen.css",
+      "bytes": 3323,
+      "sha256": "cb8e748c4f73c0fdc58eba625fbd153d7542050019a01ac55e43172751ccbfa6",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v25/entry-states-screen.css",
+      "bytes": 2578,
+      "sha256": "399a03a17ac12dd66bc0f4c9b02249b1c373e84f0353d6bebf979692345bcda2",
       "mime": "text/css"
     },
     {
       "path": "assets/v25/favicon-32.png",
-      "bytes": 1107,
-      "sha256": "0b5556b019495beb48b01c056099f0afa8f544efa8d1f768369ccb7a7727ee20",
+      "bytes": 2376,
+      "sha256": "2cd4a30c974c83e223e5662994bcda4164fe9fd2d852c609a98312fd1c6a82ee",
       "mime": "image/png"
     },
     {
+      "path": "assets/v25/fixed-expense-management-screen.css",
+      "bytes": 7333,
+      "sha256": "6e37f83de7983eb6fe50312756855a483629ed67677add80a742c9601d9c973b",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v25/fixed-payment-screen.css",
+      "bytes": 3445,
+      "sha256": "30fd735cbd457d36b44d60ad6f24e4613c9ce27be08e1be2aa5fba75fb7e8aab",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v25/goal-transfer-screen.css",
+      "bytes": 3577,
+      "sha256": "579661e96465dbf013188cb6278dda27edc59ab52b44550f5f43c7ee555e0a5d",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v25/goal-withdrawal-screen.css",
+      "bytes": 4398,
+      "sha256": "b6378aec96fc12fa0ae81b061dbb03bc6878895c0d66ad20961e98929b56a1eb",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v25/history-screen.css",
+      "bytes": 9561,
+      "sha256": "3f5e7ce29296daedaedc0db6226a6a6c278096e93964c073eb7f164e1caedee1",
+      "mime": "text/css"
+    },
+    {
       "path": "assets/v25/icon-192.png",
-      "bytes": 5879,
-      "sha256": "46c1944fd0f730d8a346675bcdc2481312acebf54dcd3b13555e2f624ed327d1",
+      "bytes": 51383,
+      "sha256": "f4c35bff33867b4a73bd71b35a3cbbbc1813e31e5497e1e5de1788b425b44542",
       "mime": "image/png"
     },
     {
       "path": "assets/v25/icon-512.png",
-      "bytes": 16784,
-      "sha256": "bcd1e48ac44b78e05a2e00110d28dd89d76c43bd912b75c22ed67f117efa2f5d",
+      "bytes": 378492,
+      "sha256": "ee1e008569c88480f54c5fe01e48a1f57aefdae620f8d4dc9f34a55c6a2c33f2",
       "mime": "image/png"
     },
     {
       "path": "assets/v25/icon-maskable-512.png",
-      "bytes": 14264,
-      "sha256": "f659c54cbe742157b7a47d3baddd46829e2460085827d8a2ae0a6be53cc23f3d",
+      "bytes": 193324,
+      "sha256": "f513b5ffacf411d99063677072ba71315f488161c08eb93256ce12dc16d2747c",
       "mime": "image/png"
+    },
+    {
+      "path": "assets/v25/income-salary-screen.css",
+      "bytes": 7214,
+      "sha256": "cb437acef4b57ba422bf8ac4a81d3d28d8c2c0641b18a067137cda7aed7d73d9",
+      "mime": "text/css"
     },
     {
       "path": "assets/v25/logo-maskable.svg",
@@ -260,21 +350,63 @@
       "mime": "text/css"
     },
     {
+      "path": "assets/v25/notifications-screen.css",
+      "bytes": 5529,
+      "sha256": "74490aac6c79c8c0e07c20d4837787b472838d946652f9f364be6a8c689bfa93",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v25/pace-screen.css",
+      "bytes": 5471,
+      "sha256": "3374d3aab8860b1e1f101f9703e375b4cbca5870e123f18cce8dc409b5d596a0",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v25/reports-screen.css",
+      "bytes": 5976,
+      "sha256": "46fb6aa0052df753cdec0a1b5f63ddb5e4b41cc1131acb7a0e6623c068964619",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v25/salary-correction-screen.css",
+      "bytes": 3681,
+      "sha256": "43ae1cd720122f6237fbf13e8107514d553083197dfbd995f4f96e7e7db96952",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v25/savings-screen.css",
+      "bytes": 8281,
+      "sha256": "24675def9441c4c9209d047138b496f63f4d07a0eb50cedf2c1eb7202839fb8e",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v25/sign-in-screen.css",
+      "bytes": 1601,
+      "sha256": "df24efdf061c253b43ddd860a224301eef81c88d86966b92e73745ffb4669f8f",
+      "mime": "text/css"
+    },
+    {
+      "path": "assets/v25/wallet-icon-source.png",
+      "bytes": 1365791,
+      "sha256": "087a4b0712e6c8fc71fc06d736a5db05e9a6be1331b9fb3881f2384095711f36",
+      "mime": "image/png"
+    },
+    {
       "path": "index.html",
-      "bytes": 33458,
-      "sha256": "d824a947e41877a9d92fc5b981d279db0a8569b68821ca7aea1878c72bf0b340",
+      "bytes": 36378,
+      "sha256": "715699dbb295fa5ea000faeafd5df808181b39367a03110aa8d6179a92a78d4d",
       "mime": "text/html"
     },
     {
       "path": "manifest.webmanifest",
-      "bytes": 686,
-      "sha256": "f2a9bc2ee7c8b6ba8b741e1a4a3ef7eb0d4d4fb34716433e275fe725780a54fd",
+      "bytes": 776,
+      "sha256": "eff3a99579d8a6f0e6ca9871ff67bbfa3af37ba4973af1f39b0ad100a7741ef6",
       "mime": "application/manifest+json"
     },
     {
       "path": "sw.js",
-      "bytes": 1148,
-      "sha256": "a5df5321537ea7d115c0c2cb7ceabd374e12f2810282b0db257deacee6ec3658",
+      "bytes": 1182,
+      "sha256": "e9260d2428c02233461741dc2ba1802f5aa3eafe61ee259b5b2c2c5257ec0fa9",
       "mime": "application/javascript"
     }
   ],
@@ -303,6 +435,9 @@
     "assets/v24/v24_1_reports.js",
     "assets/v24/v24_1_responsive.css",
     "assets/v24/v24_1_tabs.css",
+    "assets/v25/accounts-records-screen.css",
+    "assets/v25/action-forms-screen.css",
+    "assets/v25/add-goal-screen.css",
     "assets/v25/app-icon-180.png",
     "assets/v25/app-icon-192.png",
     "assets/v25/app-icon-32.png",
@@ -310,9 +445,25 @@
     "assets/v25/app-icon-maskable-512.png",
     "assets/v25/badge-96.png",
     "assets/v25/brand.css",
-    "assets/v25/icon-192.png",
-    "assets/v25/logo.svg",
+    "assets/v25/category-management-screen.css",
+    "assets/v25/commitment-forms-screen.css",
+    "assets/v25/commitments-screen.css",
+    "assets/v25/ef-transfer-screen.css",
+    "assets/v25/ef-withdrawal-screen.css",
+    "assets/v25/entry-states-screen.css",
+    "assets/v25/fixed-expense-management-screen.css",
+    "assets/v25/fixed-payment-screen.css",
+    "assets/v25/goal-transfer-screen.css",
+    "assets/v25/goal-withdrawal-screen.css",
+    "assets/v25/history-screen.css",
+    "assets/v25/income-salary-screen.css",
     "assets/v25/mobile-position.css",
+    "assets/v25/notifications-screen.css",
+    "assets/v25/pace-screen.css",
+    "assets/v25/reports-screen.css",
+    "assets/v25/salary-correction-screen.css",
+    "assets/v25/savings-screen.css",
+    "assets/v25/sign-in-screen.css",
     "index.html",
     "manifest.webmanifest",
     "sw.js"

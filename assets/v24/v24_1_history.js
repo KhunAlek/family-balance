@@ -1,6 +1,6 @@
 (()=>{
 const $=id=>document.getElementById(id),esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let mode='transactions',page=null,items=[],selected=null,preview=null,requestId=null,correctionField=null,categories=[],managementOpener=null;
+let mode='transactions',page=null,items=[],selected=null,preview=null,requestId=null,correctionField=null,categories=[],managementOpener=null,previewSequence=0;
 
 const money=satang=>fmtMoney(Number(satang||0)/100,(currentData&&currentData.config&&currentData.config.currency)||'THB',true);
 const label=t=>t.description||t.payee||t.source||String(t.kind||'').replaceAll('_',' ');
@@ -19,7 +19,7 @@ function impactConsequences(impact){
 function message(value,type=''){const el=$('historyMessage');el.textContent=value||'';el.className='form-msg'+(type?' '+type:'')}
 function query(cursor){return mode==='balances'?{pageSize:50,...(cursor?{cursor}:{})}:{period:$('historyPeriod').value,text:$('historySearch').value.trim(),showAudit:$('historyAudit').checked,pageSize:50,...($('historyPeriod').value==='custom'?{customFrom:$('historyFrom').value,customThrough:$('historyThrough').value}:{}),...(cursor?{cursor}:{})}}
 function historyItems(result){return [...(result.transactions||[])]}
-function leaveManagementView(){correctionField=null;preview=null;requestId=null;$('historyDetails').classList.remove('management-active')}
+function leaveManagementView(){correctionField=null;preview=null;requestId=null;previewSequence++;$('historyDetails').classList.remove('management-active')}
 
 async function load(append=false){
   message('Loading…');
@@ -55,7 +55,7 @@ function balanceRow(row,index){
   return '<button type="button" class="history-row" data-history-index="'+index+'"><span><b>'+(observation?'Balance observation':'Transaction balance effect')+'</b><small>'+esc(row.businessDate)+' · '+(observation?'Immutable recorded balance':esc(row.transactionLink?.status||'unlinked'))+'</small></span><strong>'+esc(values.combined==null?'Partial accounts':money(values.combined))+'</strong></button>';
 }
 function show(item){
-  selected=item;preview=null;requestId=null;correctionField=null;
+  selected=item;preview=null;requestId=null;correctionField=null;previewSequence++;
   const el=$('historyRecordDetail');el.hidden=false;
   if(mode==='balances'){
     el.innerHTML='<h3>'+esc(item.entryType==='balance_observation'?'Balance observation':'Transaction balance effect')+'</h3><div class="history-consequences"><b>Financial meaning</b><p>'+(item.entryType==='balance_observation'?'This immutable observation anchors the recorded account position. Record a new observation if the factual balance is wrong.':'This effect belongs to a financial transaction; manage the linked transaction rather than changing this row.')+'</p></div><details class="history-technical"><summary>Technical details</summary><pre>'+esc(JSON.stringify(item,null,2))+'</pre></details>';
@@ -114,7 +114,7 @@ function cancelManagement(){
   setTimeout(()=>$('historyRecordDetail').querySelector('[data-management="'+operation+'"]')?.focus(),0);
 }
 async function managementForm(operation,opener){
-  preview=null;requestId=null;correctionField=null;managementOpener=operation;
+  preview=null;requestId=null;correctionField=null;previewSequence++;managementOpener=operation;
   if(operation==='corrected'){
     categories=[];
     if(selected.kind==='one_off_payment'){
@@ -165,17 +165,30 @@ function correctionFields(choice){
   return html;
 }
 function renderCorrectionForm(choice){
-  correctionField=choice;preview=null;requestId=null;
+  correctionField=choice;preview=null;requestId=null;previewSequence++;
   $('historyManagement').innerHTML='<form class="history-management" id="historyManagementForm"><div class="history-management-head"><h3 id="historyManagementHeading" tabindex="-1">Correction details</h3><button type="button" class="text-action" id="hmDifferent">Choose a different detail</button></div>'+correctionFields(choice)+reasonFields('corrected')+'<div class="history-preview" id="hmPreview">Preview is read-only. Review the financial consequences before confirming.</div><div class="history-actions"><button type="button" class="btn secondary" id="hmCancel">Cancel</button><button type="button" class="btn" id="hmPreviewBtn">Preview</button><button type="submit" class="btn primary" id="hmCommitBtn" disabled>Confirm correction</button></div></form>';
-  $('hmDifferent').onclick=()=>managementForm('corrected',managementOpener);$('hmCancel').onclick=cancelManagement;$('hmPreviewBtn').onclick=()=>previewOperation('corrected');$('historyManagementForm').onsubmit=e=>{e.preventDefault();commitOperation('corrected')};
+  $('hmDifferent').onclick=()=>managementForm('corrected',managementOpener);$('hmCancel').onclick=cancelManagement;$('hmPreviewBtn').onclick=()=>previewOperation('corrected');$('historyManagementForm').onsubmit=e=>{e.preventDefault();commitOperation('corrected')};watchPreviewInputs();
   activateManagement();
 }
 function reasonFields(){
   return '<label>Reason<select id="hmReason"><option value="entered_by_mistake">Entered by mistake</option><option value="duplicate_entry">Duplicate entry</option><option value="wrong_household">Wrong household</option><option value="test_entry">Test entry</option><option value="other">Other</option></select></label><label>Explanation<textarea id="hmExplanation"></textarea></label>';
 }
 function renderOperationForm(operation){
-  $('historyManagement').innerHTML='<form class="history-management" id="historyManagementForm"><h3 id="historyManagementHeading" tabindex="-1">Review '+esc(operation.replace('ed',''))+'</h3>'+reasonFields()+'<div class="history-preview" id="hmPreview">Preview is read-only. Review the financial consequences before confirming.</div><div class="history-actions"><button type="button" class="btn secondary" id="hmCancel">Cancel</button><button type="button" class="btn" id="hmPreviewBtn">Preview</button><button type="submit" class="btn primary" id="hmCommitBtn" disabled>Confirm '+esc(operation.replace('ed',''))+'</button></div></form>';
-  $('hmCancel').onclick=cancelManagement;$('hmPreviewBtn').onclick=()=>previewOperation(operation);$('historyManagementForm').onsubmit=e=>{e.preventDefault();commitOperation(operation)};activateManagement();
+  const labels={deleted:['Review deletion','Confirm deletion'],restored:['Review restoration','Confirm restoration'],undone:['Review undo','Confirm undo']};
+  const [heading,confirm]=labels[operation]||['Review transaction','Confirm change'];
+  $('historyManagement').innerHTML='<form class="history-management" id="historyManagementForm"><h3 id="historyManagementHeading" tabindex="-1">'+heading+'</h3>'+reasonFields()+'<div class="history-preview" id="hmPreview">Preview is read-only. Review the financial consequences before confirming.</div><div class="history-actions"><button type="button" class="btn secondary" id="hmCancel">Cancel</button><button type="button" class="btn" id="hmPreviewBtn">Preview</button><button type="submit" class="btn primary" id="hmCommitBtn" disabled>'+confirm+'</button></div></form>';
+  $('hmCancel').onclick=cancelManagement;$('hmPreviewBtn').onclick=()=>previewOperation(operation);$('historyManagementForm').onsubmit=e=>{e.preventDefault();commitOperation(operation)};watchPreviewInputs();activateManagement();
+}
+function invalidatePreview(){
+  preview=null;requestId=null;previewSequence++;
+  const button=$('hmCommitBtn'),result=$('hmPreview');
+  if(button)button.disabled=true;
+  if(result)result.textContent='Preview is read-only. Review the financial consequences before confirming.';
+}
+function watchPreviewInputs(){
+  const form=$('historyManagementForm');
+  form.addEventListener('input',invalidatePreview);
+  form.addEventListener('change',invalidatePreview);
 }
 function satang(value){return Math.round(Number(value)*100)}
 function allocationsFromForm(){
@@ -199,12 +212,16 @@ function semantics(operation){
   return result;
 }
 async function previewOperation(operation){
+  const sequence=++previewSequence,payload=semantics(operation);
+  preview=null;$('hmCommitBtn').disabled=true;
   try{
-    preview=await apiCall('transactionManagementPreview',{logicalTransactionId:selected.logicalTransactionId,operation,correlationId:crypto.randomUUID(),semanticPayload:semantics(operation)});
+    const result=await apiCall('transactionManagementPreview',{logicalTransactionId:selected.logicalTransactionId,operation,correlationId:crypto.randomUUID(),semanticPayload:payload});
+    if(sequence!==previewSequence||JSON.stringify(payload)!==JSON.stringify(semantics(operation)))return;
+    preview=result;
     const eligible=preview.eligibility&&preview.eligibility.eligible,summary=eligible?impactConsequences(preview.impact):(preview.eligibility.refusalCodes||[]).map(refusalMessage);
     $('hmPreview').innerHTML='<b>'+(eligible?'Eligible to confirm':'Cannot be confirmed')+'</b><ul>'+summary.map(value=>'<li>'+esc(value)+'</li>').join('')+'</ul>';
     $('hmCommitBtn').disabled=!eligible;requestId=null;
-  }catch(e){message(e.message,'error')}
+  }catch(e){if(sequence===previewSequence)message(e.message,'error')}
 }
 async function commitOperation(operation){
   if(!preview)return;const button=$('hmCommitBtn');button.disabled=true;

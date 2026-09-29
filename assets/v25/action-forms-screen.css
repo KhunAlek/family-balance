@@ -1,0 +1,64 @@
+/* Phone review: one-off payment, balance observation, and KTB transfer forms. */
+#actionDrawer:has(.drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]):not([hidden])) .drawer{
+  background:#f3f5f8;color:#18283a;
+}
+#actionDrawer:has(.drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]):not([hidden])) .drawer-head{
+  background:linear-gradient(135deg,#233b55,#101e2d);border-bottom:1px solid rgba(216,182,95,.35);color:#fff;
+}
+#actionDrawer:has(.drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]):not([hidden])) .drawer-head h2{color:#fff;font-size:22px;line-height:1.18}
+#actionDrawer:has(.drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]):not([hidden])) .drawer-head p{color:#d9e3ee;font-size:12px;line-height:1.4}
+#actionDrawer:has(.drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]):not([hidden])) .drawer-head .detail-back{
+  flex:0 0 auto;min-height:42px;padding:8px 12px;border:1px solid rgba(216,182,95,.6);border-radius:11px;
+  background:rgba(255,255,255,.08);color:#f8e9c6;font-weight:800;
+}
+#actionDrawer .drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]){max-width:760px;margin:0 auto}
+#actionDrawer .drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]) label{color:#304a68;font-size:12px;font-weight:800}
+#actionDrawer .drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]) input,
+#actionDrawer .drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]) select{
+  min-height:46px;border:1px solid #b9c8d8;border-radius:11px;background:#fff;color:#18283a;font-size:14px;
+}
+#actionDrawer .drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]) input:focus-visible,
+#actionDrawer .drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]) select:focus-visible,
+#actionDrawer .drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]) button:focus-visible,
+#actionDrawer:has(.drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]):not([hidden])) .drawer-head button:focus-visible{outline:3px solid #d8b65f;outline-offset:2px}
+#actionDrawer .drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]) .form-summary{
+  position:relative;overflow:hidden;padding:16px 17px;border-radius:18px;color:#fff;font-size:12px;line-height:1.5;
+  box-shadow:inset 0 1px rgba(255,255,255,.25),0 7px 16px rgba(32,48,65,.13);
+}
+#actionDrawer .drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]) .form-summary strong{color:inherit;font-size:13px}
+#actionDrawer .drawer-panel[data-drawer="payment"] .form-summary{
+  border:1px solid rgba(201,213,226,.25);background:linear-gradient(145deg,#819bbc,#526f91 48%,#344d69);
+}
+#actionDrawer .drawer-panel[data-drawer="balance"] .form-summary{
+  border:1px solid rgba(185,174,161,.35);background:linear-gradient(135deg,#8a8078,#6b625d 38%,#565761 72%,#36485f);
+}
+#actionDrawer .drawer-panel[data-drawer="ktbTransfer"] .form-summary{
+  border:1px solid rgba(116,87,31,.34);background:linear-gradient(145deg,#e7cd82,#c3a052 52%,#927238);color:#2f2516;
+}
+#actionDrawer .drawer-panel[data-drawer="payment"] .text-action{min-height:40px;margin-bottom:10px;color:#304a68!important;font-weight:800}
+#actionDrawer .drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]) .hint{color:#52677e;font-size:11px;line-height:1.45}
+#actionDrawer .drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]) .drawer-actions{gap:9px}
+#actionDrawer .drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]) .drawer-actions .btn{min-height:46px;border-radius:11px;font-size:12px;font-weight:800}
+#actionDrawer .drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]) .drawer-actions .btn:not(.secondary){border:0;background:linear-gradient(145deg,#7695b8,#58789c 52%,#3e5c7d);color:#fff;box-shadow:0 6px 12px rgba(35,57,80,.15)}
+#actionDrawer .drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]) .drawer-actions .btn.secondary{border:1px solid #b9c8d8;background:#fff;color:#304a68}
+#actionDrawer .drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]) .drawer-actions .btn:disabled{opacity:.55;box-shadow:none}
+#actionDrawer .drawer-panel[data-drawer="payment"] .preview-card{
+  border:1px solid rgba(116,87,31,.34);border-radius:18px;background:linear-gradient(145deg,#e7cd82,#c3a052 52%,#927238);color:#2f2516;
+}
+#actionDrawer .drawer-panel[data-drawer="payment"] .preview-card h4{font-size:15px}
+#actionDrawer .drawer-panel[data-drawer="payment"] .preview-stat{border:1px solid rgba(64,47,19,.18);background:#f8f5ec;color:#2f2516}
+#actionDrawer .drawer-panel[data-drawer="payment"] .preview-stat span{font-size:10px;opacity:1}
+#actionDrawer .drawer-panel[data-drawer="payment"] .preview-stat b{font-size:16px}
+#actionDrawer .drawer-panel[data-drawer="ktbTransfer"] .transfer-direction button{
+  min-height:46px;border:1px solid #b9c8d8;border-radius:11px;background:#fff;color:#304a68;font-weight:800;
+}
+#actionDrawer .drawer-panel[data-drawer="ktbTransfer"] .transfer-direction button[aria-pressed="true"]{
+  border-color:#344d69;background:linear-gradient(145deg,#7695b8,#58789c 52%,#3e5c7d);color:#fff;
+}
+@media(max-width:760px){
+  #actionDrawer:has(.drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]):not([hidden])) .drawer-head{padding:16px 17px}
+  #actionDrawer:has(.drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]):not([hidden])) .drawer-head h2{font-size:19px}
+  #actionDrawer:has(.drawer-panel:is([data-drawer="payment"],[data-drawer="balance"],[data-drawer="ktbTransfer"]):not([hidden])) .drawer-body{padding:16px 17px 28px}
+  #actionDrawer .drawer-panel[data-drawer="payment"] .preview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #actionDrawer .drawer-panel[data-drawer="payment"] .preview-stat{min-width:0}
+}

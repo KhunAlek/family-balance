@@ -1,0 +1,42 @@
+/* Sign-in screen follows the approved navy, gold, and blue visual system. */
+.auth-gate{
+  background:
+    radial-gradient(circle at 82% 13%,rgba(116,149,184,.13),transparent 35%),
+    #f3f5f8;
+}
+.auth-card{
+  position:relative;isolation:isolate;overflow:hidden;
+  width:min(420px,100%);max-width:calc(100vw - 34px);
+  padding:32px 27px 29px;
+  border:1px solid rgba(216,182,95,.48);border-radius:27px;
+  background:linear-gradient(145deg,#233b55,#101e2d 76%);
+  box-shadow:inset 0 1px rgba(255,255,255,.13),0 22px 55px rgba(21,42,65,.23);
+}
+.auth-card::after{
+  content:"";position:absolute;z-index:-1;right:-117px;top:-102px;
+  width:285px;height:285px;border:37px solid rgba(255,255,255,.055);
+  border-radius:50%;pointer-events:none;
+}
+.auth-card img{
+  width:100px;height:100px;border:1px solid rgba(216,182,95,.65);
+  border-radius:23px;background:#0b1d3a;
+  box-shadow:0 11px 26px rgba(0,0,0,.21);
+}
+.auth-card h1{
+  margin:19px 0 12px;color:#d8b65f;
+  font-family:'Great Vibes',cursive;font-size:clamp(32px,9.2vw,44px);
+  font-weight:400;line-height:1.1;white-space:nowrap;text-shadow:0 2px 3px rgba(0,0,0,.26);
+}
+.auth-card p{max-width:330px;margin:0 auto 24px;color:#e1e9f1;font-size:13px;line-height:1.55}
+.auth-card .google-login{
+  min-height:60px;padding:9px 10px;border:1px solid #c4d2df;
+  border-radius:13px;background:#fff;box-shadow:0 7px 15px rgba(0,0,0,.16);
+}
+.auth-card .auth-error.show{
+  border:1px solid #e4b6b6;background:#fff2f2;color:#8b2930;
+  font-size:12px;line-height:1.45;
+}
+@media(max-width:420px){
+  .auth-gate{padding:17px}
+  .auth-card{padding:29px 19px 25px}
+}

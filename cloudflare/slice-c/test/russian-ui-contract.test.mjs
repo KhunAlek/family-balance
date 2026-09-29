@@ -56,6 +56,8 @@ test('phase two translates remaining surfaces while preserving user-entered name
   assert.equal(language.translate(' Available pace today'), ' Доступный темп на сегодня');
   assert.equal(language.translate('\n  Available pace today  '), '\n  Доступный темп на сегодня  ');
   assert.equal(language.translate('A subdivision of Available until the next salary—not additional money or a separate limit.'), 'Распределение доступной суммы до следующей зарплаты — это не дополнительные деньги и не отдельный лимит.');
+  assert.equal(language.translate('1 active · 0 completed'), '1 активная · 0 завершённых');
+  assert.equal(language.translate('2 active · 1 completed'), '2 активные · 1 завершённая');
   assert.equal(language.translate('Моя цель'), 'Моя цель');
 });
 

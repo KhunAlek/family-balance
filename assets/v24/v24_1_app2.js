@@ -26,7 +26,7 @@ async function apiCall(apiAction,payload){
 }
 async function fetchDashboard(){return apiCall('dashboard',{})}
 async function refreshLiveData(){const data=await fetchDashboard();if(data&&data.ok===false)throw new Error(data.error||'Could not load data.');render(data,{stale:false});if(typeof renderMovementRecoveryBanner==='function')renderMovementRecoveryBanner();if(typeof refreshNotificationPanel==='function')refreshNotificationPanel().catch(()=>{});return data}
-async function loadData(){try{await refreshLiveData()}catch(err){if(/Authentication required/i.test(err.message||'')){showAuthGate();return}document.getElementById('loadingState').style.display='none';document.getElementById('errorState').style.display='block';document.getElementById('errorState').textContent='Could not load data: '+err.message}}
+async function loadData(){try{await refreshLiveData()}catch(err){if(/Authentication required/i.test(err.message||'')){showAuthGate();return}document.getElementById('loadingState').style.display='none';document.getElementById('errorState').style.display='grid';document.getElementById('errorMessage').textContent='Could not load data: '+err.message}}
 async function handleGoogleCredential(response){
   const mount=document.getElementById('googleLoginBtn');
   try{
@@ -56,6 +56,7 @@ function initGoogleButton(){
 }
 function scheduleGoogleButton(){if(initGoogleButton())return;setTimeout(scheduleGoogleButton,250)}
 async function initializeApp(){
+  document.getElementById('errorState').style.display='none';
   document.getElementById('loadingState').style.display='grid';
   scheduleGoogleButton();
   try{
@@ -68,10 +69,11 @@ async function initializeApp(){
     if(err&&err.status===401){showAuthGate();return}
     document.getElementById('loadingState').style.display='none';
     document.getElementById('app').style.display='none';
-    document.getElementById('errorState').style.display='block';
-    document.getElementById('errorState').textContent='Could not load data: '+(err&&err.message||'Unknown error.');
+    document.getElementById('errorState').style.display='grid';
+    document.getElementById('errorMessage').textContent='Could not load data: '+(err&&err.message||'Unknown error.');
   }
 }
+document.getElementById('retryLoadBtn').addEventListener('click',initializeApp);
 async function logout(){
   try{await requestJson('/api/auth/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})}catch(err){}
   AUTHENTICATED_USER='';

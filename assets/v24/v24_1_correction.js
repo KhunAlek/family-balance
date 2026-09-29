@@ -9,11 +9,10 @@
   modal.setAttribute('aria-modal','true');
   modal.setAttribute('aria-labelledby','correctionTitle');
   modal.innerHTML=`<aside class="modal movement-drawer">
-    <div class="drawer-head"><div><h2 id="correctionTitle">Salary-cycle correction</h2><p>This guarded correction changes salary-cycle reporting dates only.</p></div><button type="button" class="detail-back" id="correctionCancel">← Back</button></div>
+    <div class="drawer-head"><div><h2 id="correctionTitle">Salary-cycle correction</h2><p>Correct the stored dates for this salary cycle. Preview the reporting effect before applying.</p></div><button type="button" class="detail-back" id="correctionCancel">← Back</button></div>
     <form id="correctionForm">
-      <div class="form-summary correction-safety"><strong>Other corrections are safely unavailable here.</strong><ul><li>Balance observations are immutable. Record a new balance observation instead.</li><li>Obligation payments will be correctable from Transaction history after the complete payment and cash effect can be reconstructed.</li><li>EF and Goal movements will be correctable after both the fund and KTB effects can be reconstructed.</li><li>Goal configuration is not a transaction correction. Use the existing Savings controls for supported Goal actions.</li></ul></div>
-      <label for="correctionType">Record type</label><select id="correctionType" required></select>
-      <label for="correctionRecord">Record</label><select id="correctionRecord" required><option value="">Choose a record</option></select>
+      <div class="correction-selector" id="correctionTypeWrap"><label for="correctionType">Record type</label><select id="correctionType" required></select></div>
+      <div class="correction-selector" id="correctionRecordWrap"><label for="correctionRecord">Record</label><select id="correctionRecord" required><option value="">Choose a record</option></select></div>
       <div class="movement-summary" id="correctionCurrent">Choose a record to see its current values.</div>
       <div id="correctionFields"></div><div class="form-summary" id="correctionImpact" hidden aria-live="polite"></div>
       <label for="correctionReason">Reason for correction</label><textarea id="correctionReason" required placeholder="What was wrong, and what evidence are you correcting it from?"></textarea>
@@ -29,6 +28,8 @@
   const currentEl=document.getElementById('correctionCurrent');
   const reasonEl=document.getElementById('correctionReason');
   const submit=document.getElementById('correctionSubmit');
+  const typeWrap=document.getElementById('correctionTypeWrap');
+  const recordWrap=document.getElementById('correctionRecordWrap');
   let catalog=null;
   let preview=null;
   let reportingPreview=null;
@@ -39,7 +40,7 @@
   function renderImpact(impact){
     impactEl.hidden=false;
     if(!impact){impactEl.textContent='Review the corrected salary-cycle dates, then apply the audited correction.';return;}
-    const amount=n=>new Intl.NumberFormat(displayLocale('en-TH'),{style:'currency',currency:'THB'}).format(n/100);
+    const amount=n=>fmtMoney(n/100,'THB',true);
     const date=d=>new Intl.DateTimeFormat(displayLocale('en-GB'),{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(d+'T00:00:00Z'));
     const cycleName=(start,totals)=>{const i=totals.findIndex(t=>t.cycleStart===start);return i===totals.length-1?'Current cycle':i===totals.length-2?'Previous cycle':i>=0?'Earlier cycle':'Previously unassigned';};
     const totals=impact.beforeTotals.map((before,i)=>{const after=impact.afterTotals[i];return `<li>${escape(cycleName(before.cycleStart,impact.beforeTotals))}: ${escape(amount(before.amountSatang))} → ${escape(amount(after.amountSatang))}</li>`;}).join('');
@@ -61,15 +62,20 @@
   }
   function closeCorrection(){modal.classList.remove('show');preview=null;invalidateImpact();}
   function resetRecord(){invalidateImpact();correctionRequestId=null;recordEl.innerHTML='<option value="">Choose a record</option>';fieldsEl.innerHTML='';currentEl.textContent='Choose a record to see its current values.';reasonEl.value='';submit.disabled=true;preview=null;}
-  function renderRecordOptions(){
+  async function renderRecordOptions(){
     resetRecord();
     const records=catalog&&catalog.records&&catalog.records[typeEl.value]||[];
     recordEl.innerHTML='<option value="">Choose a record</option>'+records.map(r=>`<option value="${escape(r.entityId)}">${escape(r.label)}</option>`).join('');
+    recordWrap.hidden=records.length===1;
+    if(records.length===1){recordEl.value=String(records[0].entityId);await loadPreview();}
   }
   function renderFields(data){
     preview=data;invalidateImpact();correctionRequestId=null;
     const c=data.current||{};
-    currentEl.innerHTML='<strong>Current stored record</strong><br>'+escape((catalog.records[typeEl.value]||[]).find(r=>String(r.entityId)===String(data.entityId))?.label||data.entityId);
+    const displayDate=(value,year=true)=>value?new Intl.DateTimeFormat(displayLocale('en-GB'),{day:'numeric',month:'short',...(year?{year:'numeric'}:{}),timeZone:'UTC'}).format(new Date(value+'T00:00:00Z')):'Not set';
+    const sameYear=c.current_cycle_start&&c.next_salary_date&&c.current_cycle_start.slice(0,4)===c.next_salary_date.slice(0,4);
+    const range=sameYear?displayDate(c.current_cycle_start,false)+' → '+displayDate(c.next_salary_date,false)+' '+c.next_salary_date.slice(0,4):displayDate(c.current_cycle_start)+' → '+displayDate(c.next_salary_date);
+    currentEl.innerHTML='<span>Current salary cycle</span><strong>'+escape(range)+'</strong>';
     const specs=fieldSpecs[data.entityType]||[];
     fieldsEl.innerHTML=specs.map(([name,label,type,getValue,options])=>{
       const value=getValue(c);
@@ -88,6 +94,8 @@
       if(!result||!result.ok)throw new Error(result&&result.error||'Could not load correction records.');
       catalog=result;
       typeEl.innerHTML='<option value="">Choose a record type</option>'+result.entityTypes.map(t=>`<option value="${escape(t.value)}">${escape(t.label)}</option>`).join('');
+      typeWrap.hidden=result.entityTypes.length===1;
+      if(result.entityTypes.length===1){typeEl.value=String(result.entityTypes[0].value);await renderRecordOptions();}
     }catch(err){
       typeEl.innerHTML='<option value="">Unavailable</option>';
       setCorrectionMsg(err&&err.message||'Could not load correction records.');
@@ -108,7 +116,7 @@
   document.getElementById('correctionCancel').addEventListener('click',closeCorrection);
   document.getElementById('correctionCancelBottom').addEventListener('click',closeCorrection);
   modal.addEventListener('click',e=>{if(e.target===modal)closeCorrection();});
-  typeEl.addEventListener('change',renderRecordOptions);
+  typeEl.addEventListener('change',()=>renderRecordOptions());
   recordEl.addEventListener('change',loadPreview);
   fieldsEl.addEventListener('input',()=>{invalidateImpact();correctionRequestId=null;});
   reasonEl.addEventListener('input',()=>{invalidateImpact();correctionRequestId=null;});

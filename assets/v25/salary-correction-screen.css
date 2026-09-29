@@ -1,0 +1,36 @@
+/* Salary-cycle correction review. */
+#correctionModal .movement-drawer{width:min(540px,100%);max-width:100%;background:#f3f5f8;color:#18283a}
+#correctionModal .drawer-head{background:linear-gradient(135deg,#233b55,#101e2d);border-bottom:1px solid rgba(216,182,95,.35);color:#fff}
+#correctionModal .drawer-head h2{color:#fff;font-size:22px;line-height:1.18}
+#correctionModal .drawer-head p{max-width:350px;margin:6px 0 0;color:#d9e3ee;font-size:12px;line-height:1.45}
+#correctionModal .drawer-head .detail-back{flex:0 0 auto;min-height:42px;padding:8px 12px;border:1px solid rgba(216,182,95,.6);border-radius:11px;background:rgba(255,255,255,.08);color:#f8e9c6;font-weight:800}
+#correctionModal .correction-selector[hidden],#correctionModal #correctionImpact[hidden]{display:none!important}
+#correctionModal #correctionForm{padding:20px 22px 30px}
+#correctionModal #correctionForm label{color:#304a68;font-size:12px;font-weight:800}
+#correctionModal #correctionForm input,#correctionModal #correctionForm select,#correctionModal #correctionForm textarea{min-height:47px;border:1px solid #b9c8d8;border-radius:11px;background:#fff;color:#18283a;font-size:14px}
+#correctionModal #correctionReason{min-height:96px}
+#correctionModal #correctionCurrent{position:relative;overflow:hidden;min-height:116px;margin:0 0 20px;padding:19px 20px;border:1px solid rgba(201,213,226,.25);border-radius:18px;background:linear-gradient(145deg,#819bbc,#526f91 48%,#344d69);color:#fff;box-shadow:inset 0 1px rgba(255,255,255,.25),0 7px 16px rgba(32,48,65,.13)}
+#correctionModal #correctionCurrent::after{content:"";position:absolute;right:-53px;top:-80px;width:180px;height:180px;border:24px solid rgba(255,255,255,.07);border-radius:50%;pointer-events:none}
+#correctionModal #correctionCurrent span{position:relative;display:block;color:#e4edf5;font-size:11px;font-weight:750}
+#correctionModal #correctionCurrent strong{position:relative;display:block;margin-top:12px;color:#fff;font-size:18px;line-height:1.3}
+#correctionModal #correctionFields{display:grid;gap:0}
+#correctionModal #correctionImpact{margin:20px 0 17px;padding:17px 18px;border:1px solid rgba(116,87,31,.34);border-radius:18px;background:linear-gradient(145deg,#e7cd82,#c3a052 52%,#927238);color:#2f2516;font-size:12px;line-height:1.5;box-shadow:inset 0 1px rgba(255,255,255,.3),0 8px 16px rgba(68,51,20,.12)}
+#correctionModal #correctionImpact strong{color:#2f2516;font-size:15px}
+#correctionModal #correctionImpact p{margin:11px 0 4px;color:#2f2516;font-size:12px;line-height:1.45}
+#correctionModal #correctionImpact ul{margin:6px 0 10px;padding-left:19px}
+#correctionModal #correctionImpact li{margin:4px 0}
+#correctionModal .modal-actions{gap:9px;margin-top:22px}
+#correctionModal .modal-actions .btn{min-height:47px;border-radius:11px;font-size:12px;font-weight:800}
+#correctionModal .modal-actions .btn.secondary{border:1px solid #b9c8d8;background:#fff;color:#304a68}
+#correctionModal .modal-actions .btn.primary{border:0;background:linear-gradient(145deg,#7695b8,#58789c 52%,#3e5c7d);color:#fff;box-shadow:0 6px 12px rgba(35,57,80,.15)}
+#correctionModal .modal-actions .btn:disabled{opacity:.5;box-shadow:none}
+#correctionModal :is(button,input,select,textarea):focus-visible{outline:3px solid #d8b65f;outline-offset:2px}
+@media(max-width:760px){
+  #correctionModal{padding:0}
+  #correctionModal .movement-drawer{height:100%;border:0;border-radius:0}
+  #correctionModal .drawer-head{padding:16px 17px}
+  #correctionModal .drawer-head h2{font-size:20px}
+  #correctionModal .drawer-head p{font-size:11px}
+  #correctionModal #correctionForm{padding:17px 17px 30px}
+  #correctionModal .modal-actions{grid-template-columns:1fr}
+}

@@ -14,7 +14,7 @@
 
 .sidebar{background:linear-gradient(180deg,#0b1d3a,#07162c)}
 .nav button.active{box-shadow:inset 3px 0 0 var(--gold)}
-.brand-icon,.topbar-icon,.loading-logo{background:#f8fafc;outline:1px solid rgba(201,166,91,.34)}
+.brand-icon,.topbar-icon,.loading-logo{background:#0b1d3a;outline:1px solid rgba(201,166,91,.34)}
 .btn.primary{box-shadow:0 8px 20px rgba(14,162,154,.2)}
 .eyebrow:before{background:var(--gold)}
 .hero{background:linear-gradient(135deg,#0b1d3a,#123a53)}

@@ -1,0 +1,117 @@
+/* Savings review candidate. All selectors stay within the Savings panel. */
+#savings{width:100%;max-width:760px;color:#18283a}
+#savings>.eyebrow{margin:0 0 10px;color:#52677e;font-size:12px;font-weight:800;letter-spacing:.08em}
+#savings .savings-summary-grid{grid-template-columns:1fr;gap:14px;margin:0}
+#savings .savings-summary{
+  position:relative;isolation:isolate;overflow:hidden;display:flex;flex-direction:column;align-items:flex-start;
+  width:100%;min-height:190px;padding:23px 24px;border-radius:22px;text-align:left;
+  box-shadow:inset 0 1px rgba(255,255,255,.22),inset 0 -2px rgba(20,29,38,.1),0 8px 18px rgba(32,48,65,.17);
+}
+#savings .savings-summary:after,#savings .savings-rule:after{
+  content:"";position:absolute;z-index:-1;right:-86px;top:-90px;width:250px;height:250px;
+  border:32px solid rgba(255,255,255,.08);border-radius:50%;pointer-events:none;
+}
+#savings .savings-summary:first-child{border:1px solid rgba(201,213,226,.2);background:linear-gradient(145deg,#819bbc 0%,#526f91 48%,#344d69 100%);color:#fff}
+#savings .savings-summary:last-child{border:1px solid rgba(185,174,161,.22);background:radial-gradient(circle at 24% 24%,rgba(255,245,235,.1),transparent 42%),linear-gradient(135deg,#8a8078 0%,#6b625d 38%,#565761 72%,#36485f 100%);color:#fff}
+#savings .savings-summary span{color:#f4f5f7;font-size:16px;font-weight:800;line-height:1.3}
+#savings .savings-summary b{margin:23px 0 12px;color:#fff;font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1;letter-spacing:-.035em;word-spacing:.12em}
+#savings .savings-summary small{margin-top:auto;color:#e1e9f1;font-size:13px;line-height:1.4}
+#savings .savings-summary:last-child small{color:#e1d9d1}
+#savings .savings-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;width:100%;margin-top:auto;padding-top:11px;border-top:1px solid rgba(255,255,255,.25)}
+#savings .savings-facts>span{min-width:0;color:#fff;font-size:13px}
+#savings .savings-facts strong{display:block;color:#fff;font-size:14px;font-weight:800;white-space:nowrap}
+#savings .savings-facts small{display:block;margin-top:2px;color:#e1e9f1;font-size:10px;font-weight:650}
+#savings .savings-summary:focus-visible{outline:3px solid #d8b65f;outline-offset:2px}
+#savings .savings-rule{
+  position:relative;isolation:isolate;overflow:hidden;margin-top:14px;padding:16px 20px;
+  border:1px solid rgba(116,87,31,.34);border-radius:18px;
+  background:linear-gradient(145deg,#e7cd82,#c3a052 52%,#927238);color:#2f2516;
+  box-shadow:inset 0 1px rgba(255,255,255,.18),0 6px 14px rgba(68,51,20,.12);
+  font-size:13px;font-weight:650;line-height:1.4;
+}
+
+#savings .detail-view{background:#f3f5f8}
+#savings .detail-head{
+  position:sticky;top:-20px;margin:-20px -20px 14px;padding:18px 20px;
+  border:0;border-radius:0 0 20px 20px;background:linear-gradient(135deg,#233b55,#101e2d);color:#fff;
+  box-shadow:0 6px 15px rgba(20,36,54,.15);
+}
+#savings .detail-head .eyebrow{color:#d8b65f}
+#savings .detail-head h2{color:#fff;font-size:25px}
+#savings .detail-head button{min-height:44px;border:1px solid rgba(216,182,95,.55);background:rgba(255,255,255,.08);color:#f8e9c6}
+
+#savings #efSection{overflow:visible;border:0;background:transparent;box-shadow:none}
+#savings #efSection .ef-action-bar{
+  position:relative;isolation:isolate;overflow:hidden;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0;padding:18px;
+  border:1px solid rgba(201,213,226,.2);border-radius:22px;
+  background:linear-gradient(145deg,#819bbc 0%,#526f91 48%,#344d69 100%);
+  box-shadow:inset 0 1px rgba(255,255,255,.22),inset 0 -2px rgba(20,29,38,.1),0 8px 18px rgba(32,48,65,.17);
+}
+#savings #efSection .ef-action-bar:after{content:"";position:absolute;z-index:-1;right:-86px;top:-90px;width:250px;height:250px;border:32px solid rgba(255,255,255,.08);border-radius:50%;pointer-events:none}
+#savings #efSection .ef-action-hint{grid-column:1/-1;color:#f4f5f7;font-size:13px;font-weight:650;line-height:1.45}
+#savings #efSection .ef-action-bar .btn{width:100%;min-height:46px;margin:0;border:1px solid rgba(255,255,255,.72);border-radius:11px;background:rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:800}
+#savings #efSection .ef-action-bar .btn:focus-visible{outline:3px solid #d8b65f;outline-offset:2px}
+#savings #efSection .ef-action-bar .btn:disabled{opacity:.55}
+#savings #efSection .chart-card{margin-top:14px;padding:16px 12px 13px;border:1px solid #d3dbe4;border-radius:22px;background:#fff;box-shadow:0 7px 18px rgba(32,48,65,.1)}
+#savings #efSection .chart-wrap{height:300px}
+
+#savings #goalsSection{overflow:visible;border:0;background:transparent;box-shadow:none}
+#savings #goalsSection>.panel-head{margin:0 0 10px;padding:0;border:0}
+#savings #goalsSection>.panel-head h3{color:#18283a;font-size:18px;font-weight:800}
+#savings #addGoalToggle{
+  flex:0 0 auto;min-height:46px;padding:9px 14px;border:1px solid rgba(116,87,31,.4);border-radius:12px;
+  background:linear-gradient(145deg,#e7cd82,#c3a052 52%,#ab873f);color:#2f2516!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.38),0 5px 12px rgba(68,51,20,.16);
+  font-size:12px;font-weight:800;white-space:nowrap;
+}
+#savings #addGoalToggle:focus-visible{outline:3px solid #d8b65f;outline-offset:2px}
+#savings #goalsList{gap:11px}
+#savings #goalsList .compact-row{
+  display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding:18px;
+  border:1px solid rgba(185,174,161,.22);border-radius:22px;
+  background:radial-gradient(circle at 24% 24%,rgba(255,245,235,.1),transparent 42%),linear-gradient(135deg,#8a8078 0%,#6b625d 38%,#565761 72%,#36485f 100%);
+  box-shadow:inset 0 1px rgba(255,255,255,.18),0 7px 17px rgba(32,48,65,.14);color:#fff;
+}
+#savings #goalsList .row-title{color:#fff;font-size:15px}
+#savings #goalsList .rank{padding:5px 8px;background:#d6b66a;color:#211b11;font-size:10px}
+#savings #goalsList .row-meta{margin-top:7px;color:#e1d9d1;font-size:11px;line-height:1.4}
+#savings #goalsList .progress{height:9px;margin-top:13px;background:rgba(255,255,255,.23)}
+#savings #goalsList .progress i{background:#dfc16f}
+#savings #goalsList .row-side{display:flex;flex-direction:row;align-items:center;flex-wrap:wrap;gap:7px;text-align:left}
+#savings #goalsList .row-side b{color:#fff;font-size:18px}
+#savings #goalsList .row-side small{flex:1 1 140px;color:#e1d9d1;font-size:11px}
+#savings #goalsList .mini-action{min-height:42px;margin:0;padding:8px 10px;border:1px solid rgba(245,242,237,.7);border-radius:10px;background:rgba(255,255,255,.07);color:#fff;font-size:11px}
+#savings #goalsList .mini-action:disabled{opacity:.45}
+#savings #goalsSection>.panel-head:not(:first-child){margin-top:22px}
+#savings #completedGoalsList{overflow:hidden;border:1px solid #d3dbe4;border-radius:18px;background:#fff;box-shadow:0 5px 14px rgba(32,48,65,.07)}
+#savings #completedGoalsList .compact-row{border-bottom-color:#d3dbe4}
+
+@media(max-width:760px){
+  #savings{height:100%;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;padding:1px 0 10px}
+  #savings::-webkit-scrollbar{display:none}
+  #savings>.eyebrow{margin-bottom:8px;font-size:10px}
+  #savings .savings-summary-grid{gap:11px}
+  #savings .savings-summary{min-height:172px;padding:18px}
+  #savings .savings-summary span{font-size:14px}
+  #savings .savings-summary b{margin:20px 0 8px;font-size:clamp(29px,8.5vw,38px)}
+  #savings .savings-summary small{font-size:11px}
+  #savings .savings-facts{gap:8px;padding-top:9px}
+  #savings .savings-facts strong{font-size:13px}
+  #savings .savings-facts small{font-size:10px}
+  #savings .savings-rule{margin-top:11px;padding:14px 16px;font-size:11px}
+  #savings .detail-view{padding:12px 12px 92px}
+  #savings .detail-head{top:-12px;margin:-12px -12px 12px;padding:13px 12px}
+  #savings .detail-head h2{font-size:20px}
+  #savings .detail-head button{white-space:nowrap}
+  #savings #efSection .ef-action-bar{padding:15px;gap:8px}
+  #savings #efSection .ef-action-hint{font-size:11px}
+  #savings #efSection .ef-action-bar .btn{font-size:11px}
+  #savings #efSection .chart-wrap{height:250px}
+  #savings #goalsList .compact-row{padding:16px}
+  #savings #goalsSection>.panel-head{flex-wrap:wrap;gap:8px}
+}
+
+@media(max-width:360px){
+  #savings .savings-summary b{font-size:29px}
+  #savings #efSection .ef-action-bar .btn{font-size:10px}
+}

@@ -231,8 +231,10 @@ async function commitOperation(operation){
   try{
     requestId=requestId||crypto.randomUUID();
     await apiCall('transactionManagementCommit',{logicalTransactionId:selected.logicalTransactionId,operation,requestId,baseRevision:preview.baseRevision,terminalVersionId:preview.terminalVersionId,semanticPayload:semantics(operation)});
-    await load(false);message('Transaction updated from the authoritative server.','success');
-  }catch(e){button.disabled=false;message('The change was not confirmed. '+e.message,'error')}
+  }catch(e){button.disabled=false;message('The change was not confirmed. '+e.message,'error');return}
+  const [dashboard,history]=await Promise.allSettled([refreshLiveData(),load(false)]);
+  if(dashboard.status==='fulfilled'&&history.status==='fulfilled')message('Transaction updated from the authoritative server.','success');
+  else message('Transaction saved, but the page did not fully refresh. Reload the page to see current data.','error');
 }
 async function open(nextMode){
   mode=nextMode;items=[];selected=null;leaveManagementView();openDetail('historyDetails',nextMode==='transactions'?$('transactionHistoryBtn'):$('balanceHistoryBtn'));

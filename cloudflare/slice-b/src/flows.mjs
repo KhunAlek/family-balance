@@ -1,4 +1,5 @@
 import { isLastDayOfMonth, iterateDatesExclusiveInclusive, isoDate, monthPeriod } from './dates.mjs';
+import { activeObligationPayments } from './obligations.mjs';
 
 const round2 = value => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 const thb = satang => Number(satang || 0) / 100;
@@ -29,7 +30,7 @@ export function sumLedgerFlows(entries, fromDate, toDate) {
 export function sumScheduledFlows(snapshot, fromDate, toDate) {
   const obligations = snapshot.obligations || [];
   const income = snapshot.incomeDefinitions || [];
-  const payments = snapshot.obligationPayments || [];
+  const payments = activeObligationPayments(snapshot);
   const cutoverPeriod = String(snapshot.config?.obligation_payments_cutover_period || '').slice(0, 7);
   const salaryCutoverDate = isoDate(snapshot.salaryCycle?.salary_receipt_cutover_date || snapshot.config?.salary_receipt_cutover_date);
   const migrationPaidPeriod = salaryCutoverDate ? salaryCutoverDate.slice(0, 7) : '';

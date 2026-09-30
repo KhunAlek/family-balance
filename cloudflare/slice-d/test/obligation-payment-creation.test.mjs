@@ -46,6 +46,45 @@ test('missing request ID and forced failure leave managed obligation state uncha
 });
 test('occurrence status is derived from terminal sums for unpaid, partial, paid, and overpaid amounts',()=>{
   const base={salaryCycle:{current_cycle_start:'2026-09-01',next_salary_date:'2026-10-01'},config:{},fixedExpenseEnabled:true,obligations:[{name:'Rent',expected_amount_satang:10000,amount_type:'Fixed'}],obligationOccurrences:[{occurrence_id:'o',obligation_name:'Rent',due_date:'2026-09-15',expected_amount_satang:10000,amount_type:'Fixed',cycle_start:'2026-09-01'}],logicalTransactions:[],logicalTransactionVersions:[],logicalTransactionComponents:[]};
-  const state=amount=>remainingFixedObligations({...base,obligationPayments:amount===0?[]:[{payment_id:'p',obligation_name:'Rent',occurrence_due_date:'2026-09-15',payment_date:'2026-09-10',actual_amount_satang:amount,payment_status:'Final'}]},'2026-09-10').items[0];
+  const state=amount=>remainingFixedObligations({...base,obligationPayments:amount===0?[]:[{payment_id:'p',obligation_name:'Rent',occurrence_due_date:'2026-09-15',payment_date:'2026-09-10',actual_amount_satang:amount,payment_status:'Partial'}]},'2026-09-10').items[0];
   assert.deepEqual([state(0).paidAmount,state(5000).status,state(10000).status,state(12000).status,state(12000).remainingAmount],[0,'Partially paid','Paid','Paid',0]);
+});
+
+test('fixed rent finalization closes only the commitment and preserves the 12000 THB cash payment',async t=>{
+  const {db,raw}=createSeededSqliteD1();t.after(()=>raw.close());for(const name of migrations)raw.exec(fs.readFileSync(new URL(`../migrations/${name}`,import.meta.url),'utf8'));
+  raw.exec("UPDATE salary_cycle_state SET current_cycle_start='2026-09-01',next_salary_date='2026-10-01'; UPDATE balance_history SET alex_balance_satang=2000000,olga_balance_satang=2000000 WHERE alex_balance_satang IS NOT NULL AND olga_balance_satang IS NOT NULL; INSERT INTO obligation_occurrences(occurrence_id,household_id,obligation_name,due_date,expected_amount_satang,amount_type,cycle_start) VALUES('rent-final','family','Rent','2026-09-15',1500000,'Fixed','2026-09-01')");
+  const base={householdId:'family',actorEmail:'alex@example.com',action:'obligationPayment',nowIso:'2026-09-10T05:00:00.000Z'},payload={requestId:'rent-final-request',obligationName:'Rent',occurrenceDueDate:'2026-09-15',date:'2026-09-10',sourceAccount:'Alex',amount:12000,paymentStatus:'Final',note:'September rent'};
+  const save=value=>executeObligationPayment(db,{...base,payload:value});
+  const result=await save(payload),replay=await save(payload);
+  assert.deepEqual(replay,result);
+  assert.equal(result.paymentStatus,'Final');
+  const payment=raw.prepare('SELECT actual_amount_satang,payment_status FROM obligation_payments WHERE payment_id=?').get(`${result.writeToken}:obligation`);
+  assert.equal(payment.actual_amount_satang,1200000);assert.equal(payment.payment_status,'Final');
+  const snapshot=await import('../../slice-b/src/d1-repository.mjs').then(m=>m.loadFinancialSnapshot(db));
+  const rent=remainingFixedObligations(snapshot,'2026-09-10').items.find(x=>x.occurrenceKey==='Rent|2026-09-15');
+  assert.deepEqual({paid:rent.paidAmount,remaining:rent.remainingAmount,final:rent.isFinalPayment},{paid:12000,remaining:0,final:true});
+  assert.equal(raw.prepare('SELECT count(*) n FROM obligation_payments WHERE occurrence_id=?').get('rent-final').n,1);
+  await assert.rejects(save({...payload,requestId:'rent-again',amount:1}),/already closed/);
+  assert.equal(raw.prepare('SELECT count(*) n FROM obligation_payments WHERE occurrence_id=?').get('rent-final').n,1);
+});
+
+test('partial rent leaves a 3000 THB commitment; an explicit final 1 THB payment closes it without inventing cash',async t=>{
+  const {db,raw}=createSeededSqliteD1();t.after(()=>raw.close());for(const name of migrations)raw.exec(fs.readFileSync(new URL(`../migrations/${name}`,import.meta.url),'utf8'));
+  raw.exec("UPDATE salary_cycle_state SET current_cycle_start='2026-09-01',next_salary_date='2026-10-01'; UPDATE balance_history SET alex_balance_satang=2000000,olga_balance_satang=2000000 WHERE alex_balance_satang IS NOT NULL AND olga_balance_satang IS NOT NULL; INSERT INTO obligation_occurrences(occurrence_id,household_id,obligation_name,due_date,expected_amount_satang,amount_type,cycle_start) VALUES('rent-partial','family','Rent','2026-09-15',1500000,'Fixed','2026-09-01')");
+  const base={householdId:'family',actorEmail:'alex@example.com',action:'obligationPayment',nowIso:'2026-09-10T05:00:00.000Z'},details={obligationName:'Rent',occurrenceDueDate:'2026-09-15',date:'2026-09-10',sourceAccount:'Alex',note:''},save=payload=>executeObligationPayment(db,{...base,payload:{...details,...payload}});
+  await save({requestId:'rent-partial-request',amount:12000,paymentStatus:'Partial'});
+  let snapshot=await import('../../slice-b/src/d1-repository.mjs').then(m=>m.loadFinancialSnapshot(db));
+  assert.equal(remainingFixedObligations(snapshot,'2026-09-10').items.find(x=>x.name==='Rent').remainingAmount,3000);
+  await assert.rejects(save({requestId:'rent-bad-status',amount:1,paymentStatus:'Almost Final'}),/Choose Final or Partial/);
+  await save({requestId:'rent-last-baht',amount:1,paymentStatus:'Final'});
+  snapshot=await import('../../slice-b/src/d1-repository.mjs').then(m=>m.loadFinancialSnapshot(db));
+  const rent=remainingFixedObligations(snapshot,'2026-09-10').items.find(x=>x.name==='Rent');
+  assert.deepEqual({paid:rent.paidAmount,remaining:rent.remainingAmount},{paid:12001,remaining:0});
+  assert.deepEqual(raw.prepare("SELECT actual_amount_satang,payment_status FROM obligation_payments WHERE occurrence_id='rent-partial' ORDER BY actual_amount_satang DESC").all().map(x=>[x.actual_amount_satang,x.payment_status]),[[1200000,'Partial'],[100,'Final']]);
+});
+
+test('a later final payment closes the obligation only as of its payment date',()=>{
+  const base={salaryCycle:{current_cycle_start:'2026-09-01',next_salary_date:'2026-10-01'},config:{},fixedExpenseEnabled:true,obligations:[{name:'Rent',expected_amount_satang:1500000,amount_type:'Fixed'}],obligationOccurrences:[{occurrence_id:'rent',obligation_name:'Rent',due_date:'2026-09-15',expected_amount_satang:1500000,amount_type:'Fixed',cycle_start:'2026-09-01'}],logicalTransactions:[],logicalTransactionVersions:[],logicalTransactionComponents:[],obligationPayments:[{payment_id:'partial',obligation_name:'Rent',occurrence_id:'rent',occurrence_due_date:'2026-09-15',payment_date:'2026-09-10',actual_amount_satang:1200000,payment_status:'Partial'},{payment_id:'final',obligation_name:'Rent',occurrence_id:'rent',occurrence_due_date:'2026-09-15',payment_date:'2026-09-11',actual_amount_satang:100,payment_status:'Final'}]};
+  assert.equal(remainingFixedObligations(base,'2026-09-10').items[0].remainingAmount,3000);
+  assert.equal(remainingFixedObligations(base,'2026-09-11').items[0].remainingAmount,0);
 });

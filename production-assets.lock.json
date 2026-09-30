@@ -15,8 +15,8 @@
     },
     {
       "path": "assets/v24/v24_1_app1.js",
-      "bytes": 20665,
-      "sha256": "3af0230b094c8f6c5a6404488125353bf38dcfbdff4ef22415a2e36de35470ec",
+      "bytes": 20795,
+      "sha256": "88058d977a5d0faa075acbd9cd4eed40d497568fbcf960bedae98c05a59b811d",
       "mime": "application/javascript"
     },
     {
@@ -81,8 +81,8 @@
     },
     {
       "path": "assets/v24/v24_1_i18n.js",
-      "bytes": 72732,
-      "sha256": "93839a1d93bbfd403de7fa807bb1c0f7d57fdee26cdb2c50a7ed5f16a3db2b54",
+      "bytes": 72918,
+      "sha256": "123e826d71a56c4ca1793282590c57e8c7835eca015899ccc094304170dad420",
       "mime": "application/javascript"
     },
     {
@@ -117,8 +117,8 @@
     },
     {
       "path": "assets/v24/v24_1_obligation_calendar.js",
-      "bytes": 1263,
-      "sha256": "b52bd493e1c967f8a9024aff94ef997713c326783a192064c5d1a737639577bd",
+      "bytes": 2206,
+      "sha256": "81203cf22b659bda23094ca00e7e90cc57f1149de634a420cd836989928bec27",
       "mime": "application/javascript"
     },
     {
@@ -393,8 +393,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 36378,
-      "sha256": "715699dbb295fa5ea000faeafd5df808181b39367a03110aa8d6179a92a78d4d",
+      "bytes": 36396,
+      "sha256": "73d7b53c0a40dc6d7aa6561fcbb676231c9c3e4dcf6d0f1d95b5d7c01bde880a",
       "mime": "text/html"
     },
     {

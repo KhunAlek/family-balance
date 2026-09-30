@@ -47,15 +47,17 @@ export function enumerateObligationOccurrences(obligations, cycleStart, nextSala
   return occurrences.sort((a, b) => a.dueDate - b.dueDate || a.name.localeCompare(b.name));
 }
 
-function buildPaymentIndex(snapshot, asOfDate) {
-  const index = new Map();
-  const limit = isoDate(asOfDate);
+export function activeObligationPayments(snapshot) {
   const versions=new Map((snapshot.logicalTransactionVersions||[]).map(row=>[String(row.version_id),row]));
   const claimed=new Set(),terminal=new Set();
   for(const component of snapshot.logicalTransactionComponents||[])if(component.component_kind==='obligation_payment'){claimed.add(String(component.component_id));const tx=(snapshot.logicalTransactions||[]).find(row=>String(row.terminal_version_id)===String(component.version_id));if(tx?.lifecycle_status==='active'&&versions.get(String(component.version_id))?.kind==='obligation_payment')terminal.add(String(component.component_id));}
-  for (const payment of snapshot.obligationPayments || []) {
-    if(claimed.has(String(payment.payment_id))&&!terminal.has(String(payment.payment_id)))continue;
-    const managed=claimed.has(String(payment.payment_id));
+  return (snapshot.obligationPayments||[]).filter(payment=>!claimed.has(String(payment.payment_id))||terminal.has(String(payment.payment_id)));
+}
+
+function buildPaymentIndex(snapshot, asOfDate) {
+  const index = new Map();
+  const limit = isoDate(asOfDate);
+  for (const payment of activeObligationPayments(snapshot)) {
     const paymentDate = isoDate(payment.payment_date);
     if (!paymentDate || (limit && paymentDate > limit)) continue;
     const name = String(payment.obligation_name || '').trim();
@@ -64,7 +66,11 @@ function buildPaymentIndex(snapshot, asOfDate) {
     const key = `${name}|${dueDate}`;
     const entry = index.get(key) || { paid: 0 };
     entry.paid += thb(payment.actual_amount_satang);
-    if(!managed){const status=String(payment.payment_status||'').trim().toLowerCase(),obligation=(snapshot.obligations||[]).find(item=>item.name===name),variable=String(obligation?.amount_type||'').toLowerCase()==='variable';if(status==='final'||(!status&&variable))entry.legacyFinal=true;}
+    const status=String(payment.payment_status||'').trim().toLowerCase();
+    const occurrence=(snapshot.obligationOccurrences||[]).find(item=>String(item.occurrence_id)===String(payment.occurrence_id));
+    const obligation=(snapshot.obligations||[]).find(item=>item.name===name);
+    const variable=String(occurrence?.amount_type||obligation?.amount_type||'').toLowerCase()==='variable';
+    if(status==='final'||(!status&&variable))entry.final=true;
     index.set(key, entry);
   }
   return index;
@@ -99,8 +105,8 @@ export function remainingFixedObligations(snapshot, onDate, paymentsAsOfDate) {
       paid = expected;
       legacyPaid = true;
     }
-    const finalVariable=amountType==='Variable'&&payment.legacyFinal===true;
-    const remaining = finalVariable?0:round2(Math.max(expected - paid, 0));
+    const finalPayment=payment.final===true;
+    const remaining = finalPayment?0:round2(Math.max(expected - paid, 0));
     let status;
     if (remaining <= 0) status = 'Paid';
     else if (paid > 0) status = 'Partially paid';
@@ -113,8 +119,8 @@ export function remainingFixedObligations(snapshot, onDate, paymentsAsOfDate) {
       paidAmount: round2(paid),
       remainingAmount: remaining,
       amountType,
-      isFinalPayment: finalVariable||remaining<=0,
-      estimateDifference: amountType === 'Variable' && (finalVariable||remaining<=0) ? round2(expected - paid) : null,
+      isFinalPayment: finalPayment||remaining<=0,
+      estimateDifference: amountType === 'Variable' && (finalPayment||remaining<=0) ? round2(expected - paid) : null,
       dueType: obligation.due_type,
       dueDay: obligation.due_day,
       dueWeekday: obligation.due_weekday,

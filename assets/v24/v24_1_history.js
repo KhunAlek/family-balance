@@ -14,6 +14,7 @@ function impactConsequences(impact){
   const result=rows.map(([account,amount])=>money(Math.abs(amount))+' '+(amount>0?'enters ':'leaves ')+account);
   const combined=Number.isFinite(Number(impact?.combinedHouseholdChangeSatang))?Number(impact.combinedHouseholdChangeSatang):Number(impact?.combinedCashChangeSatang);
   if(Number.isFinite(combined))result.push(combined===0?'Total household cash does not change.':money(Math.abs(combined))+(combined>0?' increases':' decreases')+' total household cash.');
+  if(impact?.before?.paymentStatus!==impact?.after?.paymentStatus&&impact?.after?.paymentStatus)result.push(impact.after.paymentStatus==='Final'?'This bill will be closed.':'This bill will remain open until fully paid.');
   return result.length?result:['Account balances do not change.'];
 }
 function message(value,type=''){const el=$('historyMessage');el.textContent=value||'';el.className='form-msg'+(type?' '+type:'')}
@@ -94,13 +95,14 @@ function renderTransactionDetail(){
   const t=selected,actions=t.permittedActions||{};
   const buttons=[['correct','corrected','Correct transaction'],['delete','deleted','Delete transaction'],['restore','restored','Restore transaction'],['undo','undone','Undo']].filter(([key])=>actions[key]).map(([,op,name])=>'<button class="btn secondary" type="button" data-management="'+op+'">'+name+'</button>').join('');
   const refusals=(actions.refusalCodes||[]).map(refusalMessage);
-  $('historyRecordDetail').innerHTML='<h3>'+esc(label(t))+'</h3><p>'+esc(t.businessDate)+' · '+esc(String(t.kind).replaceAll('_',' '))+' · '+esc(money(t.totalSatang))+(t.lifecycle==='deleted'?' · Deleted':'')+'</p><div class="history-consequences"><b>Recorded transaction</b><p>'+esc(recordedConsequence(t))+'</p></div><div class="history-actions">'+buttons+'</div>'+(buttons?'':'<div class="history-view-only">'+refusals.map(value=>'<p>'+esc(value)+'</p>').join('')+'</div>')+auditHistory(t)+'<div id="historyManagement"></div>';
+  $('historyRecordDetail').innerHTML='<h3>'+esc(label(t))+'</h3><p>'+esc(t.businessDate)+' · '+esc(String(t.kind).replaceAll('_',' '))+' · '+esc(money(t.totalSatang))+(t.kind==='obligation_payment'?' · '+esc(t.paymentStatus||'Partial')+' payment':'')+(t.lifecycle==='deleted'?' · Deleted':'')+'</p><div class="history-consequences"><b>Recorded transaction</b><p>'+esc(recordedConsequence(t))+'</p></div><div class="history-actions">'+buttons+'</div>'+(buttons?'':'<div class="history-view-only">'+refusals.map(value=>'<p>'+esc(value)+'</p>').join('')+'</div>')+auditHistory(t)+'<div id="historyManagement"></div>';
   $('historyRecordDetail').querySelectorAll('[data-management]').forEach(button=>button.onclick=()=>managementForm(button.dataset.management,button));
 }
 
 function correctionChoices(t){
   const choices=[['date','Date'],['amount','Amount'],['account','Account']];
   if(t.kind==='one_off_payment')choices.push(['category','Category']);
+  if(t.kind==='obligation_payment')choices.push(['paymentStatus','Payment type']);
   if(['one_off_payment','obligation_payment','goal_movement'].includes(t.kind))choices.push(['description','Description']);
   choices.push(['more','More than one detail']);
   return choices;
@@ -149,6 +151,7 @@ function correctionFields(choice){
   if(t.kind==='obligation_payment'){
     if(all)html+='<div class="history-fixed-value"><span>Obligation</span><b>'+esc(t.payee||'')+'</b><small>Due '+esc(t.occurrence?.dueDate||'')+'</small></div>';
     if(show('description'))html+='<label>Note<input id="hmNote" value="'+esc(t.description||'')+'"></label>';
+    if(show('paymentStatus'))html+='<label>Payment type<select id="hmPaymentStatus"><option value="Final"'+(t.paymentStatus==='Final'?' selected':'')+'>Final payment — Close this bill</option><option value="Partial"'+(t.paymentStatus!=='Final'?' selected':'')+'>Partial payment — keep it open</option></select></label>';
   }
   if(t.kind==='ktb_transfer'){
     if(show('amount'))html+='<label>Amount<input id="hmAmount" type="number" min="0.01" step="0.01" value="'+(Math.abs(t.totalSatang)/100).toFixed(2)+'"></label>';
@@ -206,7 +209,7 @@ function semantics(operation){
   if(t.kind==='one_off_payment')Object.assign(result,{categoryId:$('hmCategory')?.value??t.category?.id??null,description:$('hmDescription')?.value??t.description??'',allocations});
   if(t.kind==='other_income_receipt')Object.assign(result,{otherIncomeSourceId:t.sourceId,allocations});
   if(t.kind==='salary_receipt')Object.assign(result,{source:$('hmSource')?.value??t.source,allocations});
-  if(t.kind==='obligation_payment')Object.assign(result,{occurrenceId:t.occurrence?.id,allocations,note:$('hmNote')?.value??t.description??''});
+  if(t.kind==='obligation_payment')Object.assign(result,{occurrenceId:t.occurrence?.id,allocations,note:$('hmNote')?.value??t.description??'',paymentStatus:$('hmPaymentStatus')?.value??t.paymentStatus??'Partial'});
   if(t.kind==='ktb_transfer')Object.assign(result,{amountSatang:$('hmAmount')?satang($('hmAmount').value):Math.abs(Number(t.totalSatang)),sourceAccount:accountName($('historyManagement').querySelector('[data-index="source"]')?.value||t.source),destinationAccount:accountName($('historyManagement').querySelector('[data-index="destination"]')?.value||t.payee)});
   if(t.kind==='ef_movement'||t.kind==='goal_movement')Object.assign(result,{amountSatang:$('hmAmount')?satang($('hmAmount').value):Math.abs(Number(t.totalSatang)),direction:$('hmDirection')?.value||t.fund?.direction,ktbAccount:accountName($('historyManagement').querySelector('[data-index="fund"]')?.value||t.allocations[0]?.account),...(t.kind==='goal_movement'?{goalName:$('hmGoal')?.value||t.fund?.goalName,withdrawalPurpose:$('hmPurpose')?.value||t.description||null}:{})});
   return result;

@@ -3,7 +3,7 @@ import { bangkokBusinessDate, compareDates, isoDate, monthPeriod } from '../../s
 import { historyRowOrder, latestUsableBalance, manualReconciliationFreshness } from '../../slice-b/src/balances.mjs';
 import { buildPlanningState, goalCommitmentState } from '../../slice-b/src/planning.mjs';
 import { accountLedgerBalance } from '../../slice-b/src/ef-goals.mjs';
-import { enumerateObligationOccurrences } from '../../slice-b/src/obligations.mjs';
+import { enumerateObligationOccurrences, remainingFixedObligations } from '../../slice-b/src/obligations.mjs';
 import {fixedOccurrenceDates} from './fixed-expenses.mjs';
 import { planCorrection } from './correction.mjs';
 import { planSalaryReceiptTransition } from './salary-cycle.mjs';
@@ -277,8 +277,13 @@ function planObligationPayment(ctx) {
   const movement=validateMovementDate(ctx.payload.date,ctx.snapshot,ctx.nowIso);let dueDate=isoDate(ctx.payload.occurrenceDueDate);
   if(!dueDate){const occurrences=ctx.snapshot.fixedExpenseEnabled?(ctx.snapshot.obligationOccurrences||[]).filter(item=>item.cycle_start===isoDate(ctx.snapshot.salaryCycle?.current_cycle_start)&&item.obligation_name===name).map(item=>({name:item.obligation_name,dueDate:item.due_date})):enumerateObligationOccurrences(ctx.snapshot.obligations||[],ctx.snapshot.salaryCycle?.current_cycle_start,ctx.snapshot.salaryCycle?.next_salary_date).filter(item=>item.name===name);if(occurrences.length===1)dueDate=isoDate(occurrences[0].dueDate)}
   if(!dueDate||!occurrenceExists(ctx.snapshot,name,dueDate))fail('Choose the obligation occurrence being paid.');
+  const current=remainingFixedObligations(ctx.snapshot,movement.date,movement.date).items.find(item=>item.occurrenceKey===`${name}|${dueDate}`);
+  if(!current||(current.remainingAmount<=0&&!current.legacyPaid))fail('This obligation occurrence is already closed.');
   let alex=movement.latest.alex,olga=movement.latest.olga;for(const allocation of allocations){if(allocation.account==='Alex'){if(allocation.amount>alex+0.001)fail('Transfer amount exceeds Alex KTB balance.');alex=round2(alex-allocation.amount)}else{if(allocation.amount>olga+0.001)fail('Transfer amount exceeds Olga KTB balance.');olga=round2(olga-allocation.amount)}}
-  const amountType=String(obligation.amount_type||'').toLowerCase()==='variable'?'Variable':'Fixed',paymentStatus=amountType==='Variable'?(String(ctx.payload.paymentStatus||'Final').trim().toLowerCase()==='partial'?'Partial':'Final'):'Partial',expected=fromSatang(obligation.expected_amount_satang);
+  const amountType=String(current.amountType),submittedStatus=ctx.payload.paymentStatus;
+  const normalizedStatus=submittedStatus==null?null:String(submittedStatus).trim().toLowerCase();
+  if(normalizedStatus!==null&&!['final','partial'].includes(normalizedStatus))fail('Choose Final or Partial payment.');
+  const paymentStatus=normalizedStatus===null?(amountType==='Variable'?'Final':'Partial'):normalizedStatus==='final'?'Final':'Partial',expected=fromSatang(obligation.expected_amount_satang);
   const occurrence=(ctx.snapshot.obligationOccurrences||[]).find(x=>x.cycle_start===isoDate(ctx.snapshot.salaryCycle?.current_cycle_start)&&x.obligation_name===name&&x.due_date===dueDate);
   const insert=ctx.snapshot.fixedExpenseEnabled?statement(`INSERT INTO obligation_payments(payment_id,household_id,obligation_name,period,payment_date,occurrence_due_date,expected_amount_satang,actual_amount_satang,paid_from,balance_adjusted,payment_status,note,occurrence_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`,`${ctx.writeToken}:obligation`,ctx.householdId,name,monthPeriod(dueDate),movement.date,dueDate,toSatang(expected),toSatang(amount),source,1,paymentStatus,String(ctx.payload.note||'').trim()||null,occurrence.occurrence_id):statement(`INSERT INTO obligation_payments(payment_id,household_id,obligation_name,period,payment_date,occurrence_due_date,expected_amount_satang,actual_amount_satang,paid_from,balance_adjusted,payment_status,note) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,`${ctx.writeToken}:obligation`,ctx.householdId,name,monthPeriod(dueDate),movement.date,dueDate,toSatang(expected),toSatang(amount),source,1,paymentStatus,String(ctx.payload.note||'').trim()||null);
   const statements=[insert,balanceInsert(ctx,1,{date:movement.date,alex,olga,oneOffName:`Fixed obligation: ${name}`,oneOffAmount:amount,oneOffAccount:source})];

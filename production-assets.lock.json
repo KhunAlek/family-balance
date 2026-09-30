@@ -254,6 +254,12 @@
       "mime": "text/css"
     },
     {
+      "path": "assets/v25/desktop-position.css",
+      "bytes": 7796,
+      "sha256": "6833607b11b9e64e7432f898c149b0b377e1ad22661a2da00def75268cfc7319",
+      "mime": "text/css"
+    },
+    {
       "path": "assets/v25/ef-transfer-screen.css",
       "bytes": 3491,
       "sha256": "a61ddb9bbca0dd80a782fdeb53705da029604369e15c142da387e0a87a271d5e",
@@ -393,8 +399,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 36419,
-      "sha256": "800eafbe2a7a30cb0d30930c16abbab64cf2402c0d112a5e88e77f4b4490d6cc",
+      "bytes": 36502,
+      "sha256": "8a903951e8d74d886625eef38da451a1cfdceffc2a00a4ca9738c16b086975c0",
       "mime": "text/html"
     },
     {
@@ -448,6 +454,7 @@
     "assets/v25/category-management-screen.css",
     "assets/v25/commitment-forms-screen.css",
     "assets/v25/commitments-screen.css",
+    "assets/v25/desktop-position.css",
     "assets/v25/ef-transfer-screen.css",
     "assets/v25/ef-withdrawal-screen.css",
     "assets/v25/entry-states-screen.css",

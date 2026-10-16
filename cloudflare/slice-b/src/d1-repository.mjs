@@ -56,6 +56,7 @@ export async function loadFinancialSnapshot(db, householdId = 'family') {
     ...(schemaNames.has('ktb_transfers')?{ktbTransferManagementEnabled:true}:{}),
     ...(schemaNames.has('fund_movements')?{fundMovementManagementEnabled:true}:{}),
     ...(schemaNames.has('salary_receipt_parents')?{salaryReceiptManagementEnabled:true}:{}),
+    ...(identityEnabled?{oneOffManagementEnabled:true}:{}),
     logicalTransactions:transactions,logicalTransactionVersions:versions,logicalTransactionComponents:components
   };
 }

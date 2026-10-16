@@ -44,6 +44,17 @@ export async function executeTypedPayment(db,options){
   const typed=[statement('INSERT INTO one_off_payments(one_off_payment_id,household_id,business_date,category_id,description,amount_satang,paid_from_account,created_at,request_id) VALUES(?,?,?,?,?,?,?,?,?)',id,ctx.householdId,semantic.date,semantic.categoryId,semantic.description,semantic.amountSatang,semantic.paidFromAccount,ctx.nowIso,ctx.payload.requestId),statement('INSERT INTO one_off_payment_allocations VALUES(?,?,?)',id,semantic.paidFromAccount,semantic.amountSatang)];
   // Single-account write has exactly one append-only balance effect.
   plan.statements=[...typed,...plan.statements,statement("UPDATE balance_history SET one_off_payment_id=? WHERE household_id=? AND source_sheet='Cloudflare' AND source_row=?",id,ctx.householdId,ctx.nextRevision*100+1)];
+  if(ctx.snapshot.oneOffManagementEnabled){
+   if(!ctx.actorEmail)fail('Authenticated actor identity is required.');
+   const logicalId=ctx.writeToken+':one-off-transaction',versionId=ctx.writeToken+':one-off-version';
+   plan.statements.push(statement('INSERT INTO logical_transactions(logical_transaction_id,household_id,lifecycle_status,created_actor_email,created_at_utc,creation_request_id,creation_write_token,creation_committed_revision) VALUES(?,?,?,?,?,?,?,?)',logicalId,ctx.householdId,'active',ctx.actorEmail,ctx.nowIso,ctx.payload.requestId,ctx.writeToken,ctx.nextRevision));
+   plan.statements.push(statement("INSERT INTO logical_transaction_versions(version_id,logical_transaction_id,version_number,kind,business_date,committed_revision,operation_type,management_operation_id) VALUES(?,?,1,'one_off_payment',?,?,'created',NULL)",versionId,logicalId,semantic.date,ctx.nextRevision));
+   plan.statements.push(statement("INSERT INTO logical_transaction_components VALUES(?,'one_off_payment',?,'primary')",versionId,id));
+   plan.statements.push(statement("INSERT INTO logical_transaction_components VALUES(?,'one_off_payment_allocation',?,'allocation')",versionId,id+':'+semantic.paidFromAccount));
+   plan.statements.push(statement("INSERT INTO logical_transaction_components SELECT ?,'balance_effect',CAST(balance_row_id AS TEXT),'cash_effect' FROM balance_history WHERE household_id=? AND one_off_payment_id=?",versionId,ctx.householdId,id));
+   plan.statements.push(statement('UPDATE logical_transactions SET terminal_version_id=? WHERE logical_transaction_id=?',versionId,logicalId));
+   plan.response.logicalTransactionId=logicalId;
+  }
   plan.response={...plan.response,paymentId:id,businessDate:semantic.date,balanceEffectDate:prepared.today};
   return plan;
  });

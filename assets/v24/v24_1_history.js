@@ -85,7 +85,7 @@ function show(item){
 }
 
 function refusalMessage(code){
-  if(code==='MANAGEMENT_NOT_ENABLED_STEP_7')return 'This historical transaction is view-only because it was recorded before safe transaction management was available. Its financial history remains unchanged.';
+  if(code==='MANAGEMENT_NOT_ENABLED_STEP_7')return 'This transaction is view-only because the records required for safe editing have not been verified.';
   if(code==='AMBIGUOUS_LEGACY_ITEM')return 'This historical item is view-only because the application cannot prove all records that belong to the same transaction.';
   const known={DEPENDENT_ACTIVITY_EXISTS:'Later household activity prevents a safe undo.',UNDO_WINDOW_EXPIRED:'The safe ten-minute undo window has ended.',ACTIVE_TRANSACTION_REQUIRED:'Only an active transaction can be changed.',DELETED_TRANSACTION_REQUIRED:'Only a deleted transaction can be restored.',REPLACEMENT_NOT_ENABLED:'Transaction replacement is not available in this workflow.'};
   return known[code]||'This transaction is safely view-only. Its recorded financial history remains unchanged.';

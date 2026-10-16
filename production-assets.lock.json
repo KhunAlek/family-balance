@@ -75,14 +75,14 @@
     },
     {
       "path": "assets/v24/v24_1_history.js",
-      "bytes": 28095,
-      "sha256": "7bb23d590c6597aa2ddf131e6c73f79509a8e5b9b73b4effd67233c5fbc18dac",
+      "bytes": 28039,
+      "sha256": "a3ec773e40d84f1e1f49c3e2ff5bfdffdf18ffd009dfbe5fe7af983469bdb8f5",
       "mime": "application/javascript"
     },
     {
       "path": "assets/v24/v24_1_i18n.js",
-      "bytes": 73862,
-      "sha256": "2b5a890cc1a348cba358194f42a821cb98d59783ea2dcbe6051179cf83de71c7",
+      "bytes": 74186,
+      "sha256": "7bd43f35781d03dba148aa5cd2396c358e661c4b4b1f8bee88bc42afffd950fd",
       "mime": "application/javascript"
     },
     {
@@ -399,8 +399,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 36496,
-      "sha256": "76a4b95e0a22190b1a5da53e536deccaf25b23b60233095e78544b6b6ed8c441",
+      "bytes": 36490,
+      "sha256": "68e7086ded2c2a5bc8782441779ab53e6851c4404f66abe98c8c63dc32a58898",
       "mime": "text/html"
     },
     {

@@ -8,9 +8,10 @@ const js=fs.readFileSync(new URL('assets/v24/v24_1_history.js',root),'utf8');
 const css=fs.readFileSync(new URL('assets/v24/v24_1_history.css',root),'utf8');
 const i18n=fs.readFileSync(new URL('assets/v24/v24_1_i18n.js',root),'utf8');
 
-test('phone and desktop expose Transaction and Balance history without horizontal scrolling',()=>{
-  assert.match(html,/id="transactionHistoryBtn">Transaction history/);
-  assert.match(html,/id="balanceHistoryBtn">Balance history/);
+test('owner-approved unified Account history replaces both screens without horizontal scrolling',()=>{
+  assert.match(html,/id="accountHistoryBtn">Account history/);
+  assert.doesNotMatch(html,/id="transactionHistoryBtn"|id="balanceHistoryBtn"|class="history-mode"/);
+  assert.match(html,/id="historyAccount"[\s\S]*value="Both"[\s\S]*value="Alex"[\s\S]*value="Olga"/);
   assert.match(html,/id="historyDetails"[^>]*hidden/);
   assert.match(css,/\.history-view\{overflow-x:hidden\}/);
   assert.match(css,/@media\(max-width:760px\)[\s\S]*\.history-management-fields\{grid-template-columns:1fr\}/);
@@ -18,7 +19,8 @@ test('phone and desktop expose Transaction and Balance history without horizonta
 });
 
 test('history uses authoritative read routes and revision-bound management protocol',()=>{
-  assert.match(js,/apiCall\(mode==='balances'\?'balanceHistory':'transactionHistory'/);
+  assert.match(js,/apiCall\('accountHistory'/);
+  assert.match(js,/apiCall\('transactionHistory',[\s\S]*detailLogicalTransactionId/);
   assert.match(js,/apiCall\('transactionManagementPreview'/);
   assert.match(js,/apiCall\('transactionManagementCommit'/);
   assert.match(js,/baseRevision:preview\.baseRevision,terminalVersionId:preview\.terminalVersionId/);
@@ -26,10 +28,12 @@ test('history uses authoritative read routes and revision-bound management proto
   assert.match(js,/The change was not confirmed/);
 });
 
-test('immutable balance observations explain their meaning and expose no mutation controls',()=>{
-  assert.match(js,/Financial meaning[\s\S]*Technical details/);
-  assert.match(js,/This immutable observation anchors the recorded account position/);
-  assert.match(js,/manage the linked transaction rather than changing this row/);
+test('recorded balance updates explain their meaning and expose no mutation controls',()=>{
+  assert.match(js,/Recorded balances/);
+  assert.match(js,/This is a recorded balance update, not an expense or income/);
+  assert.match(js,/Record a new balance update if it is wrong/);
+  const balanceDetail=js.slice(js.indexOf('selected=null;const balances='),js.indexOf('function refusalMessage'));
+  assert.doesNotMatch(balanceDetail,/data-management|transactionManagementCommit/);
 });
 
 test('management preview shows the signed server impact without exposing raw JSON',()=>{
@@ -39,15 +43,13 @@ test('management preview shows the signed server impact without exposing raw JSO
   assert.doesNotMatch(js,/JSON\.stringify\(preview\.impact/);
 });
 
-test('audit toggle merges deleted records and labels corrected active records',()=>{
-  assert.match(js,/historyItems\(result\)\{return \[\.\.\.\(result\.transactions\|\|\[\]\)\]\}/);
-  assert.match(js,/page\.pagination\?\.resultCount/);
-  assert.match(js,/historyItems\(result\)/);
-  assert.match(js,/Corrections \/ deleted/);
-  assert.match(js,/operationCount\|\|0\)>0/);
-  assert.match(js,/· Deleted/);
-  assert.match(js,/· Corrected/);
-  assert.match(js,/historyAudit'\)\.onchange=\(\)=>load\(false\)/);
+test('one timeline opens linked current transaction details with the complete audit',()=>{
+  assert.match(js,/detailLogicalTransactionId:item.logicalTransactionId/);
+  assert.match(js,/showAudit:true/);
+  assert.match(js,/renderTransactionDetail\(\)/);
+  assert.match(js,/Complete audit history/);
+  assert.match(js,/auditHistory\(t\)/);
+  assert.doesNotMatch(html,/id="historyAudit"/);
 });
 
 test('transaction detail clearly describes the recorded fact and exposes no internal JSON',()=>{
@@ -90,6 +92,6 @@ test('all enabled families receive contextual correction semantics and salary re
 });
 
 test('English and Russian cover the new static history surface while localization remains display-only',()=>{
-  for(const phrase of ['Transaction history','Balance history','Current salary cycle','Previous salary cycle','Custom date range','Show corrections and deleted records','Apply filters','Clear all','Load more']) assert.match(i18n,new RegExp("'"+phrase.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+"':'"));
+  for(const phrase of ['Account history','Both','Alex change','Alex balance','Olga change','Olga balance','Combined balance','Current salary cycle','Previous salary cycle','Custom date range','Apply filters','Clear all','Load more']) assert.match(i18n,new RegExp("'"+phrase.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+"':'"));
   assert.doesNotMatch(i18n,/transactionManagementPreview|transactionManagementCommit|logicalTransactionId|terminalVersionId/);
 });

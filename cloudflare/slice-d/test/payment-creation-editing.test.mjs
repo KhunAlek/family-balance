@@ -5,6 +5,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {createSeededSqliteD1,SqliteD1Adapter} from '../../slice-c/test/sqlite-d1.mjs';
 import {executeTypedPayment} from '../../slice-c/src/typed-payment.mjs';
 import {BACKUP_TABLES,buildPortableBackup} from '../src/backup.mjs';
+import {buildAccountHistory} from '../src/account-history.mjs';
 import {buildRestoreSql} from '../tools/portable-restore.mjs';
 import {buildTerminalTransactionReadModel} from '../src/terminal-transaction-read-model.mjs';
 import {previewTransactionManagement,executeTransactionManagementCommit} from '../src/transaction-management-protocol.mjs';
@@ -34,7 +35,7 @@ test('normal creation is immediately editable; correction/delete/restore/undo pr
  assert.deepEqual(snap(raw).balance_history.slice(0,original.balance_history.length),original.balance_history);
  const bucket={async put(key,value){this.value=value},async list(){return {objects:[],truncated:false}},async delete(){}};
  const {runPortableBackup}=await import('../src/backup.mjs');await runPortableBackup(db,bucket,{environment:'test',createdAt:nowIso,retentionDays:1});
- const restored=new DatabaseSync(':memory:');t.after(()=>restored.close());restored.exec('PRAGMA foreign_keys=ON');restored.exec(await buildRestoreSql(JSON.parse(bucket.value),{includeSchema:true}));assert.deepEqual(buildTerminalTransactionReadModel(snap(restored)),find());
+ const restored=new DatabaseSync(':memory:');t.after(()=>restored.close());restored.exec('PRAGMA foreign_keys=ON');restored.exec(await buildRestoreSql(JSON.parse(bucket.value),{includeSchema:true}));assert.deepEqual(buildTerminalTransactionReadModel(snap(restored)),find());assert.deepEqual(await buildAccountHistory(snap(restored)),await buildAccountHistory(snap(raw)));
 });
 
 test('creation invalidation, missing actor, retry conflict and forced failure leave no partial identities',async t=>{

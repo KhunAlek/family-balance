@@ -1,3 +1,4 @@
+import {runAccountHistory,AccountHistoryError} from './account-history.mjs';
 import {previewTypedPayment,executeTypedPayment} from '../../slice-c/src/typed-payment.mjs';
 import { OTHER_INCOME_ACTIONS, executeOtherIncomeWrite, executeIncomeReceipt, getOtherIncomeSources, previewOtherIncome } from '../../slice-c/src/other-income.mjs';
 import { previewSalaryReportingCorrection, executeReportingCorrection } from '../../slice-c/src/reporting-correction.mjs';
@@ -159,6 +160,7 @@ async function handleFinancialAction(payload, identity, env, options = {}) {
       const { response } = await runTransactionHistory(env.DB, payload.payload || {}, 'family');
       return jsonResponse(response);
     }
+    if(payload.apiAction==='accountHistory')return jsonResponse(await runAccountHistory(env.DB,payload.payload||{},'family'));
     if (payload.apiAction === 'balanceHistory') {
       const { response } = await runBalanceHistory(env.DB, payload.payload || {}, 'family');
       return jsonResponse(response);
@@ -218,6 +220,7 @@ async function handleFinancialAction(payload, identity, env, options = {}) {
     if (error instanceof TransactionHistoryError) {
       return jsonResponse({ ok: false, code: error.code, error: error.message, restartRequired: error.restartRequired }, error.code === 'STALE_HISTORY_QUERY' ? 409 : 400);
     }
+    if(error instanceof AccountHistoryError)return jsonResponse({ok:false,code:error.code,error:error.message,restartRequired:error.restartRequired},error.code==='STALE_ACCOUNT_HISTORY_QUERY'?409:400);
     if (error instanceof BalanceHistoryError) {
       return jsonResponse({ ok: false, code: error.code, error: error.message, restartRequired: error.restartRequired }, error.code === 'STALE_BALANCE_HISTORY_QUERY' ? 409 : 400);
     }

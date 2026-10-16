@@ -280,3 +280,18 @@ export async function runTerminalTransactionReadModel(db) {
   const model = buildTerminalTransactionReadModel(tables);
   return { model, serialization: serializeTerminalTransactionReadModel(model) };
 }
+
+// Recorded versions are presentation evidence for the Account history timeline.
+// They never replace terminal transactions used by financial consumers.
+export function recordedTransactionVersions(tables,householdId='family') {
+  const indexes=factualIndexes(tables);
+  return tables.logical_transaction_versions.filter(version=>tables.logical_transactions.some(tx=>tx.logical_transaction_id===version.logical_transaction_id&&tx.household_id===householdId)).map(version=>{
+    const components=tables.logical_transaction_components.filter(component=>component.version_id===version.version_id);
+    const transaction=tables.logical_transactions.find(tx=>tx.logical_transaction_id===version.logical_transaction_id);
+    const audit=tables.transaction_management_audit.find(row=>row.resulting_version_id===version.version_id);
+    return { ...reconstructTerminal(version,components,indexes,householdId,{}),logicalTransactionId:version.logical_transaction_id,
+      versionId:version.version_id,operationType:version.operation_type,components:components.map(componentDto),
+      recordedAtUtc:audit?.committed_at_utc||(version.version_number===1?transaction.created_at_utc:null),
+      cashChangeSatang:audit?auditDto(audit).impactSummary.cashChangeSatang:null };
+  });
+}

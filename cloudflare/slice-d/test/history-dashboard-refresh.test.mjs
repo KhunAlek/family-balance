@@ -28,7 +28,7 @@ function historyScreen({commitFails=false,dashboardFails=false}={}){
         if(commitFails)throw new Error('Commit failed');
         return{ok:true};
       }
-      if(action==='transactionHistory')return{ok:true,transactions:[],totals:{moneyInSatang:0,moneyOutSatang:0},pagination:{hasMore:false,resultCount:0}};
+      if(action==='accountHistory')return{ok:true,entries:[],pagination:{hasMore:false,resultCount:0}};
       throw new Error(`Unexpected action ${action}`);
     },
     refreshLiveData:async()=>{
@@ -48,7 +48,7 @@ function historyScreen({commitFails=false,dashboardFails=false}={}){
 test('deleting a transaction refreshes the displayed Available value and history',async()=>{
   const screen=historyScreen();
   await screen.commit();
-  assert.deepEqual(screen.calls,['transactionManagementCommit','dashboard','transactionHistory']);
+  assert.deepEqual(screen.calls,['transactionManagementCommit','dashboard','accountHistory']);
   assert.equal(screen.dashboard.available,101);
   assert.equal(screen.element('historyMessage').textContent,'Transaction updated from the authoritative server.');
 });

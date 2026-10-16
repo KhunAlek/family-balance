@@ -1,9 +1,9 @@
 (()=>{
 const $=id=>document.getElementById(id),esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let mode='transactions',page=null,items=[],selected=null,preview=null,requestId=null,correctionField=null,categories=[],managementOpener=null,previewSequence=0;
+let page=null,items=[],selected=null,preview=null,requestId=null,correctionField=null,categories=[],managementOpener=null,previewSequence=0,loadSequence=0;
 
 const money=satang=>fmtMoney(Number(satang||0)/100,(currentData&&currentData.config&&currentData.config.currency)||'THB',true);
-const label=t=>t.description||t.payee||t.source||String(t.kind||'').replaceAll('_',' ');
+const label=t=>t.description||t.payee||t.source||t.category?.name||String(t.kind||'').replaceAll('_',' ');
 const recordedConsequence=t=>t.direction==='money_out'?money(t.totalSatang)+' paid from '+t.allocations.map(a=>a.account).join(' + '):t.direction==='money_in'?money(t.totalSatang)+' received into '+t.allocations.map(a=>a.account).join(' + '):'Money moved between household accounts.';
 const accountName=value=>String(value||'').replace(/ KTB$/,'');
 const accountSelect=(value,index)=>'<select data-allocation-account data-index="'+index+'"><option value="Alex"'+(accountName(value)==='Alex'?' selected':'')+'>Alex KTB</option><option value="Olga"'+(accountName(value)==='Olga'?' selected':'')+'>Olga KTB</option></select>';
@@ -18,70 +18,49 @@ function impactConsequences(impact){
   return result.length?result:['Account balances do not change.'];
 }
 function message(value,type=''){const el=$('historyMessage');el.textContent=value||'';el.className='form-msg'+(type?' '+type:'')}
-function query(cursor){return mode==='balances'?{pageSize:50,...(cursor?{cursor}:{})}:{period:$('historyPeriod').value,text:$('historySearch').value.trim(),showAudit:$('historyAudit').checked,pageSize:50,...($('historyPeriod').value==='custom'?{customFrom:$('historyFrom').value,customThrough:$('historyThrough').value}:{}),...(cursor?{cursor}:{})}}
-function historyItems(result){return [...(result.transactions||[])]}
+function query(cursor){return {account:$('historyAccount').value,period:$('historyPeriod').value,text:$('historySearch').value.trim(),pageSize:50,...($('historyPeriod').value==='custom'?{customFrom:$('historyFrom').value,customThrough:$('historyThrough').value}:{}),...(cursor?{cursor}:{})}}
 function leaveManagementView(){correctionField=null;preview=null;requestId=null;previewSequence++;$('historyDetails').classList.remove('management-active')}
 
 async function load(append=false){
-  message('Loading…');
-  const result=await apiCall(mode==='balances'?'balanceHistory':'transactionHistory',query(append&&page?.pagination?.nextCursor));
+  const sequence=++loadSequence;message('Loading…');
+  const result=await apiCall('accountHistory',query(append&&page?.pagination?.nextCursor));
+  if(sequence!==loadSequence)return;
   if(!result.ok)throw new Error(result.error||'Could not load history.');
-  page=result;
-  const loaded=mode==='balances'?(result.entries||[]):historyItems(result);
-  items=append?items.concat(loaded):loaded;
+  page=result;items=append?[...new Map(items.concat(result.entries||[]).map(item=>[item.id,item])).values()]:(result.entries||[]);
   leaveManagementView();render();message('');
 }
+function signed(value){return value==null||value===0?'—':(value<0?'−':'+')+money(Math.abs(value))}
+function balanceValue(value){return value==null?'—':money(value)}
+function amountCell(label,value,change=false){return '<td data-label="'+esc(label)+'"><span class="account-cell-label">'+esc(label)+'</span><b>'+esc(change?signed(value):balanceValue(value))+'</b></td>'}
+function accountRow(row,index){
+  const both=$('historyAccount').value==='Both',person=$('historyAccount').value.toLowerCase(),balances=row.balancesAfterSatang||{},changes=row.changesSatang||{};
+  const note=row.businessDate!==row.postingDate?'Transaction date: '+row.businessDate:row.entryType==='balance_update'?'Recorded bank balance':row.entryType==='unlinked_balance'?'Transaction link unavailable':!row.balanceAvailable?'Balance after this transaction is unavailable':'';
+  const date=esc(row.postingDate)+(row.recordedAtUtc?'<small>'+esc(new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}).format(new Date(row.recordedAtUtc)))+'</small>':'');
+  return '<tr><td class="account-date">'+date+'</td><td class="account-operation"><button type="button" data-history-index="'+index+'">'+esc(row.title)+'</button>'+(note?'<small>'+esc(note)+'</small>':'')+'</td>'+(both?amountCell('Alex change',changes.alex,true)+amountCell('Alex balance',balances.alex)+amountCell('Olga change',changes.olga,true)+amountCell('Olga balance',balances.olga)+amountCell('Combined balance',balances.combined):amountCell('Change',changes[person],true)+amountCell('Balance after',balances[person]))+'</tr>';
+}
 function render(){
-  const list=$('historyList');
-  $('historyTitle').textContent=mode==='balances'?'Balance history':'Transaction history';
-  $('historyTransactionsMode').classList.toggle('active',mode==='transactions');
-  $('historyBalancesMode').classList.toggle('active',mode==='balances');
-  $('historyFilters').hidden=mode==='balances';
-  if(mode==='transactions'){
-    const changed=items.filter(item=>item.lifecycle==='deleted'||Number(item.auditSummary?.operationCount||0)>0).length;
-    const total=page.pagination?.resultCount??page.totals.resultCount;
-    $('historySummary').innerHTML='<div><span>Results</span><b>'+total+'</b></div><div><span>Money in</span><b>'+esc(money(page.totals.moneyInSatang))+'</b></div><div><span>Money out</span><b>'+esc(money(page.totals.moneyOutSatang))+'</b></div>'+($('historyAudit').checked?'<div><span>Corrections / deleted</span><b>'+changed+'</b></div>':'');
-  }else $('historySummary').innerHTML='<div><span>Entries</span><b>'+page.counts.entries+'</b></div><div><span>Balance updates</span><b>'+page.counts.observations+'</b></div><div><span>Transactions</span><b>'+page.counts.transactionEffects+'</b></div>';
-  list.innerHTML=items.map((item,index)=>mode==='balances'?balanceRow(item,index):transactionRow(item,index)).join('')||'<div class="empty-state">No records in this view.</div>';
-  list.querySelectorAll('[data-history-index]').forEach(button=>button.onclick=()=>show(items[Number(button.dataset.historyIndex)]));
-  $('historyMore').hidden=!page.pagination.hasMore;
-  $('historyRecordDetail').hidden=true;
+  $('historyTitle').textContent='Account history';
+  const both=$('historyAccount').value==='Both';
+  const headers=both?['Date / time','Operation','Alex change','Alex balance','Olga change','Olga balance','Combined balance']:['Date / time','Operation','Change','Balance after'];
+  $('historyList').innerHTML=items.length?'<table class="account-history-table"><thead><tr>'+headers.map(name=>'<th scope="col">'+esc(name)+'</th>').join('')+'</tr></thead><tbody>'+items.map(accountRow).join('')+'</tbody></table>':'<div class="empty-state">No records in this view.</div>';
+  $('historyList').querySelectorAll('[data-history-index]').forEach(button=>button.onclick=()=>show(items[Number(button.dataset.historyIndex)]));
+  $('historyMore').hidden=!page.pagination.hasMore;$('historyRecordDetail').hidden=true;
 }
-function transactionRow(t,index){
-  const corrected=$('historyAudit').checked&&t.lifecycle!=='deleted'&&Number(t.auditSummary?.operationCount||0)>0;
-  return '<button type="button" class="history-row" data-history-index="'+index+'"><span><b>'+esc(label(t))+'</b><small>'+esc(t.businessDate)+' · '+esc(String(t.kind).replaceAll('_',' '))+(t.lifecycle==='deleted'?' · Deleted':corrected?' · Corrected':'')+'</small></span><strong>'+esc(money(t.totalSatang))+'</strong></button>';
-}
-function balancePresentation(row){
-  if(row.entryType==='balance_observation'){
-    const values=row.balancesSatang||{};
-    return {title:'Balance update', amounts:['alex','olga'].filter(account=>values[account]!=null).map(account=>account[0].toUpperCase()+account.slice(1)+' '+money(values[account])).concat(values.combined!=null?['Total '+money(values.combined)]:[]),note:'Recorded account balance'};
+async function show(item){
+  preview=null;requestId=null;correctionField=null;const sequence=++previewSequence;
+  const el=$('historyRecordDetail');el.hidden=true;selected=null;
+  if(item.logicalTransactionId){
+    try{
+      const result=await apiCall('transactionHistory',{period:'all',showAudit:true,detailLogicalTransactionId:item.logicalTransactionId,pageSize:1});
+      if(sequence!==previewSequence)return;
+      if(!result.ok||!result.detail)throw new Error('The related transaction is unavailable.');
+      selected=result.detail;renderTransactionDetail();el.hidden=false;el.scrollIntoView({block:'start'});
+    }catch(error){message(error.message,'error')}
+    return;
   }
-  const summary=row.transactionSummary;
-  if(!summary)return {title:'Transaction unavailable',amounts:[],note:'The related transaction could not be established.'};
-  return {title:summary.description,amounts:summary.accountChanges.map(change=>change.account+' '+(change.changeSatang<0?'−':'+')+money(Math.abs(change.changeSatang))),note:summary.lifecycle==='deleted'?'Deleted transaction · no current effect':({one_off_payment:'Payment',obligation_payment:'Bill payment',salary_receipt:'Salary',other_income_receipt:'Income',ktb_transfer:'Account transfer',ef_movement:'Emergency fund',goal_movement:'Savings goal'}[summary.kind]||'Transaction')};
-}
-function balanceRow(row,index){
-  const view=balancePresentation(row);
-  return '<button type="button" class="history-row" data-history-index="'+index+'"><span><b>'+esc(view.title)+'</b><small>'+esc(row.businessDate)+' · '+esc(view.note)+'</small></span><strong>'+view.amounts.map(esc).join('<br>')+'</strong></button>';
-}
-async function openLinkedTransaction(item){
-  try{
-    const result=await apiCall('transactionHistory',{period:'all',showAudit:true,detailLogicalTransactionId:item.transactionLink.logicalTransactionId,pageSize:1});
-    if(!result.ok||!result.detail)throw new Error('The related transaction is unavailable.');
-    $('historyPeriod').value='all';$('historyAudit').checked=true;
-    await open('transactions');selected=result.detail;renderTransactionDetail();$('historyRecordDetail').hidden=false;
-  }catch(error){message(error.message,'error')}
-}
-function show(item){
-  selected=item;preview=null;requestId=null;correctionField=null;previewSequence++;
-  const el=$('historyRecordDetail');el.hidden=false;
-  if(mode==='balances'){
-    const view=balancePresentation(item);
-    el.innerHTML='<h3>'+esc(view.title)+'</h3><p>'+esc(item.businessDate)+'</p><p>'+view.amounts.map(esc).join('<br>')+'</p><p>'+esc(view.note)+'</p>'+ (item.transactionLink?.status==='linked'?'<button type="button" class="btn secondary" id="historyLinkedTransaction">View transaction</button>':'')+'<h3>'+esc(item.entryType==='balance_observation'?'Balance observation':'Transaction balance effect')+'</h3><div class="history-consequences"><b>Financial meaning</b><p>'+(item.entryType==='balance_observation'?'This immutable observation anchors the recorded account position. Record a new observation if the factual balance is wrong.':'This effect belongs to a financial transaction; manage the linked transaction rather than changing this row.')+'</p></div><details class="history-technical"><summary>Technical details</summary><pre>'+esc(JSON.stringify(item,null,2))+'</pre></details>';
-    if($('historyLinkedTransaction'))$('historyLinkedTransaction').onclick=()=>openLinkedTransaction(item);
-    el.scrollIntoView({block:'start'});return;
-  }
-  renderTransactionDetail();el.scrollIntoView({block:'start'});
+  selected=null;const balances=item.balancesAfterSatang||{},difference=item.discrepancySatang||{};
+  el.innerHTML='<h3>'+esc(item.title)+'</h3><p>'+esc(item.postingDate)+'</p><div class="history-consequences"><b>Recorded balances</b>'+['alex','olga'].filter(name=>item.recordedAccounts?.[name]).map(name=>'<p>'+esc(name==='alex'?'Alex':'Olga')+': '+esc(balanceValue(balances[name]))+(difference[name]!=null&&difference[name]!==0?' · Difference from previous balance: '+esc(signed(difference[name])):'')+'</p>').join('')+'</div><p>'+(item.entryType==='balance_update'?'This is a recorded balance update, not an expense or income. Record a new balance update if it is wrong.':'This record has no verified transaction link. Its recorded balances remain visible.')+'</p>';
+  el.hidden=false;el.scrollIntoView({block:'start'});
 }
 
 function refusalMessage(code){
@@ -255,18 +234,15 @@ async function commitOperation(operation){
   if(dashboard.status==='fulfilled'&&history.status==='fulfilled')message('Transaction updated from the authoritative server.','success');
   else message('Transaction saved, but the page did not fully refresh. Reload the page to see current data.','error');
 }
-async function open(nextMode){
-  mode=nextMode;items=[];selected=null;leaveManagementView();openDetail('historyDetails',nextMode==='transactions'?$('transactionHistoryBtn'):$('balanceHistoryBtn'));
-  try{await load(false)}catch(e){if(nextMode==='transactions'&&$('historyPeriod').value==='current_cycle'&&/PERIOD_UNAVAILABLE/.test(e.message||'')){$('historyPeriod').value='all';await load(false);message('The recorded salary-cycle boundary is unavailable. Showing all history; choose a custom range if needed.')}else message(e.message,'error')}
+async function open(){
+  items=[];selected=null;leaveManagementView();openDetail('historyDetails',$('accountHistoryBtn'));
+  try{await load(false)}catch(e){if($('historyPeriod').value==='current_cycle'&&/PERIOD_UNAVAILABLE/.test(e.message||'')){$('historyPeriod').value='all';await load(false);message('The recorded salary-cycle boundary is unavailable. Showing all history; choose a custom range if needed.')}else message(e.message,'error')}
 }
-$('transactionHistoryBtn').onclick=()=>open('transactions');
-$('balanceHistoryBtn').onclick=()=>open('balances');
-$('historyTransactionsMode').onclick=()=>open('transactions');
-$('historyBalancesMode').onclick=()=>open('balances');
+$('accountHistoryBtn').onclick=open;
+$('historyAccount').onchange=()=>load(false).catch(err=>message(err.message,'error'));
 $('historyPeriod').onchange=()=>{$('historyCustomDates').hidden=$('historyPeriod').value!=='custom'};
 $('historyFilters').onsubmit=e=>{e.preventDefault();load(false).catch(err=>message(err.message,'error'))};
-$('historyClear').onclick=()=>{$('historyPeriod').value='all';$('historySearch').value='';$('historyAudit').checked=false;$('historyCustomDates').hidden=true;load(false).catch(err=>message(err.message,'error'))};
+$('historyClear').onclick=()=>{$('historyPeriod').value='all';$('historyAccount').value='Both';$('historySearch').value='';$('historyCustomDates').hidden=true;load(false).catch(err=>message(err.message,'error'))};
 $('historyMore').onclick=()=>load(true).catch(err=>message(err.message,'error'));
-$('historyAudit').onchange=()=>load(false).catch(err=>message(err.message,'error'));
 $('historyBack').onclick=()=>{$('historyDetails').classList.contains('management-active')?cancelManagement():closeDetail($('historyDetails'))};
 })();

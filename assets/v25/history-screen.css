@@ -95,3 +95,45 @@
 }
 
 @media(max-width:760px){#historyDetails .history-row{grid-template-columns:minmax(0,1fr)}#historyDetails .history-row strong{text-align:left;max-width:none}}
+
+/* Owner-approved unified account timeline, 16 October 2026. */
+#historyDetails .history-filters{max-width:1200px;grid-template-columns:140px 180px minmax(160px,1fr)}
+#historyDetails .history-filter-actions{grid-column:1/-1}
+#historyDetails .account-history-note{max-width:1200px;margin:14px auto;color:#526579;font-size:12px;line-height:1.5}
+#historyDetails .history-list{display:block;max-width:1200px;margin:0 auto}
+#historyDetails .account-history-table{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;background:#fff;border:1px solid #d5dce5;border-radius:16px;overflow:hidden;font-size:12px}
+#historyDetails .account-history-table th{padding:13px 10px;text-align:right;background:#233b55;color:#fff;font-weight:700;overflow-wrap:anywhere}
+#historyDetails .account-history-table th:first-child{width:13%;text-align:left}
+#historyDetails .account-history-table th:nth-child(2){width:27%;text-align:left}
+#historyDetails .account-history-table td{padding:14px 10px;border-bottom:1px solid #e4e9ef;text-align:right;vertical-align:top;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;line-height:1.45}
+#historyDetails .account-history-table tr:last-child td{border-bottom:0}
+#historyDetails .account-history-table .account-date,#historyDetails .account-history-table .account-operation{text-align:left}
+#historyDetails .account-history-table td small{display:block;margin-top:5px;font-size:10px;line-height:1.4;color:#63758a}
+#historyDetails .account-operation button{border:0;background:transparent;text-align:left;padding:0;min-height:30px;color:#23496a;font:inherit;font-weight:800;cursor:pointer;overflow-wrap:anywhere}
+#historyDetails .account-operation button:hover{text-decoration:underline}
+#historyDetails .account-operation button:focus-visible{outline:2px solid #a88437;outline-offset:3px}
+#historyDetails .account-history-table td:nth-child(4),#historyDetails .account-history-table td:nth-child(6){background:#f4f7fa}
+#historyDetails .history-detail{max-width:1200px;margin:16px auto}
+@media(max-width:760px){
+ #historyDetails .history-filters{grid-template-columns:1fr 1fr}
+ #historyDetails .history-filters>label:nth-child(3){grid-column:1/-1}
+ #historyDetails .account-history-table,#historyDetails .account-history-table tbody{display:block;border:0;background:transparent;overflow:visible}
+ #historyDetails .account-history-table thead{display:none}
+ #historyDetails .account-history-table tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;margin-bottom:12px;padding:12px;border:1px solid #d5dce5;border-radius:16px;background:#fff;box-shadow:0 4px 12px rgba(29,48,68,.06)}
+ #historyDetails .account-history-table td{display:block;min-width:0;text-align:left!important;padding:8px;border:0!important;background:transparent!important;font-size:12px}
+ #historyDetails .account-history-table .account-date,#historyDetails .account-history-table .account-operation{grid-column:1/-1;padding:2px 8px}
+ #historyDetails .account-history-table .account-date{display:flex;gap:8px;color:#63758a;font-size:11px}
+ #historyDetails .account-history-table .account-date small{margin:0;font-size:11px}
+ #historyDetails .account-history-table .account-operation{padding-bottom:10px;margin-bottom:6px;border-bottom:1px solid #e4e9ef!important}
+ #historyDetails .account-history-table td[data-label]::before{content:attr(data-label);display:block;margin-bottom:4px;font-size:10px;color:#63758a}
+ #historyDetails .account-history-table td[data-label="Combined balance"]{grid-column:1/-1;border-top:1px solid #e4e9ef!important;margin-top:6px}
+}
+#historyDetails .account-cell-label{display:none}
+@media(min-width:761px){
+ .main:has(#historyDetails:not([hidden])){display:flex;flex-direction:column;min-height:100dvh}
+ .primary-tab-shell:has(#historyDetails:not([hidden])){flex:1;width:100%}
+}
+@media(max-width:760px){
+ #historyDetails .account-history-table td[data-label]::before{display:none}
+ #historyDetails .account-cell-label{display:block;margin-bottom:4px;font-size:10px;color:#63758a}
+}

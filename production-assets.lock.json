@@ -165,8 +165,8 @@
     },
     {
       "path": "assets/v25/accounts-records-screen.css",
-      "bytes": 3691,
-      "sha256": "099a569d69da5d2e3c7b9718926c47d370a53aff545ddebc6d81d1655b68a951",
+      "bytes": 3794,
+      "sha256": "997fc62b15acc72687d52393fd3b82d6dc172753e207c24ea1833ec19bf00d7f",
       "mime": "text/css"
     },
     {
@@ -399,8 +399,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 36354,
-      "sha256": "bc444e6bbaec2eb22d908cba7d23f08dbac2a8ff560c0d02049503ffcab0e9d8",
+      "bytes": 36355,
+      "sha256": "fa5c2f145dca53a44ee451b7fce93553d96a000de396b0bfe59321e7b451c9e9",
       "mime": "text/html"
     },
     {

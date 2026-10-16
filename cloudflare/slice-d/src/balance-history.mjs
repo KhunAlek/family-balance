@@ -121,7 +121,7 @@ function effectDto(row, linked, receiptsByBalanceRow, transfersByBalanceRow,fund
   return {
     entryType: 'transaction_balance_effect', balanceRowId: Number(row.balance_row_id), businessDate: text(row.business_date), orderingKey: orderKey(row),
     transactionSummary: valid ? {
-      description: transaction.description || transaction.payee || transaction.source || transaction.kind.replaceAll('_', ' '),
+      description: transaction.kind === 'ktb_transfer' ? `Transfer · ${transaction.source} → ${transaction.payee}` : transaction.fund ? `${transaction.fund.goalName || 'Emergency fund'} · ${transaction.fund.direction}` : transaction.description || transaction.payee || transaction.source || transaction.kind.replaceAll('_', ' '),
       kind: transaction.kind, lifecycle: transaction.lifecycle,
       accountChanges: transaction.allocations.filter(allocation => !receiptIds.length || receipts.some(receipt => receiptIds.includes(text(receipt.receipt_id)) && text(receipt.lands_in).replace(/ KTB$/, '') === text(allocation.account).replace(/ KTB$/, ''))).map(allocation => ({
         account: text(allocation.account).replace(/ KTB$/, ''),

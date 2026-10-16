@@ -58,7 +58,7 @@ function balancePresentation(row){
   }
   const summary=row.transactionSummary;
   if(!summary)return {title:'Transaction unavailable',amounts:[],note:'The related transaction could not be established.'};
-  return {title:summary.description,amounts:summary.accountChanges.map(change=>change.account+' '+(change.changeSatang<0?'−':'+')+money(Math.abs(change.changeSatang))),note:summary.lifecycle==='deleted'?'Deleted transaction · no current effect':String(summary.kind).replaceAll('_',' ')};
+  return {title:summary.description,amounts:summary.accountChanges.map(change=>change.account+' '+(change.changeSatang<0?'−':'+')+money(Math.abs(change.changeSatang))),note:summary.lifecycle==='deleted'?'Deleted transaction · no current effect':({one_off_payment:'Payment',obligation_payment:'Bill payment',salary_receipt:'Salary',other_income_receipt:'Income',ktb_transfer:'Account transfer',ef_movement:'Emergency fund',goal_movement:'Savings goal'}[summary.kind]||'Transaction')};
 }
 function balanceRow(row,index){
   const view=balancePresentation(row);

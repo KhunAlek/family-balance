@@ -142,11 +142,11 @@ test('readable linked effects expose exact signed account changes without invent
 
 test('split payment display preserves each exact debit and all recorded facts', async t => {
   const {raw}=fixture(t);const {effectId,tx}=addLinkedPayment(raw);
-  raw.prepare("UPDATE one_off_payment_allocations SET amount_satang=60 WHERE one_off_payment_id='balance-history-payment'").run();
-  raw.prepare('INSERT INTO one_off_payment_allocations VALUES(?,?,?)').run('balance-history-payment','Olga',40);
-  raw.prepare('INSERT INTO logical_transaction_components VALUES(?,?,?,?)').run(`${tx}-v1`,'one_off_payment_allocation','balance-history-payment:Olga','allocation');
-  const before=state(raw);
-  const result=await buildBalanceHistory(snapshot(raw),{pageSize:100});
+  const before=state(raw),tables=snapshot(raw);
+  tables.one_off_payment_allocations.find(row=>row.one_off_payment_id==='balance-history-payment').amount_satang=60;
+  tables.one_off_payment_allocations.push({one_off_payment_id:'balance-history-payment',account:'Olga',amount_satang:40});
+  tables.logical_transaction_components.push({version_id:`${tx}-v1`,component_kind:'one_off_payment_allocation',component_id:'balance-history-payment:Olga',component_role:'allocation'});
+  const result=await buildBalanceHistory(tables,{pageSize:100});
   assert.deepEqual(result.entries.find(row=>row.balanceRowId===effectId).transactionSummary.accountChanges,[{account:'Alex',changeSatang:-60},{account:'Olga',changeSatang:-40}]);
   assert.deepEqual(state(raw),before);
 });

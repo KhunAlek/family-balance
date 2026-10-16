@@ -93,3 +93,5 @@
   #historyDetails .history-management{gap:13px}
   #historyDetails #historyManagement:not(:empty){margin-top:18px;padding-top:16px}
 }
+
+@media(max-width:760px){#historyDetails .history-row{grid-template-columns:minmax(0,1fr)}#historyDetails .history-row strong{text-align:left;max-width:none}}

@@ -113,13 +113,21 @@ function transactionByEffect(canonical, tables) {
   return result;
 }
 
-function effectDto(row, linked, receiptsByBalanceRow, transfersByBalanceRow,fundsByBalanceRow) {
+function effectDto(row, linked, receiptsByBalanceRow, transfersByBalanceRow,fundsByBalanceRow, receipts) {
   const link = linked.get(text(row.balance_row_id));
   const transaction = link?.transaction;
   const receiptIds = receiptsByBalanceRow.get(text(row.balance_row_id)) || [];
   const valid = !!transaction;
   return {
     entryType: 'transaction_balance_effect', balanceRowId: Number(row.balance_row_id), businessDate: text(row.business_date), orderingKey: orderKey(row),
+    transactionSummary: valid ? {
+      description: transaction.description || transaction.payee || transaction.source || transaction.kind.replaceAll('_', ' '),
+      kind: transaction.kind, lifecycle: transaction.lifecycle,
+      accountChanges: transaction.allocations.filter(allocation => !receiptIds.length || receipts.some(receipt => receiptIds.includes(text(receipt.receipt_id)) && text(receipt.lands_in).replace(/ KTB$/, '') === text(allocation.account).replace(/ KTB$/, ''))).map(allocation => ({
+        account: text(allocation.account).replace(/ KTB$/, ''),
+        changeSatang: transaction.direction === 'money_out' ? -Number(allocation.amountSatang) : Number(allocation.amountSatang),
+      })),
+    } : null,
     immutable: true, typedEvidence: fundsByBalanceRow.has(text(row.balance_row_id))?{kind:'fund_movement_balance_effect_id',ids:[text(fundsByBalanceRow.get(text(row.balance_row_id)).fund_movement_id)]}:transfersByBalanceRow.has(text(row.balance_row_id))?{kind:'ktb_transfer_balance_effect_id',ids:[text(transfersByBalanceRow.get(text(row.balance_row_id)).transfer_id)]}:row.obligation_payment_id!==null&&row.obligation_payment_id!==undefined?{kind:'obligation_payment_id',ids:[text(row.obligation_payment_id)]}:row.one_off_payment_id !== null && row.one_off_payment_id !== undefined
       ? { kind: 'one_off_payment_id', ids: [text(row.one_off_payment_id)] }
       : { kind: 'income_receipt_source_balance_row_id', ids: [...receiptIds].sort(compare) },
@@ -186,7 +194,7 @@ export async function buildBalanceHistory(tables, payload = {}, householdId = 'f
   const isEffect = row => fundsByBalanceRow.has(text(row.balance_row_id)) || transfersByBalanceRow.has(text(row.balance_row_id)) || row.one_off_payment_id !== null && row.one_off_payment_id !== undefined || row.obligation_payment_id!==null&&row.obligation_payment_id!==undefined || receiptsByBalanceRow.has(text(row.balance_row_id));
   const observations = rows.filter(row => !isEffect(row));
   const effects = rows.filter(isEffect);
-  const timeline = rows.map(row => isEffect(row) ? effectDto(row, linked, receiptsByBalanceRow,transfersByBalanceRow,fundsByBalanceRow) : observationDto(row));
+  const timeline = rows.map(row => isEffect(row) ? effectDto(row, linked, receiptsByBalanceRow,transfersByBalanceRow,fundsByBalanceRow,tables.income_receipts) : observationDto(row));
   let offset = 0;
   if (cursor) {
     const index = timeline.findIndex(item => JSON.stringify(item.orderingKey) === JSON.stringify(cursor.after));

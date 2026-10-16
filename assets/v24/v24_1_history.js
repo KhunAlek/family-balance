@@ -41,7 +41,7 @@ function render(){
     const changed=items.filter(item=>item.lifecycle==='deleted'||Number(item.auditSummary?.operationCount||0)>0).length;
     const total=page.pagination?.resultCount??page.totals.resultCount;
     $('historySummary').innerHTML='<div><span>Results</span><b>'+total+'</b></div><div><span>Money in</span><b>'+esc(money(page.totals.moneyInSatang))+'</b></div><div><span>Money out</span><b>'+esc(money(page.totals.moneyOutSatang))+'</b></div>'+($('historyAudit').checked?'<div><span>Corrections / deleted</span><b>'+changed+'</b></div>':'');
-  }else $('historySummary').innerHTML='<div><span>Entries</span><b>'+page.counts.entries+'</b></div><div><span>Observations</span><b>'+page.counts.observations+'</b></div><div><span>Transaction effects</span><b>'+page.counts.transactionEffects+'</b></div>';
+  }else $('historySummary').innerHTML='<div><span>Entries</span><b>'+page.counts.entries+'</b></div><div><span>Balance updates</span><b>'+page.counts.observations+'</b></div><div><span>Transactions</span><b>'+page.counts.transactionEffects+'</b></div>';
   list.innerHTML=items.map((item,index)=>mode==='balances'?balanceRow(item,index):transactionRow(item,index)).join('')||'<div class="empty-state">No records in this view.</div>';
   list.querySelectorAll('[data-history-index]').forEach(button=>button.onclick=()=>show(items[Number(button.dataset.historyIndex)]));
   $('historyMore').hidden=!page.pagination.hasMore;
@@ -51,15 +51,34 @@ function transactionRow(t,index){
   const corrected=$('historyAudit').checked&&t.lifecycle!=='deleted'&&Number(t.auditSummary?.operationCount||0)>0;
   return '<button type="button" class="history-row" data-history-index="'+index+'"><span><b>'+esc(label(t))+'</b><small>'+esc(t.businessDate)+' · '+esc(String(t.kind).replaceAll('_',' '))+(t.lifecycle==='deleted'?' · Deleted':corrected?' · Corrected':'')+'</small></span><strong>'+esc(money(t.totalSatang))+'</strong></button>';
 }
+function balancePresentation(row){
+  if(row.entryType==='balance_observation'){
+    const values=row.balancesSatang||{};
+    return {title:'Balance update', amounts:['alex','olga'].filter(account=>values[account]!=null).map(account=>account[0].toUpperCase()+account.slice(1)+' '+money(values[account])).concat(values.combined!=null?['Total '+money(values.combined)]:[]),note:'Recorded account balance'};
+  }
+  const summary=row.transactionSummary;
+  if(!summary)return {title:'Transaction unavailable',amounts:[],note:'The related transaction could not be established.'};
+  return {title:summary.description,amounts:summary.accountChanges.map(change=>change.account+' '+(change.changeSatang<0?'−':'+')+money(Math.abs(change.changeSatang))),note:summary.lifecycle==='deleted'?'Deleted transaction · no current effect':String(summary.kind).replaceAll('_',' ')};
+}
 function balanceRow(row,index){
-  const observation=row.entryType==='balance_observation',values=row.balancesSatang||{};
-  return '<button type="button" class="history-row" data-history-index="'+index+'"><span><b>'+(observation?'Balance observation':'Transaction balance effect')+'</b><small>'+esc(row.businessDate)+' · '+(observation?'Immutable recorded balance':esc(row.transactionLink?.status||'unlinked'))+'</small></span><strong>'+esc(values.combined==null?'Partial accounts':money(values.combined))+'</strong></button>';
+  const view=balancePresentation(row);
+  return '<button type="button" class="history-row" data-history-index="'+index+'"><span><b>'+esc(view.title)+'</b><small>'+esc(row.businessDate)+' · '+esc(view.note)+'</small></span><strong>'+view.amounts.map(esc).join('<br>')+'</strong></button>';
+}
+async function openLinkedTransaction(item){
+  try{
+    const result=await apiCall('transactionHistory',{period:'all',showAudit:true,detailLogicalTransactionId:item.transactionLink.logicalTransactionId,pageSize:1});
+    if(!result.ok||!result.detail)throw new Error('The related transaction is unavailable.');
+    $('historyPeriod').value='all';$('historyAudit').checked=true;
+    await open('transactions');selected=result.detail;renderTransactionDetail();$('historyRecordDetail').hidden=false;
+  }catch(error){message(error.message,'error')}
 }
 function show(item){
   selected=item;preview=null;requestId=null;correctionField=null;previewSequence++;
   const el=$('historyRecordDetail');el.hidden=false;
   if(mode==='balances'){
-    el.innerHTML='<h3>'+esc(item.entryType==='balance_observation'?'Balance observation':'Transaction balance effect')+'</h3><div class="history-consequences"><b>Financial meaning</b><p>'+(item.entryType==='balance_observation'?'This immutable observation anchors the recorded account position. Record a new observation if the factual balance is wrong.':'This effect belongs to a financial transaction; manage the linked transaction rather than changing this row.')+'</p></div><details class="history-technical"><summary>Technical details</summary><pre>'+esc(JSON.stringify(item,null,2))+'</pre></details>';
+    const view=balancePresentation(item);
+    el.innerHTML='<h3>'+esc(view.title)+'</h3><p>'+esc(item.businessDate)+'</p><p>'+view.amounts.map(esc).join('<br>')+'</p><p>'+esc(view.note)+'</p>'+ (item.transactionLink?.status==='linked'?'<button type="button" class="btn secondary" id="historyLinkedTransaction">View transaction</button>':'')+'<h3>'+esc(item.entryType==='balance_observation'?'Balance observation':'Transaction balance effect')+'</h3><div class="history-consequences"><b>Financial meaning</b><p>'+(item.entryType==='balance_observation'?'This immutable observation anchors the recorded account position. Record a new observation if the factual balance is wrong.':'This effect belongs to a financial transaction; manage the linked transaction rather than changing this row.')+'</p></div><details class="history-technical"><summary>Technical details</summary><pre>'+esc(JSON.stringify(item,null,2))+'</pre></details>';
+    if($('historyLinkedTransaction'))$('historyLinkedTransaction').onclick=()=>openLinkedTransaction(item);
     el.scrollIntoView({block:'start'});return;
   }
   renderTransactionDetail();el.scrollIntoView({block:'start'});

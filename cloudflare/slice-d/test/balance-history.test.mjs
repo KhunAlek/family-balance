@@ -127,3 +127,15 @@ test('Worker exposes Balance history only through authenticated same-origin read
   assert.equal((await handleFetch(request({ apiAction: 'balanceHistory' }, true, 'https://evil.example'), env)).status, 403);
   assert.deepEqual(state(raw), before);
 });
+
+
+test('readable linked effects expose exact signed account changes without inventing balances', async t => {
+  const {raw}=fixture(t);
+  const {effectId}=addLinkedPayment(raw);
+  const before=state(raw);
+  const result=await buildBalanceHistory(snapshot(raw),{pageSize:100});
+  const effect=result.entries.find(row=>row.balanceRowId===effectId);
+  assert.deepEqual(effect.transactionSummary,{description:'Linked payment',kind:'one_off_payment',lifecycle:'active',accountChanges:[{account:'Alex',changeSatang:-100}]});
+  assert.equal(effect.balancesSatang,undefined);
+  assert.deepEqual(state(raw),before);
+});
